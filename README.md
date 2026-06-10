@@ -162,8 +162,16 @@ takes the zero-padded 2D real FFT, and samples along the baseline PA.
 Channels are processed in chunks via `jax.lax.map(..., batch_size=chunk)`
 — each chunk is one batched (cu)FFT, and buffers are reused between
 chunks, so peak memory is ~0.85 GiB × chunk (default chunk 16 on GPU
-≈ 14 GiB, fits a 40 GB A100; chunk 4 on CPU). On CPU expect ~0.5 s per
-channel; on an A100 the full 320-channel set takes seconds.
+≈ 14 GiB, fits a 40 GB A100; chunk 4 on CPU).
+
+Measured (320 channels, 15 baselines, pad 8192²): **3.2 ms/channel on a
+Perlmutter A100** (1.02 s steady-state after a one-off ~12 s compile;
+end-to-end 320-channel spectral SNR in 1.3 s, agreeing with the analytic
+visibility to 0.11%) vs ~460 ms/channel on an Intel iMac Pro CPU — a
+~140× speedup. On a *shared* GPU (e.g. a login node) set
+`XLA_PYTHON_CLIENT_PREALLOCATE=false` and reduce `--chunk`, otherwise
+XLA's default 75% preallocation collides with other users and starves
+the cuFFT workspace.
 
 ```bash
 python scripts/bench_spectral.py                    # benchmark, default device
