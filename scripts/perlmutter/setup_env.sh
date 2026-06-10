@@ -16,7 +16,9 @@
 set -euo pipefail
 
 module load python
-conda create -y -n jax-gpu-env python=3.12 pip
+# explicit prefix: NERSC's default envs dir can sit inside the base env,
+# which conda refuses ("cannot be immediately nested")
+conda create -y -p "$HOME/.conda/envs/jax-gpu-env" python=3.12 pip
 source activate jax-gpu-env 2>/dev/null || conda activate jax-gpu-env
 
 pip install --upgrade "jax[cuda12]" numpy scipy matplotlib pytest

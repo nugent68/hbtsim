@@ -15,6 +15,10 @@
 module load python
 source activate jax-gpu-env 2>/dev/null || conda activate jax-gpu-env
 cd "$HOME/binary"
+# don't let XLA preallocate 75% of the GPU: on a shared GPU (login node,
+# or shared QOS neighbors) that collides with other users' allocations
+# and starves the cuFFT workspace
+export XLA_PYTHON_CLIENT_PREALLOCATE=false
 
 echo "=== GPU ==="
 srun python scripts/bench_spectral.py --channels 320
