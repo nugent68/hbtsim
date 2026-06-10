@@ -9,9 +9,10 @@ measuring g2 independently; channel SNRs add in quadrature.
     python -m hbtsim.snr_cli --mode narrowband --baseline 15 \
         --wavelengths 400 800 --filter-width 10       # the old filter setup
 
-In narrowband mode |V|^2(B) comes from the FFT pipeline at the requested
-orbital phase; in spectral mode from the analytic binary visibility
-(validated against the FFT, valid out of eclipse).  Source brightness is
+In spectral mode each channel's |V|^2 comes from the batched FFT pipeline
+(hbtsim.spectral, GPU-accelerated under JAX; ~1 s/channel on CPU) -- pass
+--vis2-method analytic for the instant out-of-eclipse approximation.
+Narrowband mode uses the FFT pipeline per filter.  Source brightness is
 the anchored blackbody model of Beta Aurigae in both modes.
 """
 
@@ -69,8 +70,10 @@ def spectral(args, system, tel, det) -> None:
     for b_m in args.baseline:
         res = spectral_g2_snr(system, b_m, spectrograph=spec,
                               t_int_s=args.time, telescope1=tel,
-                              detector1=det, orbital_phase=args.phase)
-        print(f"Baseline {b_m:.1f} m: "
+                              detector1=det, orbital_phase=args.phase,
+                              vis2_method=args.vis2_method,
+                              chunk_size=args.chunk)
+        print(f"Baseline {b_m:.1f} m ({res.vis2_method} |V|^2): "
               f"total SNR = {res.snr_total:.2f} "
               f"(best channel {res.snr.max():.2f} at "
               f"{res.channel_nm[res.snr.argmax()]:.0f} nm; "
@@ -105,6 +108,12 @@ def main(argv=None) -> None:
                    help="spectral channels (SPAD Lambda: 320)")
     p.add_argument("--lambda-min", type=float, default=400.0)
     p.add_argument("--lambda-max", type=float, default=950.0)
+    p.add_argument("--vis2-method", choices=("fft", "analytic"), default="fft",
+                   help="per-channel |V|^2: batched FFT (valid in eclipses, "
+                        "fast on GPU) or analytic binary (instant, out of "
+                        "eclipse only)")
+    p.add_argument("--chunk", type=int, default=None,
+                   help="FFT channels per GPU/CPU batch (default: auto)")
     # narrowband mode
     p.add_argument("--wavelengths", type=float, nargs="+", default=[400.0, 800.0])
     p.add_argument("--filter-width", type=float, default=10.0,

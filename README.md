@@ -122,12 +122,15 @@ Two observing modes:
   320×1 linear array, so each pixel pair is an independent ~1.7 nm
   spectral channel (400–950 nm) measuring its own g² with per-pixel dead
   time and dark counts. Channel SNRs add in quadrature — a ~√320 ≈ 18×
-  multiplexing gain over a single filter. Per-channel |V|²(B, λ) uses the
-  analytic binary visibility (`hbt.binary_vis2_analytic`, validated
-  against the FFT pipeline; valid out of eclipse). At fixed baseline the
-  fringe phase sweeps with wavelength, so individual channels sit on
-  fringe maxima and nulls — the SNR-weighted channel spectrum traces the
-  binary fringes.
+  multiplexing gain over a single filter. Per-channel |V|²(B, λ) comes
+  from the batched FFT pipeline (`hbtsim.spectral.spectral_vis2`, valid
+  at all phases including eclipses; see "Batched spectral FFT" below).
+  `--vis2-method analytic` switches to the analytic binary visibility
+  (`hbt.binary_vis2_analytic`) — instant and agreeing with the FFT to
+  <0.5%, but valid only out of eclipse. At fixed baseline the fringe
+  phase sweeps with wavelength, so individual channels sit on fringe
+  maxima and nulls — the SNR-weighted channel spectrum traces the binary
+  fringes.
 - **Narrowband** — a single filter per wavelength (`--mode narrowband`),
   with |V|²(B) from the FFT pipeline.
 
@@ -148,6 +151,56 @@ spectral mode gives **total SNR ≈ 16 at B = 50 m** (≈ 6 at 15 m, ≈ 5 at
 100 m; best single channels reach SNR ≈ 1.5 near 700 nm), whereas a
 single 10 nm filter gives only ≈ 0.1–0.4 per wavelength — the spectral
 multiplexing is what makes a 1 m-class measurement practical.
+
+## Batched spectral FFT on GPU
+
+`hbtsim.spectral.spectral_vis2(pos, baselines, wavelengths, system, grid)`
+computes |V|² for every (wavelength, baseline) pair in one jitted JAX
+computation: per channel it renders the limb-darkened binary (the
+limb-darkening coefficient and Planck weights are wavelength-traceable),
+takes the zero-padded 2D real FFT, and samples along the baseline PA.
+Channels are processed in chunks via `jax.lax.map(..., batch_size=chunk)`
+— each chunk is one batched (cu)FFT, and buffers are reused between
+chunks, so peak memory is ~0.85 GiB × chunk (default chunk 16 on GPU
+≈ 14 GiB, fits a 40 GB A100; chunk 4 on CPU). On CPU expect ~0.5 s per
+channel; on an A100 the full 320-channel set takes seconds.
+
+```bash
+python scripts/bench_spectral.py                    # benchmark, default device
+JAX_PLATFORMS=cpu python scripts/bench_spectral.py  # force CPU
+```
+
+## Running on NERSC Perlmutter
+
+One-time setup (login node; **login nodes have no GPUs** — `jax.devices()`
+showing CPU there is expected):
+
+```bash
+git clone https://github.com/nugent68/binary.git ~/binary
+bash ~/binary/scripts/perlmutter/setup_env.sh   # creates conda env jax-gpu-env
+```
+
+The env uses the pip `jax[cuda12]` wheels, which bundle CUDA/cuDNN — do
+**not** `module load cudatoolkit cudnn nccl` (their LD_LIBRARY_PATH
+entries shadow the bundled libraries and can break JAX).
+
+Interactive GPU session (pick your `_g` account;
+`sacctmgr show assoc user=$USER format=account%20 -n -P | sort -u`):
+
+```bash
+salloc -N 1 -C gpu -G 1 -c 32 -q interactive -t 30 -A m2218_g
+module load python && conda activate jax-gpu-env
+cd ~/binary && python scripts/bench_spectral.py --channels 320
+```
+
+Batch job (edit the account in the header if needed):
+
+```bash
+sbatch ~/binary/scripts/perlmutter/bench.sbatch
+```
+
+Keep the repo and env in `$HOME` (not `$SCRATCH`, which is purged after
+~8 weeks); write large job outputs to `$SCRATCH`.
 
 ## Tests
 

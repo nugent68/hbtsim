@@ -101,7 +101,8 @@ def test_spectral_snr_quadrature_sum_and_channels():
     from hbtsim.snr import Spectrograph, spectral_g2_snr
 
     spec = Spectrograph(lambda_min_nm=400.0, lambda_max_nm=950.0, n_channels=32)
-    res = spectral_g2_snr(BETA_AUR, 50.0, spectrograph=spec, t_int_s=3600.0)
+    res = spectral_g2_snr(BETA_AUR, 50.0, spectrograph=spec, t_int_s=3600.0,
+                          vis2_method="analytic")
     assert res.snr_total == pytest.approx(np.sqrt(np.sum(res.snr**2)), rel=1e-12)
     assert res.channel_nm.size == 32
     assert res.channel_nm[0] == pytest.approx(400.0 + 550.0 / 32 / 2)
@@ -130,9 +131,9 @@ def test_spectral_multiplexing_gain():
     sqrt(n) (exact only for a flat spectrum/PDE/|V|^2, so allow slack)."""
     from hbtsim.snr import Spectrograph, spectral_g2_snr
 
-    r40 = spectral_g2_snr(BETA_AUR, 50.0,
+    r40 = spectral_g2_snr(BETA_AUR, 50.0, vis2_method="analytic",
                           spectrograph=Spectrograph(n_channels=40))
-    r320 = spectral_g2_snr(BETA_AUR, 50.0,
+    r320 = spectral_g2_snr(BETA_AUR, 50.0, vis2_method="analytic",
                            spectrograph=Spectrograph(n_channels=320))
     gain = r320.snr_total / r40.snr_total
     assert gain == pytest.approx(np.sqrt(320 / 40), rel=0.15)

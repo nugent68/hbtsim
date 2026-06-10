@@ -222,6 +222,7 @@ class SpectralSNRResult:
     rate_cps: np.ndarray     # detected stellar rate per channel per telescope
     vis2: np.ndarray         # per channel
     mag_ab: np.ndarray       # per channel
+    vis2_method: str = ""
 
 
 def spectral_g2_snr(system: BinarySystem, baseline_m: float,
@@ -232,19 +233,29 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
                     detector1: Detector = SPAD_LAMBDA,
                     detector2: Detector | None = None,
                     pol_factor: float = 0.5, sky_cps_per_channel: float = 0.0,
-                    orbital_phase: float = 0.0) -> SpectralSNRResult:
+                    orbital_phase: float = 0.0,
+                    vis2_method: str = "fft",
+                    grid: GridConfig = GridConfig(),
+                    chunk_size: int | None = None) -> SpectralSNRResult:
     """Total g2 SNR with the source spectrum dispersed over the array.
 
     Each channel (= one pixel per telescope, so dead time and dark counts
-    are per channel) measures g2 independently at its own wavelength;
-    |V|^2(B, lambda) comes from the analytic binary visibility
-    (hbt.binary_vis2_analytic, valid out of eclipse) at the projected
-    separation of the requested orbital phase.  SNR_total = sqrt(sum SNR_i^2).
+    are per channel) measures g2 independently at its own wavelength, with
+    the baseline along the projected separation axis at the requested
+    orbital phase.  SNR_total = sqrt(sum SNR_i^2).
+
+    vis2_method:
+      "fft"      -- batched FFT pipeline (hbtsim.spectral.spectral_vis2):
+                    valid at all phases including eclipses; fast on GPU,
+                    ~1 s/channel on CPU.
+      "analytic" -- hbt.binary_vis2_analytic: instant, agrees with the FFT
+                    to <0.5%, but only valid OUT of eclipse (raises during
+                    one).
     """
     from dataclasses import replace
 
     from .hbt import binary_vis2_analytic
-    from .orbit import sky_positions
+    from .orbit import SkyPositions, sky_positions
 
     telescope2 = telescope1 if telescope2 is None else telescope2
     detector2 = detector1 if detector2 is None else detector2
@@ -252,29 +263,48 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
     det1 = replace(detector1, n_pixels=1)
     det2 = replace(detector2, n_pixels=1)
 
-    pos = sky_positions(2.0 * np.pi * orbital_phase, system)
+    pos = SkyPositions(*(np.asarray(v) for v in
+                         sky_positions(2.0 * np.pi * orbital_phase, system)))
     rho_mas = float(pos.rho)
-
     nm = spectrograph.channel_centers_nm
+
+    if vis2_method == "fft":
+        from .spectral import spectral_vis2
+        vis2 = np.asarray(spectral_vis2(pos, [baseline_m], nm, system, grid,
+                                        chunk_size=chunk_size))[:, 0].astype(float)
+    elif vis2_method == "analytic":
+        sum_radii = (system.angular_radius_mas(system.primary)
+                     + system.angular_radius_mas(system.secondary))
+        if rho_mas < 1.05 * sum_radii:
+            raise ValueError(
+                f"orbital phase {orbital_phase} is in (or near) eclipse "
+                f"(rho = {rho_mas:.3f} mas, disks overlap below "
+                f"{1.05 * sum_radii:.3f} mas): the analytic binary visibility "
+                f"is invalid there; use vis2_method='fft'")
+        vis2 = np.array([float(binary_vis2_analytic(baseline_m, lam_nm,
+                                                    system, rho_mas)[0])
+                         for lam_nm in nm])
+    else:
+        raise ValueError(f"unknown vis2_method {vis2_method!r} "
+                         f"(expected 'fft' or 'analytic')")
+
     snr = np.empty(nm.size)
     rate = np.empty(nm.size)
-    vis2 = np.empty(nm.size)
     mag = np.empty(nm.size)
     for k, lam_nm in enumerate(nm):
         mag[k] = system_ab_mag(system, lam_nm)
-        vis2[k] = float(binary_vis2_analytic(baseline_m, lam_nm, system, rho_mas)[0])
         obs = Observation(wavelength_nm=lam_nm,
                           filter_width_nm=spectrograph.channel_width_nm,
                           t_int_s=t_int_s, pol_factor=pol_factor,
                           sky_cps=sky_cps_per_channel)
-        res = g2_snr(vis2[k], mag[k], obs, telescope1=telescope1,
+        res = g2_snr(float(vis2[k]), mag[k], obs, telescope1=telescope1,
                      telescope2=telescope2, detector1=det1, detector2=det2)
         snr[k] = res.snr
         rate[k] = res.rate1_cps
     return SpectralSNRResult(snr_total=float(np.sqrt(np.sum(snr**2))),
                              spectrograph=spectrograph, baseline_m=baseline_m,
                              channel_nm=nm, snr=snr, rate_cps=rate, vis2=vis2,
-                             mag_ab=mag)
+                             mag_ab=mag, vis2_method=vis2_method)
 
 
 # ---------------------------------------------------------------------------
