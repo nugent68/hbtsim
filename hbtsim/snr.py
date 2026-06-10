@@ -124,6 +124,26 @@ class Observation:
     sky_cps: float = 0.0     # detected sky background per telescope
 
 
+@dataclass(frozen=True)
+class Spectrograph:
+    """Light dispersed along the detector's linear array: each pixel is an
+    independent spectral channel that measures its own g2.  Channel SNRs add
+    in quadrature, a ~sqrt(n_channels) multiplexing gain over a single
+    filter of the same total band."""
+    lambda_min_nm: float = 400.0   # SPAD Lambda sensitivity range
+    lambda_max_nm: float = 950.0
+    n_channels: int = 320          # SPAD Lambda: 320 x 1 pixels
+
+    @property
+    def channel_width_nm(self) -> float:
+        return (self.lambda_max_nm - self.lambda_min_nm) / self.n_channels
+
+    @property
+    def channel_centers_nm(self) -> np.ndarray:
+        return (self.lambda_min_nm
+                + (np.arange(self.n_channels) + 0.5) * self.channel_width_nm)
+
+
 # ---------------------------------------------------------------------------
 # Photon budget
 # ---------------------------------------------------------------------------
@@ -190,6 +210,71 @@ def g2_snr(vis2: float, mag_ab: float, obs: Observation,
     return SNRResult(snr=n_sig / np.sqrt(n_bkg), rate1_cps=r1, rate2_cps=r2,
                      tau_c_s=tau_c, sigma_pair_s=sigma_pair, n_signal=n_sig,
                      n_background=n_bkg, vis2=vis2, obs=obs)
+
+
+@dataclass(frozen=True)
+class SpectralSNRResult:
+    snr_total: float
+    spectrograph: Spectrograph
+    baseline_m: float
+    channel_nm: np.ndarray
+    snr: np.ndarray          # per channel
+    rate_cps: np.ndarray     # detected stellar rate per channel per telescope
+    vis2: np.ndarray         # per channel
+    mag_ab: np.ndarray       # per channel
+
+
+def spectral_g2_snr(system: BinarySystem, baseline_m: float,
+                    spectrograph: Spectrograph = Spectrograph(),
+                    t_int_s: float = 3600.0,
+                    telescope1: Telescope = C2PU,
+                    telescope2: Telescope | None = None,
+                    detector1: Detector = SPAD_LAMBDA,
+                    detector2: Detector | None = None,
+                    pol_factor: float = 0.5, sky_cps_per_channel: float = 0.0,
+                    orbital_phase: float = 0.0) -> SpectralSNRResult:
+    """Total g2 SNR with the source spectrum dispersed over the array.
+
+    Each channel (= one pixel per telescope, so dead time and dark counts
+    are per channel) measures g2 independently at its own wavelength;
+    |V|^2(B, lambda) comes from the analytic binary visibility
+    (hbt.binary_vis2_analytic, valid out of eclipse) at the projected
+    separation of the requested orbital phase.  SNR_total = sqrt(sum SNR_i^2).
+    """
+    from dataclasses import replace
+
+    from .hbt import binary_vis2_analytic
+    from .orbit import sky_positions
+
+    telescope2 = telescope1 if telescope2 is None else telescope2
+    detector2 = detector1 if detector2 is None else detector2
+    # one pixel per channel
+    det1 = replace(detector1, n_pixels=1)
+    det2 = replace(detector2, n_pixels=1)
+
+    pos = sky_positions(2.0 * np.pi * orbital_phase, system)
+    rho_mas = float(pos.rho)
+
+    nm = spectrograph.channel_centers_nm
+    snr = np.empty(nm.size)
+    rate = np.empty(nm.size)
+    vis2 = np.empty(nm.size)
+    mag = np.empty(nm.size)
+    for k, lam_nm in enumerate(nm):
+        mag[k] = system_ab_mag(system, lam_nm)
+        vis2[k] = float(binary_vis2_analytic(baseline_m, lam_nm, system, rho_mas)[0])
+        obs = Observation(wavelength_nm=lam_nm,
+                          filter_width_nm=spectrograph.channel_width_nm,
+                          t_int_s=t_int_s, pol_factor=pol_factor,
+                          sky_cps=sky_cps_per_channel)
+        res = g2_snr(vis2[k], mag[k], obs, telescope1=telescope1,
+                     telescope2=telescope2, detector1=det1, detector2=det2)
+        snr[k] = res.snr
+        rate[k] = res.rate1_cps
+    return SpectralSNRResult(snr_total=float(np.sqrt(np.sum(snr**2))),
+                             spectrograph=spectrograph, baseline_m=baseline_m,
+                             channel_nm=nm, snr=snr, rate_cps=rate, vis2=vis2,
+                             mag_ab=mag)
 
 
 # ---------------------------------------------------------------------------

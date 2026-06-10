@@ -88,6 +88,56 @@ def test_system_ab_mag_hits_anchors():
     assert 1.8 < system_ab_mag(BETA_AUR, 800.0) < 2.5
 
 
+def test_binary_vis2_analytic_limits():
+    from hbtsim.hbt import binary_vis2_analytic
+
+    rho = BETA_AUR.angular_semimajor_mas
+    assert binary_vis2_analytic(0.0, 500.0, BETA_AUR, rho)[0] == pytest.approx(1.0)
+    v2 = binary_vis2_analytic(np.arange(10.0, 160.0, 10.0), 500.0, BETA_AUR, rho)
+    assert np.all((v2 >= 0.0) & (v2 <= 1.0))
+
+
+def test_spectral_snr_quadrature_sum_and_channels():
+    from hbtsim.snr import Spectrograph, spectral_g2_snr
+
+    spec = Spectrograph(lambda_min_nm=400.0, lambda_max_nm=950.0, n_channels=32)
+    res = spectral_g2_snr(BETA_AUR, 50.0, spectrograph=spec, t_int_s=3600.0)
+    assert res.snr_total == pytest.approx(np.sqrt(np.sum(res.snr**2)), rel=1e-12)
+    assert res.channel_nm.size == 32
+    assert res.channel_nm[0] == pytest.approx(400.0 + 550.0 / 32 / 2)
+    assert spec.channel_width_nm == pytest.approx(550.0 / 32)
+
+    # one channel cross-checked against a manual single-filter calculation
+    from dataclasses import replace
+
+    from hbtsim.hbt import binary_vis2_analytic
+    from hbtsim.orbit import sky_positions
+    from hbtsim.snr import SPAD_LAMBDA, g2_snr, system_ab_mag
+
+    k = 10
+    lam = float(res.channel_nm[k])
+    rho = float(np.asarray(sky_positions(0.0, BETA_AUR).rho))
+    vis2 = float(binary_vis2_analytic(50.0, lam, BETA_AUR, rho)[0])
+    obs = Observation(wavelength_nm=lam, filter_width_nm=spec.channel_width_nm,
+                      t_int_s=3600.0)
+    manual = g2_snr(vis2, system_ab_mag(BETA_AUR, lam), obs,
+                    detector1=replace(SPAD_LAMBDA, n_pixels=1))
+    assert res.snr[k] == pytest.approx(manual.snr, rel=1e-12)
+
+
+def test_spectral_multiplexing_gain():
+    """With more channels over the same band the total SNR grows roughly as
+    sqrt(n) (exact only for a flat spectrum/PDE/|V|^2, so allow slack)."""
+    from hbtsim.snr import Spectrograph, spectral_g2_snr
+
+    r40 = spectral_g2_snr(BETA_AUR, 50.0,
+                          spectrograph=Spectrograph(n_channels=40))
+    r320 = spectral_g2_snr(BETA_AUR, 50.0,
+                           spectrograph=Spectrograph(n_channels=320))
+    gain = r320.snr_total / r40.snr_total
+    assert gain == pytest.approx(np.sqrt(320 / 40), rel=0.15)
+
+
 def test_dark_counts_only_add_noise():
     dark = Detector(name="dark", pde_table_nm=IDEAL.pde_table_nm,
                     jitter_fwhm_ps=120.0, dead_time_ns=0.0,

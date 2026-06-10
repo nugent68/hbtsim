@@ -101,34 +101,17 @@ def test_limb_darkened_disk_matches_analytic():
 
 def test_binary_vis2_matches_analytic_at_quadrature():
     """Numerical |V|^2 along the separation axis matches the analytic binary
-    formula (Rai, Basak & Saha 2021, eq. 5):
-
-        |V|^2 = [f1^2 V1^2 + f2^2 V2^2 + 2 f1 f2 V1 V2 cos(2 pi B rho/lam)]
-                / (f1 + f2)^2,
-
+    formula (Rai, Basak & Saha 2021, eq. 5; hbt.binary_vis2_analytic),
     whose fringe period is lambda/rho: 25.0 m @400 nm, 50.0 m @800 nm."""
-    from hbtsim.params import planck
-
     pos = SkyPositions(*(np.asarray(v) for v in sky_positions(0.0, SYSTEM)))
-    rho_rad = float(pos.rho) * MAS
-    th1 = 2 * SYSTEM.angular_radius_mas(SYSTEM.primary) * MAS
-    th2 = 2 * SYSTEM.angular_radius_mas(SYSTEM.secondary) * MAS
 
     for lam_nm in (400.0, 800.0):
         lam = lam_nm * 1e-9
-        u = SYSTEM.ld_coeff(lam_nm)
         img = render_image(pos, SYSTEM, lam_nm, GRID)
         v2map = hbt.vis2_map(img, GRID.pad)
         B = np.arange(0.0, 150.0, 0.5)
         v2 = np.asarray(hbt.vis2_of_baseline(v2map, B, lam, float(pos.pa), GRID))
-
-        f1 = planck(lam, SYSTEM.primary.teff) * th1**2
-        f2 = planck(lam, SYSTEM.secondary.teff) * th2**2
-        v1 = visibility_ld_disk(np.pi * th1 * B / lam, u)
-        v2_star = visibility_ld_disk(np.pi * th2 * B / lam, u)
-        fringe = np.cos(2 * np.pi * B * rho_rad / lam)
-        v2_ana = (f1**2 * v1**2 + f2**2 * v2_star**2
-                  + 2 * f1 * f2 * v1 * v2_star * fringe) / (f1 + f2) ** 2
+        v2_ana = hbt.binary_vis2_analytic(B, lam_nm, SYSTEM, float(pos.rho))
         # agreement to better than 1% of the zero-baseline amplitude checks
         # both the fringe period (lambda/rho) and the disk envelopes
         assert np.allclose(v2, v2_ana, atol=5e-3)

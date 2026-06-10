@@ -70,6 +70,35 @@ def g2_of_baseline(vis2: jax.Array, baselines_m, wavelength_m: float,
                                   grid, crop_half)
 
 
+def binary_vis2_analytic(baselines_m, wavelength_nm: float, system,
+                         rho_mas: float) -> np.ndarray:
+    """|V|^2 along the separation axis for two non-overlapping limb-darkened
+    disks at projected separation rho (Rai, Basak & Saha 2021, eq. 5):
+
+        |V|^2 = [f1^2 V1^2 + f2^2 V2^2 + 2 f1 f2 V1 V2 cos(2 pi B rho/lam)]
+                / (f1 + f2)^2.
+
+    Much faster than the FFT pipeline (no rendering) and validated against
+    it to <0.5% in tests/test_sanity.py; NOT valid during eclipses, where
+    the disks overlap."""
+    from .limbdark import visibility_ld_disk
+    from .params import MAS, planck
+
+    lam = wavelength_nm * 1e-9
+    u = system.ld_coeff(wavelength_nm)
+    b = np.atleast_1d(np.asarray(baselines_m, dtype=float))
+    rho_rad = rho_mas * MAS
+
+    th = [2.0 * system.angular_radius_mas(s) * MAS
+          for s in (system.primary, system.secondary)]
+    f = [planck(lam, s.teff) * t**2
+         for s, t in zip((system.primary, system.secondary), th)]
+    v = [visibility_ld_disk(np.pi * t * b / lam, u) for t in th]
+    fringe = np.cos(2.0 * np.pi * b * rho_rad / lam)
+    return (f[0]**2 * v[0]**2 + f[1]**2 * v[1]**2
+            + 2.0 * f[0] * f[1] * v[0] * v[1] * fringe) / (f[0] + f[1])**2
+
+
 def vis2_direct(img: np.ndarray, baselines_m, wavelength_m: float,
                 pa_rad: float, grid: GridConfig) -> np.ndarray:
     """Direct DFT evaluation of |V|^2 at exact (u, v) points; slow reference

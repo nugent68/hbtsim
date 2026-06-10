@@ -116,20 +116,38 @@ Calern plateau) — two 1 m telescopes on a 15 m baseline — with Pi Imaging
 SPAD Lambda detectors (PDE 22% at 400 nm / 14% at 800 nm, 120 ps FWHM
 jitter, 10 ns dead time, 250 cps dark; `background/SPADlambdadatasheet.pdf`).
 
+Two observing modes:
+
+- **Spectral (default)** — the light is dispersed along the SPAD Lambda's
+  320×1 linear array, so each pixel pair is an independent ~1.7 nm
+  spectral channel (400–950 nm) measuring its own g² with per-pixel dead
+  time and dark counts. Channel SNRs add in quadrature — a ~√320 ≈ 18×
+  multiplexing gain over a single filter. Per-channel |V|²(B, λ) uses the
+  analytic binary visibility (`hbt.binary_vis2_analytic`, validated
+  against the FFT pipeline; valid out of eclipse). At fixed baseline the
+  fringe phase sweeps with wavelength, so individual channels sit on
+  fringe maxima and nulls — the SNR-weighted channel spectrum traces the
+  binary fringes.
+- **Narrowband** — a single filter per wavelength (`--mode narrowband`),
+  with |V|²(B) from the FFT pipeline.
+
 ```bash
-# C2PU defaults: B = 15 m, D = 1 m, 10 nm filters at 400 & 800 nm, 1 h
+# C2PU defaults: spectral mode, B = 50 m, 2 x 1 m, 320 channels, 1 h
 .venv/bin/python -m hbtsim.snr_cli
 
-# sweep baselines, change aperture/filter/integration time
-.venv/bin/python -m hbtsim.snr_cli --baseline 15 30 50 100 --diameter 1.5 \
-    --filter-width 1 --time 7200
+# several baselines / different hardware
+.venv/bin/python -m hbtsim.snr_cli --baseline 15 50 100 --diameter 1.5
+
+# the original two-filter setup
+.venv/bin/python -m hbtsim.snr_cli --mode narrowband --baseline 15 \
+    --wavelengths 400 800 --filter-width 10
 ```
 
-For Beta Aurigae at quadrature with the C2PU defaults this gives, per
-1 h: SNR ≈ 0.11 at 400 nm (B = 15 m is near a fringe minimum, |V|² ≈ 0.1)
-and ≈ 0.42 at 800 nm (|V|² ≈ 0.34) — i.e. detecting the bump needs many
-hours or larger |V|² baselines, as expected for intensity interferometry
-with 1 m-class apertures.
+For Beta Aurigae at quadrature with C2PU-class hardware, per 1 h:
+spectral mode gives **total SNR ≈ 16 at B = 50 m** (≈ 6 at 15 m, ≈ 5 at
+100 m; best single channels reach SNR ≈ 1.5 near 700 nm), whereas a
+single 10 nm filter gives only ≈ 0.1–0.4 per wavelength — the spectral
+multiplexing is what makes a 1 m-class measurement practical.
 
 ## Tests
 
