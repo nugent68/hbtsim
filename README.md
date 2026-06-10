@@ -152,6 +152,25 @@ spectral mode gives **total SNR ≈ 16 at B = 50 m** (≈ 6 at 15 m, ≈ 5 at
 single 10 nm filter gives only ≈ 0.1–0.4 per wavelength — the spectral
 multiplexing is what makes a 1 m-class measurement practical.
 
+## g²(λ) movie with hourly error bars
+
+`python -m hbtsim.g2spec` produces a movie of the measurable g²(λ)
+spectrum: one frame per hour over the full 3.96-day orbit, each showing
+a simulated one-hour measurement (per-channel points, inverse-variance
+8-channel bins with 1σ error bars from the photon budget — jitter, dead
+time, dark counts, unpolarized factor) over the true model curve. The
+per-channel |V|²(B, λ) comes from the batched FFT pipeline, so the
+eclipse frames (overlapping disks) are exact. The compute step is
+GPU-friendly and separable from the rendering:
+
+```bash
+# on Perlmutter (GPU, ~4 min):
+srun -n 1 -A m2218_g -C gpu -q interactive -G 1 -c 32 -t 15 \
+    python -m hbtsim.g2spec --compute-only --npz $SCRATCH/g2spec.npz
+# locally (needs ffmpeg):
+python -m hbtsim.g2spec --render-only --npz output/g2spec.npz --out output/g2spec.mp4
+```
+
 ## Batched spectral FFT on GPU
 
 `hbtsim.spectral.spectral_vis2(pos, baselines, wavelengths, system, grid)`

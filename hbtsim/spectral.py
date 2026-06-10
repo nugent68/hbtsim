@@ -51,8 +51,9 @@ def _spectral_vis2_jit(x1, y1, x2, y2, front2, r1, r2,
         img = _render_kernel(x1, y1, x2, y2, front2, r1, r2,
                              w1_k, jnp.float32(1.0), u_k, grid.n)
         v2map = vis2_map(img, grid.pad, crop_half)
-        return vis2_of_baseline(v2map, baselines_m, lam_k, pa_rad, grid,
+        samp = vis2_of_baseline(v2map, baselines_m, lam_k, pa_rad, grid,
                                 crop_half)
+        return samp, jnp.sum(img)
 
     return jax.lax.map(one_channel, (u, w1, lam_m), batch_size=chunk)
 
@@ -61,19 +62,23 @@ def spectral_vis2(pos: SkyPositions, baselines_m, wavelengths_nm,
                   system: BinarySystem, grid: GridConfig, *,
                   pa_rad: float | None = None,
                   chunk_size: int | None = None,
-                  crop_half: int = CROP_HALF) -> jax.Array:
+                  crop_half: int = CROP_HALF,
+                  return_flux: bool = False) -> jax.Array:
     """|V|^2 for every (wavelength, baseline) pair at one epoch.
 
     pos entries must be scalars (a single epoch).  The baseline position
     angle defaults to the projected separation axis, matching the movie
-    panel and the analytic binary visibility.  Returns (n_lambda, n_B).
+    panel and the analytic binary visibility.  Returns (n_lambda, n_B);
+    with return_flux=True also the (n_lambda,) total image flux per
+    channel (arbitrary units, eclipse-dimmed -- useful for per-epoch
+    photometry without re-rendering).
     """
     scale = grid.pixel_scale_mas
     u, w1 = spectral_weights(wavelengths_nm, system)
     lam_m = jnp.asarray(wavelengths_nm, dtype=jnp.float32) * 1e-9
     pa = float(pos.pa) if pa_rad is None else float(pa_rad)
     chunk = _auto_chunk() if chunk_size is None else int(chunk_size)
-    return _spectral_vis2_jit(
+    vis2, flux = _spectral_vis2_jit(
         jnp.float32(pos.x1 / scale), jnp.float32(pos.y1 / scale),
         jnp.float32(pos.x2 / scale), jnp.float32(pos.y2 / scale),
         jnp.bool_(pos.front2),
@@ -83,3 +88,4 @@ def spectral_vis2(pos: SkyPositions, baselines_m, wavelengths_nm,
         jnp.asarray(np.atleast_1d(baselines_m), dtype=jnp.float32),
         jnp.float32(pa),
         grid, chunk, crop_half)
+    return (vis2, flux) if return_flux else vis2

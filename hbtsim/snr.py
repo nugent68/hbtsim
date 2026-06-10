@@ -188,6 +188,19 @@ class SNRResult:
     obs: Observation
 
 
+def vis2_noise(mag_ab: float, obs: Observation,
+               telescope1: Telescope = C2PU,
+               telescope2: Telescope | None = None,
+               detector1: Detector = SPAD_LAMBDA,
+               detector2: Detector | None = None) -> float:
+    """1-sigma uncertainty of a |V|^2 measurement over obs.t_int_s (the
+    noise-equivalent squared visibility): sigma = sqrt(N_bkg) /
+    (pol_factor tau_c R1 R2 T), i.e. SNR = |V|^2 / vis2_noise."""
+    r = g2_snr(1.0, mag_ab, obs, telescope1=telescope1, telescope2=telescope2,
+               detector1=detector1, detector2=detector2)
+    return 1.0 / r.snr
+
+
 def g2_snr(vis2: float, mag_ab: float, obs: Observation,
            telescope1: Telescope = C2PU, telescope2: Telescope | None = None,
            detector1: Detector = SPAD_LAMBDA,
