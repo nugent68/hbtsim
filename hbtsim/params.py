@@ -31,6 +31,8 @@ DAY = 86400.0               # s
 
 MAS = np.pi / (180.0 * 3600.0 * 1000.0)  # 1 milliarcsecond in radians
 
+AB_ZERO_FNU = 3.631e-23     # AB zero point, 3631 Jy in W m^-2 Hz^-1
+
 
 def planck(wavelength_m: float, teff: float) -> float:
     """Planck spectral radiance B_lambda(T); only relative values matter here."""

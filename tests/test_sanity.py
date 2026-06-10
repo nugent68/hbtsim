@@ -177,6 +177,21 @@ def test_lightcurve_flat_out_of_eclipse_and_depths():
     assert 0.0 < depth2 <= depth1  # secondary minimum is shallower
 
 
+def test_apparent_magnitudes_reasonable():
+    """Synthetic AB magnitudes near the observed system brightness (V ~ 1.9;
+    blackbody approximation allows a few tenths of a magnitude offset), and
+    the A-type pair is brighter in g than in i."""
+    from hbtsim.photometry import apparent_ab_mag
+
+    pos = SkyPositions(*(np.asarray(v) for v in sky_positions(0.0, SYSTEM)))
+    mags = {}
+    for band, lam_nm in (("g", 477.0), ("i", 763.0)):
+        flux = float(render_image(pos, SYSTEM, lam_nm, GRID).sum())
+        mags[band] = float(apparent_ab_mag(flux, lam_nm, SYSTEM, GRID))
+    assert 1.4 < mags["g"] < 2.6
+    assert mags["i"] > mags["g"]
+
+
 def test_uniform_disk_eclipse_depth_matches_circle_overlap():
     """With u = 0 and equal surface brightness, the blocked flux is exactly
     the lens-shaped overlap area of the two disks."""
