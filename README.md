@@ -8,9 +8,9 @@ sky grid, computes the squared visibility |V|² via a zero-padded 2D FFT
 
 1. **Sky image** — the two stars orbiting each other (g band, to scale,
    milliarcsecond axes), including the partial eclipses.
-2. **Lightcurve** — apparent SDSS g- and i-band magnitudes (synthetic
-   monochromatic AB magnitudes at the band effective wavelengths) with a
-   moving phase cursor.
+2. **Lightcurve** — apparent SDSS g- and i-band magnitudes with a moving
+   phase cursor, anchored to the observed system brightness
+   (g ≈ 1.80, i ≈ 2.10).
 3. **g²(B)** — the second-order correlation versus telescope baseline at
    400 nm and 800 nm, sampled every 10 m from 10 m to 150 m, with the
    smooth underlying curve.
@@ -37,10 +37,15 @@ with Claret & Bloemen (2011) coefficients for ~9300 K stars, weighted by
 the Planck function at each star's effective temperature. Eclipses are
 handled by z-ordering the disks on the grid, which also yields the g/i
 lightcurves by direct image summation. The lightcurve is calibrated to
-apparent AB magnitudes from the physical flux at Earth,
-f_λ = B_λ(T) × Ω_star (blackbody photospheres), giving g ≈ 2.26 out of
-eclipse — within the few-tenths-of-a-magnitude accuracy expected of the
-blackbody approximation compared with the observed V ≈ 1.90. The g²(B) panel orients the baseline
+apparent magnitudes in two steps: synthetic monochromatic AB magnitudes
+are computed from the physical flux at Earth, f_λ = B_λ(T) × Ω_star
+(blackbody photospheres), and each band is then shifted by a constant so
+its maximum light matches the observed photometry, g ≈ 1.80, i ≈ 2.10
+(from V = 1.90, B−V = 0.03 via the Jester et al. 2005 transformations).
+The blackbody approximation alone is ~0.46 mag too faint in g and
+~0.18 mag in i (no Balmer/Paschen line blanketing or H⁻ opacity); the
+anchoring removes that zero-point error while the eclipse shapes and
+depths remain purely simulated. The g²(B) panel orients the baseline
 along the instantaneous projected separation axis by default
 (`--baseline-pa` accepts a fixed position angle in degrees instead), so the
 binary fringes — period λ/ρ ≈ 25 m at 400 nm at quadrature — are always in

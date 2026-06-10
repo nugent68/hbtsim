@@ -180,16 +180,24 @@ def test_lightcurve_flat_out_of_eclipse_and_depths():
 def test_apparent_magnitudes_reasonable():
     """Synthetic AB magnitudes near the observed system brightness (V ~ 1.9;
     blackbody approximation allows a few tenths of a magnitude offset), and
-    the A-type pair is brighter in g than in i."""
-    from hbtsim.photometry import apparent_ab_mag
+    anchoring pins maximum light to the observed band magnitudes while
+    preserving the eclipse depth."""
+    from hbtsim.photometry import anchored_mags, apparent_ab_mag
 
-    pos = SkyPositions(*(np.asarray(v) for v in sky_positions(0.0, SYSTEM)))
-    mags = {}
+    anchors = dict(SYSTEM.mag_anchors)
     for band, lam_nm in (("g", 477.0), ("i", 763.0)):
-        flux = float(render_image(pos, SYSTEM, lam_nm, GRID).sum())
-        mags[band] = float(apparent_ab_mag(flux, lam_nm, SYSTEM, GRID))
-    assert 1.4 < mags["g"] < 2.6
-    assert mags["i"] > mags["g"]
+        synth = np.empty(2)
+        for k, psi in enumerate((0.0, np.pi / 2)):  # max light, mid-eclipse
+            pos = SkyPositions(*(np.asarray(v) for v in sky_positions(psi, SYSTEM)))
+            flux = float(render_image(pos, SYSTEM, lam_nm, GRID).sum())
+            synth[k] = float(apparent_ab_mag(flux, lam_nm, SYSTEM, GRID))
+        # blackbody zero point is within ~0.6 mag of the observed anchor
+        assert abs(synth[0] - anchors[band]) < 0.6
+        anchored = anchored_mags(synth, band, SYSTEM)
+        assert anchored[0] == pytest.approx(anchors[band], abs=1e-12)
+        # anchoring is a constant shift: eclipse depth unchanged
+        assert (anchored[1] - anchored[0]) == pytest.approx(synth[1] - synth[0],
+                                                            abs=1e-9)
 
 
 def test_uniform_disk_eclipse_depth_matches_circle_overlap():

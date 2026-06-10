@@ -64,6 +64,11 @@ class BinarySystem:
     # Linear limb-darkening coefficient u vs wavelength [nm], interpolated
     # linearly between table points (same law assumed for both stars).
     ld_table_nm: tuple = ((400.0, 0.52), (477.0, 0.50), (763.0, 0.30), (800.0, 0.29))
+    # Observed out-of-eclipse (maximum light) apparent magnitudes per band,
+    # used to anchor the synthetic lightcurves.  For Beta Aurigae these are
+    # derived from V = 1.90, B-V = 0.03 (Bright Star Catalogue) with the
+    # Jester et al. 2005 Johnson->SDSS transformations: g ~ 1.80, i ~ 2.10.
+    mag_anchors: tuple = (("g", 1.80), ("i", 2.10))
 
     # ---- derived angular quantities (sky plane) ----
     @property

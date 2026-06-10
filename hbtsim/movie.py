@@ -20,7 +20,7 @@ from matplotlib.animation import FFMpegWriter, FuncAnimation
 from . import hbt
 from .orbit import SkyPositions, sky_positions
 from .params import BinarySystem, GridConfig, MovieConfig
-from .photometry import apparent_ab_mag, band_flux
+from .photometry import anchored_mags, apparent_ab_mag, band_flux
 from .render import render_image
 
 DISPLAY_HALF_PX = 128   # display crop half-width after 2x downsampling
@@ -83,7 +83,8 @@ def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
         if verbose and (k % 20 == 0 or k == nf - 1):
             print(f"  frame {k + 1}/{nf}", flush=True)
 
-    mags = {band: apparent_ab_mag(fluxes[band], lam_nm, system, grid)
+    mags = {band: anchored_mags(apparent_ab_mag(fluxes[band], lam_nm, system, grid),
+                                band, system)
             for band, lam_nm in cfg.bands}
     extent = DISPLAY_HALF_PX * DISPLAY_BIN * grid.pixel_scale_mas
     return FrameData(system, grid, cfg, psi / (2 * np.pi), disp, extent,
@@ -117,7 +118,7 @@ def make_movie(fd: FrameData, path: str, verbose: bool = True) -> None:
     ax2.set_xlim(0, 1)
     ax2.invert_yaxis()
     ax2.set_xlabel("Orbital phase")
-    ax2.set_ylabel("Apparent magnitude (AB)")
+    ax2.set_ylabel("Apparent magnitude")
     ax2.set_title("Lightcurve")
     ax2.legend(loc="lower right")
     ax2.grid(alpha=0.3)
