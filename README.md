@@ -93,6 +93,44 @@ uv pip install -p .venv/bin/python jax numpy matplotlib pytest scipy
 .venv/bin/python -m hbtsim --baseline-pa 0
 ```
 
+## Observation SNR (hbtsim.snr)
+
+`hbtsim/snr.py` estimates the signal-to-noise of a g²(B) measurement with
+a pair of telescopes and photon-counting detectors, using the standard
+photon-counting intensity-interferometry budget: detected stellar rates
+R_i from the source AB magnitude (anchored blackbody model), excess
+coincidences N_sig = ½|V|²·τ_c·R₁R₂·T for unpolarized light spread over
+the detectors' combined timing jitter, and a Gaussian matched filter
+against the accidental-coincidence floor (including dark and sky counts),
+
+    SNR = ½ |V|² τ_c R₁ R₂ √T / √(b₁ b₂ · 2√π σ_pair).
+
+Per-pixel non-paralyzable dead time is included; SNR is nearly independent
+of the filter width in the unsaturated limit. Everything is parameterized
+(`Telescope`, `Detector`, `Observation` dataclasses): telescope diameter
+and throughput, detector PDE curve / jitter / dead time / dark rate /
+pixel count, filter width, integration time, polarization.
+
+Built-in example: the C2PU pair (Centre Pédagogique Planète Univers,
+Calern plateau) — two 1 m telescopes on a 15 m baseline — with Pi Imaging
+SPAD Lambda detectors (PDE 22% at 400 nm / 14% at 800 nm, 120 ps FWHM
+jitter, 10 ns dead time, 250 cps dark; `background/SPADlambdadatasheet.pdf`).
+
+```bash
+# C2PU defaults: B = 15 m, D = 1 m, 10 nm filters at 400 & 800 nm, 1 h
+.venv/bin/python -m hbtsim.snr_cli
+
+# sweep baselines, change aperture/filter/integration time
+.venv/bin/python -m hbtsim.snr_cli --baseline 15 30 50 100 --diameter 1.5 \
+    --filter-width 1 --time 7200
+```
+
+For Beta Aurigae at quadrature with the C2PU defaults this gives, per
+1 h: SNR ≈ 0.11 at 400 nm (B = 15 m is near a fringe minimum, |V|² ≈ 0.1)
+and ≈ 0.42 at 800 nm (|V|² ≈ 0.34) — i.e. detecting the bump needs many
+hours or larger |V|² baselines, as expected for intensity interferometry
+with 1 m-class apertures.
+
 ## Tests
 
 Analytic sanity checks (Airy pattern and first null, limb-darkened disk
