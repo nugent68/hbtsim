@@ -25,6 +25,16 @@ from .render import render_image
 
 DISPLAY_HALF_PX = 128   # display crop half-width after 2x downsampling
 DISPLAY_BIN = 2
+# The sky panel is a false-color RGB composite: renders at these
+# wavelengths weighted by the absolute Planck surface brightness and
+# white-balanced to a reference temperature, so a hot star looks blue
+# and a cool one orange (a 4900 K blackbody is nearly flat in raw
+# B_lambda across the optical -- without the balance it reads gray).
+# The gamma stretch is applied to luminance only, preserving the color
+# saturation while lifting the much fainter cool star above black.
+RGB_DISPLAY_NM = (700.0, 550.0, 440.0)  # R, G, B channels
+WHITE_REF_TEFF = 7500.0                 # appears white/neutral
+DISPLAY_GAMMA = 0.43
 
 
 @dataclass
@@ -49,6 +59,37 @@ def _display_crop(img: np.ndarray, n: int) -> np.ndarray:
     return crop.reshape(m, DISPLAY_BIN, m, DISPLAY_BIN).mean(axis=(1, 3))
 
 
+def render_display_rgb(pos, system, grid) -> np.ndarray:
+    """(m, m, 3) true-temperature-color sky image at one epoch.
+
+    Each channel is the rendered image at RGB_DISPLAY_NM multiplied by
+    the secondary's Planck surface brightness at that wavelength (the
+    render is in units of B_lambda(T2), so this restores the absolute
+    inter-channel scaling) and divided by the white-reference Planck
+    spectrum: a pixel of star s carries B_lambda(T_s)/B_lambda(T_ref)."""
+    from .params import planck
+    from .render import render_image
+
+    m = 2 * DISPLAY_HALF_PX
+    rgb = np.empty((m, m, 3), np.float32)
+    for c, lam_nm in enumerate(RGB_DISPLAY_NM):
+        img = np.asarray(render_image(pos, system, lam_nm, grid))
+        lam_m = lam_nm * 1e-9
+        rgb[..., c] = (_display_crop(img, grid.n)
+                       * planck(lam_m, system.secondary.teff)
+                       / planck(lam_m, WHITE_REF_TEFF))
+    return rgb
+
+
+def stretch_rgb(disp: np.ndarray) -> np.ndarray:
+    """Normalize a (..., 3) RGB stack to [0, 1], gamma-stretching the
+    luminance only so per-pixel color ratios (saturation) are preserved."""
+    lum = disp.max(axis=-1)
+    lum_stretched = np.clip(lum / lum.max(), 0.0, 1.0) ** DISPLAY_GAMMA
+    scale = np.where(lum > 0.0, lum_stretched / np.maximum(lum, 1e-30), 0.0)
+    return np.clip(disp * scale[..., None], 0.0, 1.0)
+
+
 def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
                       verbose: bool = True) -> FrameData:
     nf = cfg.n_frames
@@ -56,7 +97,8 @@ def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
     pos_all = sky_positions(psi, system)
 
     fine_b = cfg.fine_baselines_m
-    disp = np.empty((nf, 2 * DISPLAY_HALF_PX, 2 * DISPLAY_HALF_PX), np.float32)
+    disp = np.empty((nf, 2 * DISPLAY_HALF_PX, 2 * DISPLAY_HALF_PX, 3),
+                    np.float32)
     fluxes = {band: np.empty(nf) for band, _ in cfg.bands}
     g2_fine = np.empty((nf, len(cfg.wavelengths_nm), fine_b.size), np.float32)
     g2_pts = np.empty((nf, len(cfg.wavelengths_nm), len(cfg.baselines_m)), np.float32)
@@ -70,8 +112,7 @@ def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
         for band, lam_nm in cfg.bands:
             img = np.asarray(render_image(pos, system, lam_nm, grid))
             fluxes[band][k] = band_flux(img)
-            if band == "g":
-                disp[k] = _display_crop(img, grid.n)
+        disp[k] = render_display_rgb(pos, system, grid)
 
         for j, lam_nm in enumerate(cfg.wavelengths_nm):
             img = render_image(pos, system, lam_nm, grid)
@@ -100,14 +141,13 @@ def make_movie(fd: FrameData, path: str, verbose: bool = True) -> None:
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16.5, 5.2))
     fig.suptitle(f"HBT intensity interferometry: {fd.system.name}", fontsize=14)
 
-    # --- panel 1: sky image ---
+    # --- panel 1: sky image (true-temperature-color RGB) ---
     e = fd.disp_extent_mas
-    vmax = fd.disp_imgs.max()
-    im = ax1.imshow(fd.disp_imgs[0], origin="lower", extent=[-e, e, -e, e],
-                    cmap="inferno", vmin=0.0, vmax=vmax)
+    disp_rgb = stretch_rgb(fd.disp_imgs)
+    im = ax1.imshow(disp_rgb[0], origin="lower", extent=[-e, e, -e, e])
     ax1.set_xlabel("x [mas]")
     ax1.set_ylabel("y [mas]")
-    ax1.set_title("Sky image (g band)")
+    ax1.set_title("Sky image (temperature color)")
     phase_txt = ax1.text(0.03, 0.95, "", transform=ax1.transAxes, color="w", fontsize=10)
 
     # --- panel 2: lightcurves ---
@@ -148,7 +188,7 @@ def make_movie(fd: FrameData, path: str, verbose: bool = True) -> None:
     fig.tight_layout(rect=[0, 0, 1, 0.95])
 
     def update(k):
-        im.set_data(fd.disp_imgs[k])
+        im.set_data(disp_rgb[k])
         phase_txt.set_text(f"phase = {fd.phase[k]:.3f}")
         cursor.set_xdata([fd.phase[k], fd.phase[k]])
         for j in range(len(cfg.wavelengths_nm)):

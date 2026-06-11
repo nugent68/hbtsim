@@ -29,10 +29,10 @@ from dataclasses import replace
 
 import numpy as np
 
-from .movie import DISPLAY_BIN, DISPLAY_HALF_PX, _display_crop
+from .movie import (DISPLAY_BIN, DISPLAY_HALF_PX, render_display_rgb,
+                    stretch_rgb)
 from .orbit import SkyPositions, sky_positions
 from .params import BETA_AUR, BinarySystem, GridConfig
-from .render import render_image
 from .snr import (C2PU, SPAD_LAMBDA, Detector, Observation, Spectrograph,
                   Telescope, system_ab_mag, vis2_noise)
 from .spectral import spectral_vis2
@@ -58,7 +58,7 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
     m_disp = 2 * DISPLAY_HALF_PX
     vis2 = np.empty((n_e, n_c), np.float32)
     flux = np.empty((n_e, n_c), np.float32)
-    disp = np.empty((n_e, m_disp, m_disp), np.float32)
+    disp = np.empty((n_e, m_disp, m_disp, 3), np.float32)
     for k, ph in enumerate(phases):
         pos = SkyPositions(*(np.asarray(v) for v in
                              sky_positions(2 * np.pi * ph, system)))
@@ -66,8 +66,7 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
                                chunk_size=chunk_size, return_flux=True)
         vis2[k] = np.asarray(v2)[:, 0]
         flux[k] = np.asarray(fl)
-        disp[k] = _display_crop(np.asarray(render_image(pos, system, 477.0,
-                                                        grid)), grid.n)
+        disp[k] = render_display_rgb(pos, system, grid)
         if verbose and (k % 12 == 0 or k == n_e - 1):
             print(f"  epoch {k + 1}/{n_e} (phase {ph:.3f})", flush=True)
 
@@ -136,12 +135,18 @@ def make_movie(data: dict, path: str, fps: int = 8, nbin: int = 8,
         fig, (ax_sky, ax) = plt.subplots(
             1, 2, figsize=(13.5, 5.5), width_ratios=[1.0, 1.7])
         e = float(data["disp_extent_mas"])
-        im = ax_sky.imshow(data["disp"][0], origin="lower",
-                           extent=[-e, e, -e, e], cmap="inferno",
-                           vmin=0.0, vmax=float(data["disp"].max()))
+        if data["disp"].ndim == 4:  # RGB temperature-color composite
+            disp = stretch_rgb(data["disp"])
+            im = ax_sky.imshow(disp[0], origin="lower", extent=[-e, e, -e, e])
+            ax_sky.set_title("Sky image (temperature color)")
+        else:  # legacy single-band npz
+            disp = data["disp"]
+            im = ax_sky.imshow(disp[0], origin="lower",
+                               extent=[-e, e, -e, e], cmap="inferno",
+                               vmin=0.0, vmax=float(disp.max()))
+            ax_sky.set_title("Sky image (g band)")
         ax_sky.set_xlabel("x [mas]")
         ax_sky.set_ylabel("y [mas]")
-        ax_sky.set_title("Sky image (g band)")
     else:
         fig, ax = plt.subplots(figsize=(9.5, 5.5))
         im = None
@@ -187,7 +192,7 @@ def make_movie(data: dict, path: str, fps: int = 8, nbin: int = 8,
                        f"orbital phase = {phases[k]:.3f}")
         out = [true_ln, chan_ln, meas_ln, bars, label]
         if im is not None:
-            im.set_data(data["disp"][k])
+            im.set_data(disp[k])
             out.append(im)
         return out
 

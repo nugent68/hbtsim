@@ -6,7 +6,9 @@ The code renders the binary as a pair of limb-darkened stellar disks on a
 sky grid, computes the squared visibility |V|² via a zero-padded 2D FFT
 (JAX), and produces a three-panel MP4 movie over one orbital period:
 
-1. **Sky image** — the two stars orbiting each other (g band, to scale,
+1. **Sky image** — the two stars orbiting each other (false-color RGB
+   from renders at 700/550/440 nm, Planck-weighted and white-balanced to
+   7500 K so hot stars look blue and cool ones orange; to scale,
    milliarcsecond axes), including the partial eclipses.
 2. **Lightcurve** — apparent SDSS g- and i-band magnitudes with a moving
    phase cursor, anchored to the observed system brightness
