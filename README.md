@@ -183,6 +183,14 @@ the Narrabri intensity interferometer) reaches Δcos φc ≤ 0.3 in
 **~0.7 night** and ≤ 0.1 in ~6 nights on Subaru + Keck I + Keck II
 with the R ≈ 5000 backend.
 
+The best configuration studied is the **VLT 4×UT array**
+(`bispectrum.VLT_UT`: 8.2 m × 4, baselines 46.6–130.2 m — all inside
+Spica's first null, four simultaneous triangles + six |V|² baselines):
+combined bispectrum sensitivity ≈ 28/√h on Spica with the R ≈ 5000
+backend → **Δcos φc ≤ 0.1 in ~8 minutes**, closure-phase *curves*
+around the 4-day orbit, and a one-night limiting magnitude of g ≈ 2.2
+(southern targets only; Paranal cannot see Algol/β Aur).
+
 ## Batched spectral FFT on GPU
 
 `hbtsim.spectral.spectral_vis2(pos, baselines, wavelengths, system, grid)`

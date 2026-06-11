@@ -156,6 +156,37 @@ def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
                               vis_method=vis_method)
 
 
+@dataclass(frozen=True)
+class ArraySNR3Result:
+    snr_total: float                 # quadrature over triangles and channels
+    per_triangle: tuple              # SpectralSNR3Result per triangle
+    triangle_names: tuple
+
+
+def array_g3_snr(system: BinarySystem, array, **kw) -> ArraySNR3Result:
+    """Bispectrum sensitivity of an N-telescope array: spectral_g3_snr on
+    every triangle, combined in quadrature.  Each triangle's triple
+    coincidences carry (largely) independent accidental noise even though
+    triangles share telescopes, so quadrature is the right combination
+    for detection sensitivity; only (N-1)(N-2)/2 of the C(N,3) closure
+    PHASES are independent (for VLT: 3 of 4)."""
+    results = tuple(spectral_g3_snr(system, tri, **kw)
+                    for tri in array.triangles())
+    names = tuple("-".join(s.name for s in tri.stations)
+                  for tri in array.triangles())
+    total = float(np.sqrt(sum(r.snr_total**2 for r in results)))
+    return ArraySNR3Result(snr_total=total, per_triangle=results,
+                           triangle_names=names)
+
+
+def array_time_to_cos_phi(system: BinarySystem, array,
+                          target_dcos: float = 0.1, **kw) -> float:
+    """Integration time [s] for the array-combined bispectrum sensitivity
+    to reach sigma(cos phi_c) <= target_dcos."""
+    ref = array_g3_snr(system, array, t_int_s=3600.0, **kw)
+    return 3600.0 * (1.0 / target_dcos / ref.snr_total) ** 2
+
+
 def time_to_cos_phi(system: BinarySystem, triangle: Triangle,
                     target_dcos: float = 0.1,
                     spectrograph: Spectrograph = Spectrograph(),

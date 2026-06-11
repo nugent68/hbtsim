@@ -98,6 +98,35 @@ def test_spectral_g3_quadrature_and_methods():
                         orbital_phase=0.25, vis_method="analytic")
 
 
+def test_vlt_array_geometry():
+    """The published UT station coordinates reproduce the six pairwise
+    separations (46.6, 56.5, 62.4, 89.3, 102.4, 130.2 m) and give four
+    triangles."""
+    from hbtsim.bispectrum import VLT_UT
+
+    lengths = sorted(float(np.hypot(*b)) for _, _, b in VLT_UT.pairs())
+    assert lengths == pytest.approx([46.6, 56.5, 62.4, 89.3, 102.4, 130.2],
+                                    abs=0.2)
+    tris = VLT_UT.triangles()
+    assert len(tris) == 4
+    for tri in tris:
+        assert np.allclose(tri.baseline_vectors().sum(axis=0), 0.0)
+
+
+def test_array_g3_quadrature_combination():
+    from hbtsim.bispectrum import VLT_UT
+    from hbtsim.params import SPICA
+    from hbtsim.snr3 import array_g3_snr
+
+    spec = Spectrograph(lambda_min_nm=450.0, lambda_max_nm=900.0,
+                        n_channels=6)
+    res = array_g3_snr(SPICA, VLT_UT, spectrograph=spec)
+    assert len(res.per_triangle) == 4
+    assert res.snr_total == pytest.approx(
+        np.sqrt(sum(r.snr_total**2 for r in res.per_triangle)), rel=1e-12)
+    assert res.snr_total > max(r.snr_total for r in res.per_triangle)
+
+
 def test_time_to_cos_phi_inversion():
     spec = Spectrograph(lambda_min_nm=450.0, lambda_max_nm=900.0,
                         n_channels=8)

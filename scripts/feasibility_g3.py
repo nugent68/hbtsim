@@ -21,13 +21,14 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, Triangle,
+from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, VLT_UT, Triangle,
                                binary_vis_complex_analytic,
                                equilateral_triangle, spectral_bispectrum)
 from hbtsim.orbit import SkyPositions, sky_positions
 from hbtsim.params import SYSTEMS, GridConfig
 from hbtsim.snr import KECK, Spectrograph
-from hbtsim.snr3 import spectral_g3_snr, time_to_cos_phi
+from hbtsim.snr3 import (array_g3_snr, array_time_to_cos_phi,
+                         spectral_g3_snr, time_to_cos_phi)
 
 NIGHT_S = 8 * 3600.0
 
@@ -136,6 +137,21 @@ def main():
                       "Subaru + Keck I + Keck II (152/85/226 m)")
     feasibility_table(system, args.system, compact,
                       "compact equilateral 85 m (3 x 10 m)")
+
+    print(f"\n=== {system.name} on VLT 4 x UT (8.2 m; 46.6-130.2 m; "
+          f"NOTE: only southern targets) ===")
+    for n_ch, note in ((320, "SPAD Lambda"), (5500, "R~5000 spectrograph")):
+        spec = Spectrograph(n_channels=n_ch)
+        res = array_g3_snr(system, VLT_UT, spectrograph=spec)
+        t03 = array_time_to_cos_phi(system, VLT_UT, 0.3, spectrograph=spec)
+        t01 = array_time_to_cos_phi(system, VLT_UT, 0.1, spectrograph=spec)
+        print(f"  {n_ch:5d} ch ({note[:9]}): combined SNR3/h = "
+              f"{res.snr_total:8.2e}  nights d<=0.3: {t03 / NIGHT_S:8.3g}  "
+              f"d<=0.1: {t01 / NIGHT_S:8.3g}")
+        if n_ch == 5500:
+            for name, r in zip(res.triangle_names, res.per_triangle):
+                print(f"    {name:14s} SNR3/h = {r.snr_total:8.2f}  "
+                      f"peak|triple| = {r.triple_amp.max():.3f}")
 
     print("\n=== context: Zmija et al. 2025 (Table 2) ===")
     print("  H.E.S.S. (3x100 m^2, 5 ns, 10 nm, 1 ch):   ~1100-2400 yr for "

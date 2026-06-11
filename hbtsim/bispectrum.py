@@ -168,6 +168,46 @@ MAUNAKEA_SUBARU_KECK = Triangle((
 ))
 
 
+@dataclass(frozen=True)
+class Array:
+    """N stations: all pairwise baselines and all telescope triangles.
+    Of the C(N,3) triangles, only (N-1)(N-2)/2 closure phases are
+    independent, but every triangle's triple-coincidence stream carries
+    (largely) independent accidental noise, so all contribute to the
+    detection sensitivity."""
+    stations: tuple
+
+    def pairs(self):
+        """[(i, j, baseline_vector), ...] for i < j."""
+        out = []
+        for i in range(len(self.stations)):
+            for j in range(i + 1, len(self.stations)):
+                si, sj = self.stations[i], self.stations[j]
+                out.append((i, j, np.array([sj.east_m - si.east_m,
+                                            sj.north_m - si.north_m])))
+        return out
+
+    def triangles(self):
+        """All C(N,3) Triangle objects."""
+        from itertools import combinations
+        return [Triangle((self.stations[i], self.stations[j],
+                          self.stations[k]))
+                for i, j, k in combinations(range(len(self.stations)), 3)]
+
+
+# The four VLT Unit Telescopes (8.2 m) at Paranal, published VLTI station
+# (E, N) coordinates [m]; pairwise separations 46.6 (UT2-UT3) to 130.2 m
+# (UT1-UT4).  NOTE Paranal is at latitude -24.6 deg: Algol and Beta Aur
+# (dec ~ +41/+45 deg) culminate below ~25 deg altitude and are not useful
+# targets from there; Spica (dec -11 deg) transits at ~77 deg.
+VLT_UT = Array(tuple(
+    Station(name, e, n, Telescope(diameter_m=8.2, throughput=0.3))
+    for name, (e, n) in (("UT1", (-9.925, -20.335)),
+                         ("UT2", (14.887, 30.502)),
+                         ("UT3", (44.915, 66.183)),
+                         ("UT4", (103.306, 43.999)))))
+
+
 def equilateral_triangle(side_m: float, telescope: Telescope = KECK,
                          detector: Detector = SPAD_LAMBDA) -> Triangle:
     """Hypothetical compact comparison array: three identical telescopes

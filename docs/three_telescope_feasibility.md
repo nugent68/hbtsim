@@ -174,6 +174,45 @@ Spica caveats: the true orbit has e = 0.108 with apsidal motion
 tidally distorted (rendered as a static sphere); it is non-eclipsing
 at i = 63°.
 
+## 5c. Four telescopes: the VLT Unit Telescopes
+
+Putting SPAD Lambdas with R ≈ 5000 backends on the four 8.2 m VLT UTs
+(`bispectrum.VLT_UT`; published station coordinates reproduce the
+pairwise separations 46.6 / 56.5 / 62.4 / 89.3 / 102.4 / 130.2 m to
+≤ 0.2 m) changes the problem qualitatively:
+
+- **All six baselines are short.** 46.6–130.2 m sits inside Spica's
+  first null across the band, so every pair keeps |γ| ≈ 0.4–0.75 and the
+  four triangles reach triple amplitudes 0.19–0.39 — an order of
+  magnitude above the Maunakea triangle.
+- **Four triangles at once.** Of the four closure phases, three are
+  independent ((N−1)(N−2)/2), but all four triple-coincidence streams
+  carry independent accidental noise and add in quadrature; six |V|²
+  baselines come along simultaneously for free, giving genuine snapshot
+  (u, v) coverage — the minimal configuration for model-independent
+  imaging rather than model fitting.
+- **Result for Spica** (transits at 77° at Paranal): combined bispectrum
+  sensitivity ≈ 28/√h per unit cos φc — **Δcos φc ≤ 0.3 in ~1 minute,
+  ≤ 0.1 in ~8 minutes**. The orbit (P = 4.01 d) can be tiled with
+  closure-phase measurements every few minutes over a night: a
+  closure-phase *curve*, not a single number.
+- **Limiting magnitude.** Time scales as flux⁻³; for similar geometry a
+  one-night Δcos φc ≤ 0.1 measurement works down to **g ≈ 2.2** —
+  several dozen hot southern binaries and rapid rotators qualify
+  (α Cen's neighborhood of bright B stars: β Cen, α Lup, λ Sco,
+  β Cru ...). With the stock 320-channel SPAD Lambda instead of R ≈ 5000
+  the same measurement needs ~90 nights — the spectroscopic backend
+  remains the enabling hardware.
+- **Declination caveat**: Paranal (−24.6°) cannot usefully observe Algol
+  or Beta Aurigae (culminating below ~25°); the VLT numbers are for
+  southern targets, with Spica the natural first light.
+
+Like Maunakea, the UTs already host amplitude interferometry (VLTI);
+the II niches are the same as section 5b — absolute |V|² calibration,
+the blue, no beam combination or delay lines (each UT independently
+time-tags photons), and validation of the technique toward km-baseline
+arrays.
+
 ## 6. Caveats
 
 - **Aperture smearing**: 8–10 m apertures on 85–226 m baselines average
