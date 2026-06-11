@@ -29,8 +29,10 @@ from dataclasses import replace
 
 import numpy as np
 
+from .movie import DISPLAY_BIN, DISPLAY_HALF_PX, _display_crop
 from .orbit import SkyPositions, sky_positions
 from .params import BETA_AUR, BinarySystem, GridConfig
+from .render import render_image
 from .snr import (C2PU, SPAD_LAMBDA, Detector, Observation, Spectrograph,
                   Telescope, system_ab_mag, vis2_noise)
 from .spectral import spectral_vis2
@@ -53,8 +55,10 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
     det1 = replace(detector, n_pixels=1)
 
     n_e, n_c = hours.size, nm.size
+    m_disp = 2 * DISPLAY_HALF_PX
     vis2 = np.empty((n_e, n_c), np.float32)
     flux = np.empty((n_e, n_c), np.float32)
+    disp = np.empty((n_e, m_disp, m_disp), np.float32)
     for k, ph in enumerate(phases):
         pos = SkyPositions(*(np.asarray(v) for v in
                              sky_positions(2 * np.pi * ph, system)))
@@ -62,6 +66,8 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
                                chunk_size=chunk_size, return_flux=True)
         vis2[k] = np.asarray(v2)[:, 0]
         flux[k] = np.asarray(fl)
+        disp[k] = _display_crop(np.asarray(render_image(pos, system, 477.0,
+                                                        grid)), grid.n)
         if verbose and (k % 12 == 0 or k == n_e - 1):
             print(f"  epoch {k + 1}/{n_e} (phase {ph:.3f})", flush=True)
 
@@ -85,7 +91,11 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
 
     return dict(hours=hours, phases=phases, channel_nm=nm,
                 vis2=vis2, sigma=sigma, noisy=noisy, mags=mags,
+                disp=disp,
+                disp_extent_mas=np.float64(DISPLAY_HALF_PX * DISPLAY_BIN
+                                           * grid.pixel_scale_mas),
                 baseline_m=np.float64(baseline_m), t_int_s=np.float64(t_int_s),
+                tel_diameter_m=np.float64(telescope.diameter_m),
                 period_h=np.float64(period_h),
                 system_name=np.str_(system.name))
 
@@ -120,8 +130,22 @@ def make_movie(data: dict, path: str, fps: int = 8, nbin: int = 8,
     n_e = hours.size
     nm_b, noisy_b, sigma_b = _bin_channels(data["noisy"], sigma, nm, nbin)
     g2_b = 1.0 + noisy_b
+    has_sky = "disp" in data
 
-    fig, ax = plt.subplots(figsize=(9.5, 5.5))
+    if has_sky:
+        fig, (ax_sky, ax) = plt.subplots(
+            1, 2, figsize=(13.5, 5.5), width_ratios=[1.0, 1.7])
+        e = float(data["disp_extent_mas"])
+        im = ax_sky.imshow(data["disp"][0], origin="lower",
+                           extent=[-e, e, -e, e], cmap="inferno",
+                           vmin=0.0, vmax=float(data["disp"].max()))
+        ax_sky.set_xlabel("x [mas]")
+        ax_sky.set_ylabel("y [mas]")
+        ax_sky.set_title("Sky image (g band)")
+    else:
+        fig, ax = plt.subplots(figsize=(9.5, 5.5))
+        im = None
+
     (true_ln,) = ax.plot(nm, g2_true[0], color="tab:orange", lw=1.5,
                          label="model", zorder=4)
     (chan_ln,) = ax.plot(nm, g2_meas[0], ".", color="tab:blue", ms=2,
@@ -138,7 +162,9 @@ def make_movie(data: dict, path: str, fps: int = 8, nbin: int = 8,
     ax.set_ylim(0.9, 2.05)
     ax.set_xlabel("Wavelength [nm]")
     ax.set_ylabel(r"$g^{(2)}(\lambda)$")
-    ax.set_title(f"{data['system_name']} — "
+    tel_txt = (f"2 × {float(data['tel_diameter_m']):.0f} m, "
+               if "tel_diameter_m" in data else "")
+    ax.set_title(f"{data['system_name']} — {tel_txt}"
                  f"B = {float(data['baseline_m']):.0f} m, "
                  f"{nm.size} channels, "
                  f"{float(data['t_int_s']) / 3600:.0f} h per point")
@@ -159,7 +185,11 @@ def make_movie(data: dict, path: str, fps: int = 8, nbin: int = 8,
         bars.set_segments(segments(k))
         label.set_text(f"t = {hours[k]:.0f} h   "
                        f"orbital phase = {phases[k]:.3f}")
-        return [true_ln, chan_ln, meas_ln, bars, label]
+        out = [true_ln, chan_ln, meas_ln, bars, label]
+        if im is not None:
+            im.set_data(data["disp"][k])
+            out.append(im)
+        return out
 
     anim = FuncAnimation(fig, update, frames=n_e, blit=False)
     progress = (lambda k, n: print(f"  writing frame {k + 1}/{n}", flush=True)
@@ -175,7 +205,11 @@ def main(argv=None) -> None:
     p.add_argument("--out", default="output/g2spec.mp4")
     p.add_argument("--compute-only", action="store_true")
     p.add_argument("--render-only", action="store_true")
-    p.add_argument("--baseline", type=float, default=50.0)
+    p.add_argument("--baseline", type=float, default=50.0,
+                   help="baseline in m (C2PU: 15, Keck pair: 85)")
+    p.add_argument("--diameter", type=float, default=C2PU.diameter_m,
+                   help="telescope diameter in m (C2PU: 1, Keck: 10)")
+    p.add_argument("--throughput", type=float, default=C2PU.throughput)
     p.add_argument("--time", type=float, default=3600.0,
                    help="integration time per frame in s")
     p.add_argument("--channels", type=int, default=320)
@@ -187,11 +221,13 @@ def main(argv=None) -> None:
     os.makedirs(os.path.dirname(args.npz) or ".", exist_ok=True)
     if not args.render_only:
         spec = Spectrograph(n_channels=args.channels)
+        tel = Telescope(diameter_m=args.diameter, throughput=args.throughput)
         print(f"Computing g2(lambda) every hour over one period "
-              f"(B = {args.baseline:.0f} m, {args.channels} channels) ...")
+              f"(2 x {tel.diameter_m:.0f} m, B = {args.baseline:.0f} m, "
+              f"{args.channels} channels) ...")
         data = precompute(baseline_m=args.baseline, spectrograph=spec,
-                          t_int_s=args.time, chunk_size=args.chunk,
-                          seed=args.seed)
+                          t_int_s=args.time, telescope=tel,
+                          chunk_size=args.chunk, seed=args.seed)
         np.savez_compressed(args.npz, **data)
         print(f"Wrote {args.npz}")
     if not args.compute_only:

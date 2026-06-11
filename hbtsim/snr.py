@@ -114,6 +114,14 @@ SPAD_LAMBDA = Detector(
 
 C2PU = Telescope(diameter_m=1.0, throughput=0.3)
 
+# The two 10 m Keck telescopes on Maunakea, ~85 m apart.  Note two caveats
+# at this scale, neither modeled here: the photon rate per channel drives
+# a single SPAD pixel deep into dead-time saturation (spread the light
+# over more pixels), and a 10 m aperture on an 85 m baseline averages
+# |V|^2 over B +/- 10 m, smearing fringes whose period (lambda/rho ~
+# 25-50 m for Beta Aur) is not far above the aperture size.
+KECK = Telescope(diameter_m=10.0, throughput=0.3)
+
 
 @dataclass(frozen=True)
 class Observation:
