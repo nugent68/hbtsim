@@ -60,6 +60,14 @@ model anchors and validation use C-corrected values (undiluted depth
 secondary is rendered as a sphere, so the ellipsoidal variation and
 reflection effect of the real out-of-eclipse lightcurve are absent.
 
+A third system, **Spica** (`spica` — α Vir, V = 0.97, B1 III-IV + B2 V,
+θ = 0.91/0.45 mas, ρ = 1.71 mas, P = 4.01 d; Herbison-Evans et al. 1971
+Narrabri intensity-interferometer orbit, Tkachenko et al. 2016
+disentangling), is included as the recommended bright target for
+three-telescope closure-phase work (true e = 0.108 approximated as
+circular; β Cep pulsations and tidal distortion not modeled;
+non-eclipsing).
+
 Adding another binary is one `BinarySystem` instance in
 `hbtsim/params.py` (registered in `SYSTEMS`).
 
@@ -168,7 +176,12 @@ disks (triple amplitude ≲ 0.04) and with the stock 320-channel SPAD
 Lambda the closure phase of Algol needs **centuries**; an R ≈ 5000
 backend (0.1 nm × 5500 channels) brings Δcos φc ≤ 0.3 to **~42 nights**;
 a *compact* 85 m triangle of 10 m apertures with the same backend does
-it in **hours**. Geometry beats aperture.
+it in **hours**. Geometry beats aperture — and target selection rescues
+the real triangle: **Spica** (`--system spica`; V = 0.97, hot
+small-disk B-star pair whose primary diameter was itself measured by
+the Narrabri intensity interferometer) reaches Δcos φc ≤ 0.3 in
+**~0.7 night** and ≤ 0.1 in ~6 nights on Subaru + Keck I + Keck II
+with the R ≈ 5000 backend.
 
 ## Batched spectral FFT on GPU
 

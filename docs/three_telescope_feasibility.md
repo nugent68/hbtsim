@@ -128,6 +128,8 @@ reach Δcos φc ≤ 0.3 / ≤ 0.1, at quadrature, computed by
 | Beta Aur | Subaru+Keck+Keck | 320 × 1.72 nm | 3.2×10⁻³ | 137,000 | 1.2×10⁶ |
 | Beta Aur | Subaru+Keck+Keck | 5500 × 0.10 nm | 0.11 | 109 | 982 |
 | Beta Aur | compact 85 m (3×10 m) | 5500 × 0.10 nm | 6.8 | 0.03 | 0.27 |
+| **Spica** | Subaru+Keck+Keck | 5500 × 0.10 nm | **1.42** | **0.7** | **6.2** |
+| Spica | Subaru+Keck+Keck | 320 × 1.72 nm | 1.4×10⁻² | 6,700 | 60,200 |
 
 Per-channel detected rates are 1.2–7.5×10⁷ cps (dead-time-saturated
 blueward of ~650 nm at 1.72 nm channels); the photon occupancy is
@@ -141,6 +143,36 @@ stars; their CTA-LST projection (4×400 m², 0.1 ns, 0.1 nm, 1000
 channels) reaches ~2–5 months. Our Maunakea-with-R≈5000 numbers are
 consistent with that once the smaller collecting areas and the
 geometry-suppressed |γ₁₂γ₂₃γ₃₁| are accounted for.
+
+## 5b. Target selection: Spica makes the real triangle work
+
+What the long arms punish is the stellar *disk* size, not the binary
+separation (the separation only sets the fringe period — that is
+signal). The figure of merit at fixed apparent flux is **surface
+brightness**: hotter photospheres pack the same flux into a smaller
+disk, keeping |γ| alive at 150–226 m. The optimal class is therefore
+bright early-B close binaries with disks ≲ 0.5–0.9 mas and separations
+~0.5–2 mas.
+
+**Spica (α Vir)** is the textbook case, now in the package as `SPICA`
+(`--system spica`): V = 0.97, B1 III-IV + B2 V (25,300/20,900 K,
+θ = 0.91/0.45 mas — the primary's diameter was itself measured by the
+Narrabri *intensity interferometer*, Herbison-Evans et al. 1971),
+ρ = 1.71 mas, P = 4.01 d. Its triple amplitude on the Maunakea triangle
+is no better than Algol's (0.036 — bright means near, and the B giant
+still subtends 0.9 mas), but the 3.5× higher photon flux enters as
+R^{3/2} in the unsaturated narrow-channel regime:
+
+**With the R ≈ 5000 backend, Subaru + Keck I + Keck II reaches
+Δcos φc ≤ 0.3 on Spica in ~0.7 night and ≤ 0.1 in ~6 nights** — the
+real triangle becomes genuinely feasible with the right target, no
+compact array required. (The stock 320-channel SPAD Lambda still needs
+~6,700 nights: the spectroscopic backend remains non-negotiable.)
+
+Spica caveats: the true orbit has e = 0.108 with apsidal motion
+(approximated circular here); the primary is a β Cep pulsator and
+tidally distorted (rendered as a static sphere); it is non-eclipsing
+at i = 63°.
 
 ## 6. Caveats
 
@@ -175,13 +207,18 @@ geometry-suppressed |γ₁₂γ₂₃γ₃₁| are accounted for.
    dispersing backend (0.1 nm channels) shortens the time by ~Δλ
    (saturated regime) to ~10² — bringing Δcos φc ≤ 0.3 within ~a month
    of dedicated time. This is the same conclusion CTA-LST studies reach.
-3. **Geometry beats aperture**: a compact ≲ 85 m triangle (e.g. Keck I +
-   Keck II + a third 10 m-class aperture, or three smaller dedicated
-   telescopes even closer together) raises the triple amplitude by
-   1–2 orders of magnitude and makes bright-binary closure phases
-   measurable in nights with fine spectral channels. If the goal is
-   imaging ~mas-scale bright stars through the bispectrum, the array to
-   build is compact and many-channeled, not long-armed.
+3. **Geometry beats aperture** for resolved ~1 mas disks: a compact
+   ≲ 85 m triangle (e.g. Keck I + Keck II + a third 10 m-class aperture)
+   raises the triple amplitude by 1–2 orders of magnitude and makes
+   bright-binary closure phases measurable in nights with fine spectral
+   channels. If the goal is imaging ~mas-scale bright stars through the
+   bispectrum, the array to build is compact and many-channeled, not
+   long-armed.
+3b. **Target selection rescues the real triangle**: high-surface-
+   brightness early-B binaries keep |γ| alive on the long arms while
+   delivering R^{3/2} photons — Spica reaches Δcos φc ≤ 0.3 in under a
+   night and ≤ 0.1 in ~6 nights on Subaru + Keck I + Keck II with the
+   R ≈ 5000 backend (section 5b).
 4. For image reconstruction proper, one triangle gives one closure phase
    per (λ, t); the λ-dependence across 320–5500 channels plus the
    orbital phase dependence is the dataset — Nuñez & Domiciano de Souza

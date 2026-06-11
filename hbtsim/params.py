@@ -16,6 +16,20 @@ Algol (beta Persei) A-B (component C, ~70 mas away, is excluded; its
   [K15] Kolbas et al. 2015, MNRAS 451, 4150 (spectral disentangling):
         Teff_A = 12550 K, Teff_B = 4900 K.
 
+Spica (alpha Virginis), the recommended bright target for three-telescope
+closure-phase work (docs/three_telescope_feasibility.md):
+  [HE71] Herbison-Evans, Hanbury Brown, Davis & Allen 1971, MNRAS 151,
+         161: the Narrabri INTENSITY-INTERFEROMETER orbit -- theta_A =
+         0.90 +/- 0.04 mas, angular semi-major axis, i.  Spica's orbit
+         was itself measured by intensity interferometry.
+  [T16] Tkachenko et al. 2016, MNRAS 458, 1964 (disentangling +
+        asteroseismology): masses, radii, Teffs, i = 63.1 deg.
+  Note: the true orbit has e = 0.108 with apsidal motion; this package
+  implements circular orbits only, so Spica is approximated as circular
+  (fine for visibility/SNR forecasts; not for timing work).  The primary
+  is a beta Cep pulsator and tidally distorted (ellipsoidal variable,
+  non-eclipsing at i = 63 deg) -- rendered here as a static sphere.
+
 Limb darkening (per star):
   [C11] Claret & Bloemen 2011, A&A 529, A75 (VizieR J/A+A/529/A75):
         linear limb-darkening coefficients u(lambda), ATLAS models,
@@ -61,6 +75,8 @@ LD_ALGOL_A = ((400.0, 0.42), (445.0, 0.40), (477.0, 0.38), (551.0, 0.34),
               (623.0, 0.30), (763.0, 0.24), (806.0, 0.23), (913.0, 0.21))  # 12500 K, log g 4.0
 LD_ALGOL_B = ((400.0, 0.89), (445.0, 0.87), (477.0, 0.81), (551.0, 0.73),
               (623.0, 0.65), (763.0, 0.55), (806.0, 0.52), (913.0, 0.46))  # 4900 K, log g 3.2
+LD_SPICA = ((400.0, 0.32), (477.0, 0.29), (551.0, 0.26), (623.0, 0.24),
+            (763.0, 0.20), (913.0, 0.17))                        # ~21-25 kK, log g 3.7-4.2
 
 
 # ---------------------------------------------------------------------------
@@ -135,7 +151,24 @@ ALGOL = BinarySystem(
     mag_anchors=(("g", 2.07), ("i", 2.58)),
 )
 
-SYSTEMS = {"betaaur": BETA_AUR, "algol": ALGOL}
+SPICA = BinarySystem(
+    name="Spica (alpha Virginis)",
+    primary=Star("Spica A (B1 III-IV)", mass_msun=11.43, radius_rsun=7.47,
+                 teff=25300.0, ld_table_nm=LD_SPICA),   # [T16]
+    secondary=Star("Spica B (B2 V)", mass_msun=7.21, radius_rsun=3.74,
+                   teff=20900.0, ld_table_nm=LD_SPICA),  # [T16]
+    period_days=4.0145,         # [HE71]/[T16]
+    inclination_deg=63.1,       # [T16]; non-eclipsing
+    distance_pc=76.6,           # van Leeuwen 2007, parallax 13.06 mas
+    semimajor_au=0.1311,        # Kepler's third law with [T16] masses
+    eccentricity=0.0,           # TRUE e = 0.108 approximated as circular
+    # V = 0.97, B-V = -0.235 -> g ~ 0.71 (Jester et al. 2005); the i
+    # anchor is the anchored-blackbody color of a ~25 kK photosphere
+    # (+/- ~0.1 mag; only shifts the red-channel zero point)
+    mag_anchors=(("g", 0.71), ("i", 1.06)),
+)
+
+SYSTEMS = {"betaaur": BETA_AUR, "algol": ALGOL, "spica": SPICA}
 
 
 # ---------------------------------------------------------------------------
