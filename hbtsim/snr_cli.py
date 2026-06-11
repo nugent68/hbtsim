@@ -13,7 +13,7 @@ In spectral mode each channel's |V|^2 comes from the batched FFT pipeline
 (hbtsim.spectral, GPU-accelerated under JAX; ~1 s/channel on CPU) -- pass
 --vis2-method analytic for the instant out-of-eclipse approximation.
 Narrowband mode uses the FFT pipeline per filter.  Source brightness is
-the anchored blackbody model of Beta Aurigae in both modes.
+the anchored blackbody model of the chosen --system in both modes.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ import numpy as np
 
 from . import hbt
 from .orbit import SkyPositions, sky_positions
-from .params import BETA_AUR, GridConfig
+from .params import SYSTEMS, GridConfig
 from .render import render_image
 from .snr import (C2PU, SPAD_LAMBDA, Detector, Observation, Spectrograph,
                   Telescope, g2_snr, spectral_g2_snr, system_ab_mag)
@@ -91,6 +91,7 @@ def spectral(args, system, tel, det) -> None:
 
 def main(argv=None) -> None:
     p = argparse.ArgumentParser(description="g2(B) SNR for a telescope pair")
+    p.add_argument("--system", choices=sorted(SYSTEMS), default="betaaur")
     p.add_argument("--mode", choices=("spectral", "narrowband"),
                    default="spectral")
     p.add_argument("--baseline", type=float, nargs="+", default=[50.0],
@@ -124,7 +125,7 @@ def main(argv=None) -> None:
                    help="override source AB magnitude (narrowband mode)")
     args = p.parse_args(argv)
 
-    system, grid = BETA_AUR, GridConfig()
+    system, grid = SYSTEMS[args.system], GridConfig()
     tel = Telescope(diameter_m=args.diameter, throughput=args.throughput)
     det = Detector(name=SPAD_LAMBDA.name, pde_table_nm=SPAD_LAMBDA.pde_table_nm,
                    jitter_fwhm_ps=SPAD_LAMBDA.jitter_fwhm_ps,

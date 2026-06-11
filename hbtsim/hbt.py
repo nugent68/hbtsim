@@ -85,15 +85,18 @@ def binary_vis2_analytic(baselines_m, wavelength_nm: float, system,
     from .params import MAS, planck
 
     lam = wavelength_nm * 1e-9
-    u = system.ld_coeff(wavelength_nm)
     b = np.atleast_1d(np.asarray(baselines_m, dtype=float))
     rho_rad = rho_mas * MAS
 
-    th = [2.0 * system.angular_radius_mas(s) * MAS
-          for s in (system.primary, system.secondary)]
-    f = [planck(lam, s.teff) * t**2
-         for s, t in zip((system.primary, system.secondary), th)]
-    v = [visibility_ld_disk(np.pi * t * b / lam, u) for t in th]
+    stars = (system.primary, system.secondary)
+    th = [2.0 * system.angular_radius_mas(s) * MAS for s in stars]
+    us = [s.ld_coeff(wavelength_nm) for s in stars]
+    # per-star flux weights: with different u's the (1 - u/3) disk factors
+    # no longer cancel in the normalization
+    f = [planck(lam, s.teff) * t**2 * (1.0 - u_s / 3.0)
+         for s, t, u_s in zip(stars, th, us)]
+    v = [visibility_ld_disk(np.pi * t * b / lam, u_s)
+         for t, u_s in zip(th, us)]
     fringe = np.cos(2.0 * np.pi * b * rho_rad / lam)
     return (f[0]**2 * v[0]**2 + f[1]**2 * v[1]**2
             + 2.0 * f[0] * f[1] * v[0] * v[1] * fringe) / (f[0] + f[1])**2

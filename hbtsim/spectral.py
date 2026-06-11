@@ -43,19 +43,19 @@ def _auto_chunk() -> int:
 
 @partial(jax.jit, static_argnames=("grid", "chunk", "crop_half"))
 def _spectral_vis2_jit(x1, y1, x2, y2, front2, r1, r2,
-                       u, w1, lam_m,            # (n_lambda,)
+                       u1, u2, w1, lam_m,       # (n_lambda,)
                        baselines_m, pa_rad,     # (n_B,), scalar
                        grid: GridConfig, chunk: int, crop_half: int):
     def one_channel(ch):
-        u_k, w1_k, lam_k = ch
+        u1_k, u2_k, w1_k, lam_k = ch
         img = _render_kernel(x1, y1, x2, y2, front2, r1, r2,
-                             w1_k, jnp.float32(1.0), u_k, grid.n)
+                             w1_k, jnp.float32(1.0), u1_k, u2_k, grid.n)
         v2map = vis2_map(img, grid.pad, crop_half)
         samp = vis2_of_baseline(v2map, baselines_m, lam_k, pa_rad, grid,
                                 crop_half)
         return samp, jnp.sum(img)
 
-    return jax.lax.map(one_channel, (u, w1, lam_m), batch_size=chunk)
+    return jax.lax.map(one_channel, (u1, u2, w1, lam_m), batch_size=chunk)
 
 
 def spectral_vis2(pos: SkyPositions, baselines_m, wavelengths_nm,
@@ -74,7 +74,7 @@ def spectral_vis2(pos: SkyPositions, baselines_m, wavelengths_nm,
     photometry without re-rendering).
     """
     scale = grid.pixel_scale_mas
-    u, w1 = spectral_weights(wavelengths_nm, system)
+    u1, u2, w1 = spectral_weights(wavelengths_nm, system)
     lam_m = jnp.asarray(wavelengths_nm, dtype=jnp.float32) * 1e-9
     pa = float(pos.pa) if pa_rad is None else float(pa_rad)
     chunk = _auto_chunk() if chunk_size is None else int(chunk_size)
@@ -84,7 +84,7 @@ def spectral_vis2(pos: SkyPositions, baselines_m, wavelengths_nm,
         jnp.bool_(pos.front2),
         jnp.float32(system.angular_radius_mas(system.primary) / scale),
         jnp.float32(system.angular_radius_mas(system.secondary) / scale),
-        u, w1, lam_m,
+        u1, u2, w1, lam_m,
         jnp.asarray(np.atleast_1d(baselines_m), dtype=jnp.float32),
         jnp.float32(pa),
         grid, chunk, crop_half)

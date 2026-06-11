@@ -338,12 +338,12 @@ def system_ab_mag(system: BinarySystem, wavelength_nm: float) -> float:
     interpolated linearly in wavelength -- the same blackbody zero-point fix
     applied to the lightcurves (see photometry.py)."""
     lam = wavelength_nm * 1e-9
-    u = system.ld_coeff(wavelength_nm)
     f_nu = 0.0
     for star in (system.primary, system.secondary):
         theta_r = system.angular_radius_mas(star) * MAS
         f_nu += (planck(lam, star.teff) * np.pi * theta_r**2
-                 * (1.0 - u / 3.0) * lam**2 / C_LIGHT)
+                 * (1.0 - star.ld_coeff(wavelength_nm) / 3.0)
+                 * lam**2 / C_LIGHT)
     m_synth = -2.5 * np.log10(f_nu / AB_ZERO_FNU)
 
     # anchor offsets at the photometric bands, interpolated in wavelength
@@ -351,10 +351,10 @@ def system_ab_mag(system: BinarySystem, wavelength_nm: float) -> float:
     lams, offsets = [], []
     for band, m_obs in system.mag_anchors:
         lam_b = band_lam[band]
-        u_b = system.ld_coeff(lam_b)
         f_b = sum(planck(lam_b * 1e-9, s.teff) * np.pi
                   * (system.angular_radius_mas(s) * MAS) ** 2
-                  * (1.0 - u_b / 3.0) * (lam_b * 1e-9) ** 2 / C_LIGHT
+                  * (1.0 - s.ld_coeff(lam_b) / 3.0)
+                  * (lam_b * 1e-9) ** 2 / C_LIGHT
                   for s in (system.primary, system.secondary))
         lams.append(lam_b)
         offsets.append(m_obs - (-2.5 * np.log10(f_b / AB_ZERO_FNU)))

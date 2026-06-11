@@ -25,7 +25,7 @@ def single_star_image(radius_mas: float, u: float) -> jnp.ndarray:
     """One star at the grid center, the other switched off (w2 = 0)."""
     r_px = radius_mas / GRID.pixel_scale_mas
     return _render_kernel(0.0, 0.0, 300.0, 300.0, False,
-                          r_px, 1.0, 1.0, 0.0, u, GRID.n)
+                          r_px, 1.0, 1.0, 0.0, u, 0.0, GRID.n)
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +89,7 @@ def test_uniform_disk_matches_airy():
 def test_limb_darkened_disk_matches_analytic():
     """Linear LD law against the analytic Bessel-series visibility."""
     lam = 400e-9
-    u = SYSTEM.ld_coeff(400.0)
+    u = SYSTEM.primary.ld_coeff(400.0)
     img = single_star_image(THETA1_MAS / 2, u)
     v2map = hbt.vis2_map(img, GRID.pad)
     B = np.linspace(5.0, 150.0, 200)
@@ -195,7 +195,8 @@ def test_uniform_disk_eclipse_depth_matches_circle_overlap():
                              float(pos.y1) / GRID.pixel_scale_mas,
                              float(pos.x2) / GRID.pixel_scale_mas,
                              float(pos.y2) / GRID.pixel_scale_mas,
-                             bool(pos.front2), r1, r2, 1.0, 1.0, 0.0, GRID.n)
+                             bool(pos.front2), r1, r2, 1.0, 1.0, 0.0, 0.0,
+                             GRID.n)
     full = np.pi * (r1**2 + r2**2)
 
     # analytic lens area

@@ -200,9 +200,14 @@ def make_movie(data: dict, path: str, fps: int = 8, nbin: int = 8,
 
 
 def main(argv=None) -> None:
+    from .params import SYSTEMS
+
     p = argparse.ArgumentParser(description="g2(lambda) movie with error bars")
-    p.add_argument("--npz", default="output/g2spec.npz")
-    p.add_argument("--out", default="output/g2spec.mp4")
+    p.add_argument("--system", choices=sorted(SYSTEMS), default="betaaur")
+    p.add_argument("--npz", default=None,
+                   help="data file (default output/g2spec_<system>.npz)")
+    p.add_argument("--out", default=None,
+                   help="movie path (default output/g2spec_<system>.mp4)")
     p.add_argument("--compute-only", action="store_true")
     p.add_argument("--render-only", action="store_true")
     p.add_argument("--baseline", type=float, default=50.0,
@@ -218,22 +223,25 @@ def main(argv=None) -> None:
     p.add_argument("--seed", type=int, default=42)
     args = p.parse_args(argv)
 
-    os.makedirs(os.path.dirname(args.npz) or ".", exist_ok=True)
+    system = SYSTEMS[args.system]
+    npz = args.npz or f"output/g2spec_{args.system}.npz"
+    out = args.out or f"output/g2spec_{args.system}.mp4"
+    os.makedirs(os.path.dirname(npz) or ".", exist_ok=True)
     if not args.render_only:
         spec = Spectrograph(n_channels=args.channels)
         tel = Telescope(diameter_m=args.diameter, throughput=args.throughput)
-        print(f"Computing g2(lambda) every hour over one period "
-              f"(2 x {tel.diameter_m:.0f} m, B = {args.baseline:.0f} m, "
-              f"{args.channels} channels) ...")
-        data = precompute(baseline_m=args.baseline, spectrograph=spec,
-                          t_int_s=args.time, telescope=tel,
+        print(f"Computing g2(lambda) every hour over one period of "
+              f"{system.name} (2 x {tel.diameter_m:.0f} m, "
+              f"B = {args.baseline:.0f} m, {args.channels} channels) ...")
+        data = precompute(system=system, baseline_m=args.baseline,
+                          spectrograph=spec, t_int_s=args.time, telescope=tel,
                           chunk_size=args.chunk, seed=args.seed)
-        np.savez_compressed(args.npz, **data)
-        print(f"Wrote {args.npz}")
+        np.savez_compressed(npz, **data)
+        print(f"Wrote {npz}")
     if not args.compute_only:
-        data = dict(np.load(args.npz, allow_pickle=False))
-        print(f"Rendering {args.out} ...")
-        make_movie(data, args.out, fps=args.fps)
+        data = dict(np.load(npz, allow_pickle=False))
+        print(f"Rendering {out} ...")
+        make_movie(data, out, fps=args.fps)
         print("Done.")
 
 

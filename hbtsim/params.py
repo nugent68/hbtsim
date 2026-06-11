@@ -1,14 +1,25 @@
 """System parameters, grid configuration, and physical constants.
 
-All Beta Aurigae values are taken from the literature:
+All system values are taken from the literature.
 
+Beta Aurigae:
   [S07] Southworth, Bruntt & Buzasi 2007, A&A 467, 1215 (WIRE photometry,
         astro-ph/0703634): P, i, masses, radii, Teff.
   [vL07] van Leeuwen 2007, A&A 474, 653 (Hipparcos re-reduction): parallax.
   [H95] Hummel et al. 1995, AJ 110, 376 (Mark III interferometric orbit).
+
+Algol (beta Persei) A-B (component C, ~70 mas away, is excluded; its
+~10% third light is removed from the photometric anchors):
+  [B12] Baron et al. 2012, ApJ 752, 20 (CHARA/MIRC imaging): P, i, a,
+        masses, radii.
+  [Z10] Zavala et al. 2010, ApJ 715, L44: parallax 34.7 mas (28.82 pc).
+  [K15] Kolbas et al. 2015, MNRAS 451, 4150 (spectral disentangling):
+        Teff_A = 12550 K, Teff_B = 4900 K.
+
+Limb darkening (per star):
   [C11] Claret & Bloemen 2011, A&A 529, A75 (VizieR J/A+A/529/A75):
-        linear limb-darkening coefficients, ATLAS models, interpolated to
-        Teff ~ 9250 K, log g ~ 3.9, [M/H] = 0.
+        linear limb-darkening coefficients u(lambda), ATLAS models,
+        [M/H] = 0, interpolated to each star's (Teff, log g).
 """
 
 from __future__ import annotations
@@ -41,6 +52,18 @@ def planck(wavelength_m: float, teff: float) -> float:
 
 
 # ---------------------------------------------------------------------------
+# Limb-darkening tables: linear u vs wavelength [nm], [C11], interpolated
+# linearly between points (np.interp clamps beyond the table ends).
+# ---------------------------------------------------------------------------
+LD_BETA_AUR = ((400.0, 0.52), (477.0, 0.50), (763.0, 0.30), (800.0, 0.29),
+               (913.0, 0.26))                                    # 9250 K, log g 3.9
+LD_ALGOL_A = ((400.0, 0.42), (445.0, 0.40), (477.0, 0.38), (551.0, 0.34),
+              (623.0, 0.30), (763.0, 0.24), (806.0, 0.23), (913.0, 0.21))  # 12500 K, log g 4.0
+LD_ALGOL_B = ((400.0, 0.89), (445.0, 0.87), (477.0, 0.81), (551.0, 0.73),
+              (623.0, 0.65), (763.0, 0.55), (806.0, 0.52), (913.0, 0.46))  # 4900 K, log g 3.2
+
+
+# ---------------------------------------------------------------------------
 # System description
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
@@ -49,6 +72,12 @@ class Star:
     mass_msun: float
     radius_rsun: float
     teff: float  # K
+    # per-star linear limb-darkening u(lambda) table, ((nm, u), ...) [C11]
+    ld_table_nm: tuple = LD_BETA_AUR
+
+    def ld_coeff(self, wavelength_nm: float) -> float:
+        lam, u = zip(*self.ld_table_nm)
+        return float(np.interp(wavelength_nm, lam, u))
 
 
 @dataclass(frozen=True)
@@ -61,13 +90,9 @@ class BinarySystem:
     distance_pc: float
     semimajor_au: float          # relative orbit a = a1 + a2
     eccentricity: float = 0.0    # only e = 0 is implemented
-    # Linear limb-darkening coefficient u vs wavelength [nm], interpolated
-    # linearly between table points (same law assumed for both stars).
-    ld_table_nm: tuple = ((400.0, 0.52), (477.0, 0.50), (763.0, 0.30), (800.0, 0.29))
     # Observed out-of-eclipse (maximum light) apparent magnitudes per band,
-    # used to anchor the synthetic lightcurves.  For Beta Aurigae these are
-    # derived from V = 1.90, B-V = 0.03 (Bright Star Catalogue) with the
-    # Jester et al. 2005 Johnson->SDSS transformations: g ~ 1.80, i ~ 2.10.
+    # used to anchor the synthetic lightcurves (Jester et al. 2005
+    # Johnson->SDSS transformations of the literature photometry).
     mag_anchors: tuple = (("g", 1.80), ("i", 2.10))
 
     # ---- derived angular quantities (sky plane) ----
@@ -78,21 +103,39 @@ class BinarySystem:
     def angular_radius_mas(self, star: Star) -> float:
         return (star.radius_rsun * R_SUN) / (self.distance_pc * PARSEC) / MAS
 
-    def ld_coeff(self, wavelength_nm: float) -> float:
-        lam, u = zip(*self.ld_table_nm)
-        return float(np.interp(wavelength_nm, lam, u))
-
 
 BETA_AUR = BinarySystem(
     name="Beta Aurigae (Menkalinan)",
-    primary=Star("beta Aur Aa", mass_msun=2.376, radius_rsun=2.762, teff=9350.0),   # [S07]
-    secondary=Star("beta Aur Ab", mass_msun=2.291, radius_rsun=2.568, teff=9200.0),  # [S07]
+    primary=Star("beta Aur Aa", mass_msun=2.376, radius_rsun=2.762,
+                 teff=9350.0, ld_table_nm=LD_BETA_AUR),   # [S07]
+    secondary=Star("beta Aur Ab", mass_msun=2.291, radius_rsun=2.568,
+                   teff=9200.0, ld_table_nm=LD_BETA_AUR),  # [S07]
     period_days=3.96004,        # [S07]
     inclination_deg=76.8,       # [S07] (H95: 76.0 +/- 0.4)
     distance_pc=24.87,          # [vL07], parallax 40.21 mas
     semimajor_au=0.08214,       # Kepler's third law with [S07] masses; cf. H95
     eccentricity=0.0,           # [S07]
+    # from V = 1.90, B-V = 0.03 (Bright Star Catalogue): g ~ 1.80, i ~ 2.10
+    mag_anchors=(("g", 1.80), ("i", 2.10)),
 )
+
+ALGOL = BinarySystem(
+    name="Algol (beta Persei) A-B",
+    primary=Star("Algol A (B8V)", mass_msun=3.17, radius_rsun=2.73,
+                 teff=12550.0, ld_table_nm=LD_ALGOL_A),    # [B12], Teff [K15]
+    secondary=Star("Algol B (K0IV)", mass_msun=0.70, radius_rsun=3.48,
+                   teff=4900.0, ld_table_nm=LD_ALGOL_B),   # [B12], Teff [K15]
+    period_days=2.867328,       # [B12]
+    inclination_deg=98.70,      # [B12]
+    distance_pc=28.82,          # [Z10], parallax 34.7 mas
+    semimajor_au=0.0620,        # [B12] (2.15 mas measured; Kepler-consistent)
+    eccentricity=0.0,           # [B12]
+    # V_max = 2.12, B-V = -0.05 include Algol C (~10% third light, ~0.10
+    # mag); C-corrected A-B-only anchors via Jester et al. 2005:
+    mag_anchors=(("g", 2.07), ("i", 2.58)),
+)
+
+SYSTEMS = {"betaaur": BETA_AUR, "algol": ALGOL}
 
 
 # ---------------------------------------------------------------------------
