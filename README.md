@@ -93,6 +93,29 @@ uv pip install -p .venv/bin/python jax numpy matplotlib pytest scipy
 .venv/bin/python -m hbtsim --baseline-pa 0
 ```
 
+## Systems
+
+Two binaries are built in (`--system` on every CLI; add more as
+`BinarySystem` instances in `hbtsim/params.py`):
+
+- **`betaaur`** — Beta Aurigae (default): near-twin A1m IV pair, shallow
+  0.08 mag eclipses (parameters above).
+- **`algol`** — Algol (β Persei) A–B: a B8V dwarf (3.17 M☉, 2.73 R☉,
+  12,550 K) eclipsed by a K0IV subgiant (0.70 M☉, 3.48 R☉, 4,900 K);
+  P = 2.867328 d, i = 98.7°, a = 2.151 mas, d = 28.82 pc (Baron et al.
+  2012 CHARA imaging; Zavala et al. 2010 parallax; Kolbas et al. 2015
+  Teffs). Angular diameters 0.881 / 1.123 mas. The model's primary
+  eclipse depth is 1.48 mag in g (the published 1.27 mag V depth is
+  diluted by Algol C's ~10% third light; C-corrected it is ~1.5 mag).
+  Caveats: component C (~70 mas away) is excluded from the image and
+  removed from the photometric anchors (g 2.07, i 2.58); the
+  Roche-lobe-filling secondary is rendered as a sphere, so the
+  ellipsoidal variation and reflection effect of the real out-of-eclipse
+  lightcurve are absent. Limb darkening is **per star** (`Star.ld_table_nm`,
+  Claret & Bloemen 2011): u(400 nm) = 0.42 for the B8V primary vs 0.89
+  for the K subgiant — Algol is why the LD coefficient lives on `Star`
+  rather than on the system.
+
 ## Observation SNR (hbtsim.snr)
 
 `hbtsim/snr.py` estimates the signal-to-noise of a g²(B) measurement with
