@@ -1,0 +1,141 @@
+"""Tests of complex visibilities, the triple product, and closure phase."""
+
+import jax
+import jax.numpy as jnp
+import numpy as np
+import pytest
+
+jax.config.update("jax_enable_x64", True)
+
+from hbtsim import hbt
+from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, BispectrumResult,
+                               Station, Triangle,
+                               binary_vis_complex_analytic, closure_phase,
+                               equilateral_triangle, spectral_bispectrum,
+                               uv_bins_of_baseline, vis_complex_map,
+                               vis_complex_of_uv)
+from hbtsim.orbit import SkyPositions, sky_positions
+from hbtsim.params import ALGOL, BETA_AUR, GridConfig
+from hbtsim.render import _render_kernel, render_image
+from hbtsim.snr import KECK
+
+GRID = GridConfig()
+TRI = MAUNAKEA_SUBARU_KECK
+
+
+def _pos(system, psi):
+    return SkyPositions(*(np.asarray(v) for v in sky_positions(psi, system)))
+
+
+def test_triangle_geometry():
+    """Site coordinates reproduce the nominal 152/85/226 m distances and
+    the baseline vectors close exactly."""
+    lengths = TRI.baseline_lengths()
+    assert lengths == pytest.approx([152.1, 84.9, 225.9], abs=0.5)
+    assert np.allclose(TRI.baseline_vectors().sum(axis=0), 0.0, atol=1e-12)
+    eq = equilateral_triangle(85.0)
+    assert eq.baseline_lengths() == pytest.approx([85.0] * 3, rel=1e-12)
+
+
+def test_complex_map_modulus_equals_vis2_map():
+    img = render_image(_pos(BETA_AUR, 0.0), BETA_AUR, 500.0, GRID)
+    v2 = np.asarray(hbt.vis2_map(img, GRID.pad))
+    vc = np.asarray(vis_complex_map(img, GRID.n, GRID.pad))
+    # the recentering ramp is a pure phase: moduli must agree to f32 eps
+    assert np.allclose(np.abs(vc) ** 2, v2, atol=1e-6)
+
+
+def test_fft_complex_vis_matches_analytic():
+    """Modulus to <1% and phase to <0.5 deg out of eclipse, both systems."""
+    for system in (BETA_AUR, ALGOL):
+        for phase in (0.0, 0.1):
+            pos = _pos(system, 2 * np.pi * phase)
+            for lam in (450.0, 800.0):
+                fft = closure_phase(system, TRI, lam, phase, method="fft")
+                ana = closure_phase(system, TRI, lam, phase, method="analytic")
+                assert np.allclose(np.abs(fft.gammas), np.abs(ana.gammas),
+                                   atol=5e-3)
+                dphase = np.abs(np.angle(fft.gammas * np.conj(ana.gammas)))
+                assert np.degrees(dphase).max() < 0.5
+                dphic = abs(np.angle(np.exp(1j * (fft.phi_c - ana.phi_c))))
+                assert np.degrees(dphic) < 0.5
+
+
+def test_closure_phase_translation_invariance():
+    """Shifting the whole image moves every gamma phase but leaves the
+    closure phase unchanged (vector baselines close)."""
+    pos = _pos(ALGOL, 0.0)
+    shift = 0.4  # mas
+    pos_shifted = SkyPositions(x1=pos.x1 + shift, y1=pos.y1 - shift,
+                               x2=pos.x2 + shift, y2=pos.y2 - shift,
+                               front2=pos.front2, rho=pos.rho, pa=pos.pa)
+    bvecs = TRI.baseline_vectors()
+    g0 = binary_vis_complex_analytic(bvecs, 600.0, ALGOL, pos)
+    g1 = binary_vis_complex_analytic(bvecs, 600.0, ALGOL, pos_shifted)
+    # individual phases move...
+    assert np.degrees(np.abs(np.angle(g1 * np.conj(g0)))).max() > 5.0
+    # ...the closure phase does not
+    phi0 = np.angle(g0.prod())
+    phi1 = np.angle(g1.prod())
+    assert abs(np.angle(np.exp(1j * (phi1 - phi0)))) < 1e-10
+
+
+def test_station_relabeling_conjugates_only():
+    """Reversing the station order conjugates the bispectrum (cos phi_c
+    invariant)."""
+    rev = Triangle(tuple(reversed(TRI.stations)))
+    a = closure_phase(ALGOL, TRI, 700.0, 0.0)
+    b = closure_phase(ALGOL, rev, 700.0, 0.0)
+    assert b.phi_c == pytest.approx(-a.phi_c, abs=1e-9)
+    assert b.cos_phi_c == pytest.approx(a.cos_phi_c, abs=1e-12)
+
+
+def test_point_source_and_single_disk():
+    """A tiny centered single 'star' has gamma ~ 1 and phi_c ~ 0; a single
+    centered LD disk has a REAL bispectrum (phases 0 or pi)."""
+    # tiny disk = effectively unresolved point source
+    img = _render_kernel(0.0, 0.0, 300.0, 300.0, False,
+                         3.0, 1.0, 1.0, 0.0, 0.3, 0.0, GRID.n)
+    vmap = vis_complex_map(img, GRID.n, GRID.pad)
+    f = np.asarray(uv_bins_of_baseline(TRI.baseline_vectors(), 500e-9, GRID))
+    g = np.asarray(vis_complex_of_uv(vmap, f[:, 0], f[:, 1]))
+    # a 3 px (0.03 mas radius) disk on the 226 m arm already has
+    # |V| = 1 - x^2/8 ~ 0.979 -- "unresolved" is approximate
+    assert np.abs(g).min() > 0.97
+    assert abs(np.angle(g.prod())) < 0.01
+
+    # resolved centered disk: bispectrum real (sign from the lobes)
+    img = _render_kernel(0.0, 0.0, 300.0, 300.0, False,
+                         50.0, 1.0, 1.0, 0.0, 0.3, 0.0, GRID.n)
+    vmap = vis_complex_map(img, GRID.n, GRID.pad)
+    g = np.asarray(vis_complex_of_uv(vmap, f[:, 0], f[:, 1]))
+    assert abs(np.sin(np.angle(g.prod()))) < 0.02
+
+
+def test_spectral_bispectrum_matches_closure_phase_and_chunks():
+    pos = _pos(BETA_AUR, 0.0)
+    nm = np.array([450.0, 600.0, 800.0])
+    gam = np.asarray(spectral_bispectrum(pos, TRI, nm, BETA_AUR, GRID,
+                                         chunk_size=2))
+    gam1 = np.asarray(spectral_bispectrum(pos, TRI, nm, BETA_AUR, GRID,
+                                          chunk_size=1))
+    assert np.array_equal(gam, gam1)
+    for k, lam in enumerate(nm):
+        ref = closure_phase(BETA_AUR, TRI, float(lam), 0.0, method="fft")
+        assert np.allclose(gam[k], ref.gammas, atol=2e-4)
+
+
+def test_spectral_bispectrum_through_eclipse():
+    """Mid primary eclipse of Algol: the analytic path refuses, the FFT
+    path returns finite, bounded, smooth-in-lambda gammas."""
+    with pytest.raises(ValueError, match="eclipse"):
+        closure_phase(ALGOL, TRI, 600.0, 0.25, method="analytic")
+    pos = _pos(ALGOL, np.pi / 2)
+    nm = np.linspace(450.0, 900.0, 10)
+    gam = np.asarray(spectral_bispectrum(pos, TRI, nm, ALGOL, GRID,
+                                         chunk_size=4))
+    assert np.all(np.isfinite(gam))
+    assert np.abs(gam).max() <= 1.0 + 1e-5
+    bis = gam[:, 0] * gam[:, 1] * gam[:, 2]
+    # smooth in lambda: no jumps larger than ~half the dynamic range
+    assert np.abs(np.diff(np.abs(bis))).max() < 0.5 * np.ptp(np.abs(bis)) + 1e-9

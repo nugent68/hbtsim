@@ -122,6 +122,11 @@ C2PU = Telescope(diameter_m=1.0, throughput=0.3)
 # 25-50 m for Beta Aur) is not far above the aperture size.
 KECK = Telescope(diameter_m=10.0, throughput=0.3)
 
+# Subaru (8.2 m), ~152 m from Keck I and ~226 m from Keck II -- the third
+# vertex of the Maunakea triangle (bispectrum.MAUNAKEA_SUBARU_KECK).
+# The same aperture-smearing caveat applies.
+SUBARU = Telescope(diameter_m=8.2, throughput=0.3)
+
 
 @dataclass(frozen=True)
 class Observation:

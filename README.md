@@ -147,6 +147,29 @@ the blue channels dim by 1.5 mag and the error bars visibly inflate
 while the fringe spectrum collapses. Compute (`--compute-only`, GPU) and
 rendering (`--render-only`, needs ffmpeg) are separable via the npz file.
 
+## Three telescopes: bispectrum and closure phase
+
+Two-point HBT gives only |V|² — no Fourier phase. With three telescopes
+the triple correlation g³ = 1 + Σ|γᵢⱼ|² + 2|γ₁₂γ₂₃γ₃₁|cos φc carries the
+**closure phase** (the bispectrum phase, immune to per-telescope phase
+and source translation), the entry point to image reconstruction.
+`hbtsim/bispectrum.py` samples complex visibilities from the FFT
+(validated against the analytic binary to <0.15° in phase), defines
+telescope triangles (built in: `MAUNAKEA_SUBARU_KECK` — Subaru + Keck I
++ Keck II at 152/85/226 m, from site coordinates), and computes
+closure phases through eclipses via a GPU-batched spectral path.
+`hbtsim/snr3.py` extends the photon budget to triple coincidences
+(pol₃ = ¼, 2D lag-plane matched filter; SNR₃ ∝ 1/σ_jitter and
+∝ Δλ^(−1/2) — narrowband multiplexing is the lever).
+
+**Feasibility verdict** ([docs/three_telescope_feasibility.md](docs/three_telescope_feasibility.md),
+`scripts/feasibility_g3.py`): the Subaru arms resolve out the ~1 mas
+disks (triple amplitude ≲ 0.04) and with the stock 320-channel SPAD
+Lambda the closure phase of Algol needs **centuries**; an R ≈ 5000
+backend (0.1 nm × 5500 channels) brings Δcos φc ≤ 0.3 to **~42 nights**;
+a *compact* 85 m triangle of 10 m apertures with the same backend does
+it in **hours**. Geometry beats aperture.
+
 ## Batched spectral FFT on GPU
 
 `hbtsim.spectral.spectral_vis2(pos, baselines, wavelengths, system, grid)`
