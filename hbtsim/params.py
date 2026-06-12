@@ -30,6 +30,18 @@ closure-phase work (docs/three_telescope_feasibility.md):
   is a beta Cep pulsator and tidally distorted (ellipsoidal variable,
   non-eclipsing at i = 63 deg) -- rendered here as a static sphere.
 
+delta Velorum Aa-Ab, the second VLT closure-phase target (eccentric
+orbit, unresolved disks, both components rapid rotators):
+  [M11] Merand et al. 2011, A&A 532, A50 (VLTI/AMBER + spectroscopy
+        with Pribulla et al. 2011): P = 45.1503 d, e = 0.290,
+        omega = 109.7 deg, i = 89.0 deg, masses, radii, Teffs, orbital
+        parallax 80.6 pc.  The B component (F dwarf, ~0.6 arcsec away,
+        ~4% third light) is excluded; its dilution is folded into the
+        photometric anchors.  The components' rapid rotation
+        (v sin i ~ 145 km/s; oblate, gravity-darkened) is NOT modeled
+        -- spherical disks here -- which is precisely the signal a real
+        closure-phase campaign would target.
+
 Limb darkening (per star):
   [C11] Claret & Bloemen 2011, A&A 529, A75 (VizieR J/A+A/529/A75):
         linear limb-darkening coefficients u(lambda), ATLAS models,
@@ -105,7 +117,8 @@ class BinarySystem:
     inclination_deg: float
     distance_pc: float
     semimajor_au: float          # relative orbit a = a1 + a2
-    eccentricity: float = 0.0    # only e = 0 is implemented
+    eccentricity: float = 0.0
+    arg_periastron_deg: float = 0.0  # omega; ignored when e = 0
     # Observed out-of-eclipse (maximum light) apparent magnitudes per band,
     # used to anchor the synthetic lightcurves (Jester et al. 2005
     # Johnson->SDSS transformations of the literature photometry).
@@ -168,7 +181,26 @@ SPICA = BinarySystem(
     mag_anchors=(("g", 0.71), ("i", 1.06)),
 )
 
-SYSTEMS = {"betaaur": BETA_AUR, "algol": ALGOL, "spica": SPICA}
+DELTA_VEL = BinarySystem(
+    name="delta Velorum Aa-Ab",
+    primary=Star("delta Vel Aa (A2 IV)", mass_msun=2.43, radius_rsun=2.97,
+                 teff=9450.0, ld_table_nm=LD_BETA_AUR),   # [M11]
+    secondary=Star("delta Vel Ab (A4 V)", mass_msun=2.27, radius_rsun=2.52,
+                   teff=9830.0, ld_table_nm=LD_BETA_AUR),  # [M11]
+    period_days=45.1503,        # [M11]
+    inclination_deg=89.0,       # [M11]; grazing eclipses
+    distance_pc=80.6,           # [M11] orbital parallax
+    semimajor_au=0.4156,        # Kepler's third law with [M11] masses
+    eccentricity=0.290,         # [M11]
+    arg_periastron_deg=109.7,   # [M11]
+    # V = 1.95 for the unresolved A pair + B (F dwarf, V ~ 5.5, ~3.7%
+    # third light, excluded): A-only V ~ 1.99, B-V ~ 0.04 -> g ~ 1.90;
+    # i anchor from the anchored-blackbody color (+- ~0.1 mag)
+    mag_anchors=(("g", 1.90), ("i", 2.25)),
+)
+
+SYSTEMS = {"betaaur": BETA_AUR, "algol": ALGOL, "spica": SPICA,
+           "deltavel": DELTA_VEL}
 
 
 # ---------------------------------------------------------------------------
