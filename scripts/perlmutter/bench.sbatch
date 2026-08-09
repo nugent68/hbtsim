@@ -10,7 +10,7 @@
 #SBATCH -c 32
 #SBATCH -t 00:20:00
 #SBATCH -J hbtsim-bench
-#SBATCH -o /pscratch/sd/n/nugent/hbtsim-bench-%j.out
+#SBATCH -o /pscratch/sd/n/nugent/hbt/hbtsim-bench-%j.out
 
 module load python
 source activate jax-gpu-env 2>/dev/null || conda activate jax-gpu-env

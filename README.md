@@ -247,7 +247,8 @@ can OOM you. For real work use a dedicated GPU:
 salloc -N 1 -C gpu -G 1 -c 32 -q interactive -t 30 -A m2218_g
 module load python && conda activate jax-gpu-env
 cd ~/binary && srun -n 1 python -m hbtsim.g2spec --system algol \
-    --compute-only --diameter 10 --baseline 85 --npz $SCRATCH/algol_keck.npz
+    --compute-only --diameter 10 --baseline 85 \
+    --npz $SCRATCH/hbt/g2spec_algol_keck.npz
 # (note: standalone srun needs an explicit -n 1)
 
 # or batch
@@ -255,7 +256,8 @@ sbatch ~/binary/scripts/perlmutter/bench.sbatch
 ```
 
 Keep the repo and env in `$HOME` ($SCRATCH is purged after ~8 weeks);
-write job outputs to `$SCRATCH`, then copy the npz back and render the
+write job outputs to `$SCRATCH/hbt/` (keep them out of the scratch root —
+`mkdir -p $SCRATCH/hbt` once), then copy the npz back and render the
 movie locally with `--render-only`.
 
 ## Package layout

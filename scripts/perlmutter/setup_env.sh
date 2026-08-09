@@ -24,7 +24,11 @@ source activate jax-gpu-env 2>/dev/null || conda activate jax-gpu-env
 pip install --upgrade "jax[cuda12]" numpy scipy matplotlib pytest
 pip install -e "$HOME/binary"
 
+# job outputs live here, not in the scratch root
+mkdir -p "$SCRATCH/hbt"
+
 echo
-echo "Environment ready.  Sanity check (login nodes have no GPUs, so"
-echo "this prints CpuDevice here; CudaDevice inside a GPU allocation):"
+echo "Environment ready.  Outputs go to \$SCRATCH/hbt."
+echo "Sanity check (login nodes have a *shared* GPU; a dedicated one"
+echo "needs an salloc):"
 python -c "import jax; print(jax.__version__, jax.devices())"
