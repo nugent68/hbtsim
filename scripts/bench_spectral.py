@@ -17,7 +17,7 @@ import jax
 import numpy as np
 
 from hbtsim import hbt
-from hbtsim.orbit import SkyPositions, sky_positions
+from hbtsim.orbit import positions_at
 from hbtsim.params import BETA_AUR, GridConfig
 from hbtsim.snr import Spectrograph, spectral_g2_snr
 from hbtsim.spectral import _auto_chunk, spectral_vis2
@@ -41,8 +41,7 @@ def main() -> None:
           f"({chunk} x ~30 MB/channel of render temporaries)\n")
 
     system, grid = BETA_AUR, GridConfig()
-    pos = SkyPositions(*(np.asarray(v) for v in
-                         sky_positions(2 * np.pi * args.phase, system)))
+    pos = positions_at(system, args.phase)
     nm = np.linspace(400.0, 950.0, args.channels)
     baselines = np.arange(10.0, 151.0, 10.0)
 

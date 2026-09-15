@@ -1,4 +1,4 @@
-"""Movie of the measurable g2(lambda) spectrum, one frame per hour.
+"""Movie of the measurable g2(lambda) spectrum, one frame per hour (or --cadence-hours).
 
 Each frame shows what the telescope pair would measure in a one-hour
 integration with the source dispersed over the detector array: per
@@ -32,7 +32,7 @@ import numpy as np
 
 from .movie import (DISPLAY_BIN, DISPLAY_HALF_PX, render_display_rgb,
                     stretch_rgb)
-from .orbit import SkyPositions, sky_positions
+from .orbit import positions_at
 from .params import BETA_AUR, BinarySystem, GridConfig
 from .snr import (C2PU, SPAD_LAMBDA, SPAD_LAMBDA_NG, Detector, Observation,
                   Spectrograph, Telescope, incident_rate, polarization_streams,
@@ -48,13 +48,14 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
                grid: GridConfig = GridConfig(),
                chunk_size: int | None = None,
                polarization_mode: str = "unpolarized",
+               cadence_hours: float = 1.0,
                seed: int = 42, verbose: bool = True) -> dict:
     """Per-hour |V|^2(lambda) (averaged over the two telescope apertures,
     as the correlator measures it), 1-sigma errors and one noisy
     realization over one orbital period.  Returns a dict of arrays
     (np.savez-able)."""
     period_h = system.period_days * 24.0
-    hours = np.arange(0.0, np.floor(period_h) + 0.5)  # 0..95 for Beta Aur
+    hours = np.arange(0.0, period_h - 1e-9, cadence_hours)  # 0..95 for Beta Aur
     phases = hours / period_h
     nm = spectrograph.channel_centers_nm
     widths = spectrograph.channel_widths_nm
@@ -66,8 +67,7 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
     flux = np.empty((n_e, n_c), np.float32)
     disp = np.empty((n_e, m_disp, m_disp, 3), np.float32)
     for k, ph in enumerate(phases):
-        pos = SkyPositions(*(np.asarray(v) for v in
-                             sky_positions(2 * np.pi * ph, system)))
+        pos = positions_at(system, ph)
         v2, fl = spectral_vis2(pos, [baseline_m], nm, system, grid,
                                chunk_size=chunk_size, return_flux=True,
                                pupils=(telescope.diameter_m, telescope.diameter_m))
@@ -237,6 +237,8 @@ def main(argv=None) -> None:
     p.add_argument("--throughput", type=float, default=C2PU.throughput)
     p.add_argument("--time", type=float, default=3600.0,
                    help="integration time per frame in s")
+    p.add_argument("--cadence-hours", type=float, default=1.0,
+                   help="hours between frames (delta Vel: 12 -> 90 frames)")
     p.add_argument("--channels", type=int, default=320)
     p.add_argument("--resolving-power", type=float, default=None,
                    help="constant-R channel grid instead of --channels")
@@ -261,14 +263,15 @@ def main(argv=None) -> None:
                 else Spectrograph.from_resolving_power(args.resolving_power))
         tel = Telescope(diameter_m=args.diameter, throughput=args.throughput)
         det = SPAD_LAMBDA if args.readout == "timetag" else SPAD_LAMBDA_NG
-        print(f"Computing g2(lambda) every hour over one period of "
+        print(f"Computing g2(lambda) every {args.cadence_hours:g} h over one period of "
               f"{system.name} (2 x {tel.diameter_m:.0f} m, "
               f"B = {args.baseline:.0f} m, {spec.n_channels} channels, "
               f"{det.readout} readout) ...")
         data = precompute(system=system, baseline_m=args.baseline,
                           spectrograph=spec, t_int_s=args.time, telescope=tel,
                           detector=det, chunk_size=args.chunk,
-                          polarization_mode=args.polarization, seed=args.seed)
+                          polarization_mode=args.polarization,
+                          cadence_hours=args.cadence_hours, seed=args.seed)
         np.savez_compressed(npz, **data)
         print(f"Wrote {npz}")
     if not args.compute_only:

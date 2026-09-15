@@ -1,19 +1,31 @@
 [project]
 name = "hbtsim"
 version = "0.1.0"
-description = "Hanbury Brown-Twiss intensity-interferometry simulation of binary stars (Beta Aurigae)"
+description = "Hanbury Brown-Twiss intensity-interferometry simulation of bright binary stars"
 requires-python = ">=3.11"
 dependencies = [
     "jax>=0.4.32",
-    "numpy>=1.26",
-    "matplotlib>=3.8",
+    "numpy>=2.0",
     "scipy>=1.12",
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=8.0"]
+movie = ["matplotlib>=3.8"]
+test = ["pytest>=8.0", "matplotlib>=3.8"]
 gpu = ["jax[cuda12]>=0.4.32"]
 sed = ["h5py>=3.10"]
+
+[project.scripts]
+hbtsim-movie = "hbtsim.cli:main"
+hbtsim-g2spec = "hbtsim.g2spec:main"
+hbtsim-snr = "hbtsim.snr_cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore:.*anchored-blackbody magnitude extrapolated.*:UserWarning",
+    "ignore:.*dead-time load.*:UserWarning",
+]
 
 [build-system]
 requires = ["setuptools>=68"]

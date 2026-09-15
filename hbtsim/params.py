@@ -164,8 +164,9 @@ class Star:
     mass_msun: float
     radius_rsun: float
     teff: float  # K
-    # per-star linear limb-darkening u(lambda) table, ((nm, u), ...) [C11]
-    ld_table_nm: tuple = LD_BETA_AUR
+    # per-star linear limb-darkening u(lambda) table, ((nm, u), ...) [C11];
+    # required, so that every star's law is an explicit choice
+    ld_table_nm: tuple
     # optional model-atmosphere hooks (hbtsim.sed): when present they
     # replace the blackbody SED and/or the linear limb-darkening law
     flux_table: FluxTable | None = None
@@ -222,7 +223,9 @@ class BinarySystem:
     distance_pc: float
     semimajor_au: float          # relative orbit a = a1 + a2
     eccentricity: float = 0.0
-    arg_periastron_deg: float = 0.0  # omega; ignored when e = 0
+    # omega of the SECONDARY's relative orbit (visual-binary convention);
+    # ignored when e = 0 (no periastron: phase 0 is then quadrature)
+    arg_periastron_deg: float = 0.0
     # Observed out-of-eclipse (maximum light) apparent magnitudes per band,
     # used to anchor the synthetic lightcurves (Jester et al. 2005
     # Johnson->SDSS transformations of the literature photometry).
@@ -293,7 +296,10 @@ BETA_AUR = BinarySystem(
     period_days=3.96004,        # [S07]
     inclination_deg=76.8,       # [S07] (H95: 76.0 +/- 0.4)
     distance_pc=24.87,          # [vL07], parallax 40.21 mas
-    semimajor_au=0.08214,       # Kepler's third law with [S07] masses; cf. H95
+    # Kepler's third law with the [S07] masses (4.667 Msun) and period:
+    # a^3 = M P^2 -> 0.08186 AU = 3.29 mas at 24.87 pc (H95 measured
+    # 3.3 +/- 0.1 mas; Jonak et al. 2026: 3.365 mas at 24.30 pc)
+    semimajor_au=0.08186,
     eccentricity=0.0,           # [S07]
     # from V = 1.90, B-V = 0.03 (Bright Star Catalogue): g ~ 1.80, i ~ 2.10
     mag_anchors=(("g", 1.80), ("i", 2.10)),
@@ -328,6 +334,8 @@ SPICA = BinarySystem(
     name="Spica (alpha Virginis)",
     primary=Star("Spica A (B1 III-IV)", mass_msun=11.43, radius_rsun=7.47,
                  teff=25300.0, ld_table_nm=LD_SPICA),   # [T16]
+    # the same [C11] table for B (20.9 kK, log g 4.2): u differs from A's
+    # by ~0.02, below the other uncertainties of this hot pair
     secondary=Star("Spica B (B2 V)", mass_msun=7.21, radius_rsun=3.74,
                    teff=20900.0, ld_table_nm=LD_SPICA),  # [T16]
     period_days=4.0145,         # [HE71]/[T16]
@@ -348,6 +356,8 @@ SPICA = BinarySystem(
 
 DELTA_VEL = BinarySystem(
     name="delta Velorum Aa-Ab",
+    # both components use the Beta Aur (9250 K, log g 3.9) [C11] table:
+    # within ~0.02 in u of their own (9450 / 9830 K, log g 3.9 / 4.0)
     primary=Star("delta Vel Aa (A2 IV)", mass_msun=2.43, radius_rsun=2.97,
                  teff=9450.0, ld_table_nm=LD_BETA_AUR),   # [M11]
     secondary=Star("delta Vel Ab (A4 V)", mass_msun=2.27, radius_rsun=2.52,
@@ -357,7 +367,16 @@ DELTA_VEL = BinarySystem(
     distance_pc=80.6,           # [M11] orbital parallax
     semimajor_au=0.4156,        # Kepler's third law with [M11] masses
     eccentricity=0.290,         # [M11]
-    arg_periastron_deg=109.7,   # [M11]
+    # omega = 109.7 deg [M11], which agrees to 0.1 deg with the ROCHE
+    # spectroscopic value of Pribulla et al. 2011 and is therefore the
+    # PRIMARY's argument of periastron (RV convention).  This code applies
+    # omega to the secondary's relative orbit (orbit.py), where the
+    # visual-binary convention would call it omega + 180 deg.  The two
+    # choices swap which conjunction falls near periastron and hence the
+    # eclipse durations and the phase gap between the minima -- CHECK
+    # against the SMEI light curve (primary minimum deeper, secondary
+    # ~0.43 in phase later) before using delta Vel eclipse timing.
+    arg_periastron_deg=109.7,
     # V = 1.95 for the unresolved A pair + B (F dwarf, V ~ 5.5, ~3.7%
     # third light, excluded): A-only V ~ 1.99, B-V ~ 0.04 -> g ~ 1.90;
     # i anchor from the anchored-blackbody color (+- ~0.1 mag)

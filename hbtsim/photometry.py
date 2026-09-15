@@ -54,11 +54,29 @@ def apparent_ab_mag(img_flux: np.ndarray, wavelength_nm: float,
     return -2.5 * np.log10(f_nu / AB_ZERO_FNU)
 
 
-def anchored_mags(synth_mags: np.ndarray, band: str,
-                  system: BinarySystem) -> np.ndarray:
-    """Shift a band's synthetic magnitude curve by a constant so that its
+def max_light_mag(system: BinarySystem, wavelength_nm: float,
+                  grid: GridConfig) -> float:
+    """Synthetic AB magnitude of the system at maximum light: rendered at
+    the epoch of largest projected separation (out of eclipse by
+    construction), on the given grid."""
+    from .orbit import max_separation_phase, positions_at
+    from .render import render_image
+
+    pos = positions_at(system, max_separation_phase(system))
+    flux = band_flux(render_image(pos, system, wavelength_nm, grid))
+    return float(apparent_ab_mag(flux, wavelength_nm, system, grid))
+
+
+def anchored_mags(synth_mags: np.ndarray, band: str, system: BinarySystem,
+                  reference_mag: float | None = None) -> np.ndarray:
+    """Shift a band's synthetic magnitude curve by a constant so that
     maximum light equals the observed magnitude in system.mag_anchors,
-    correcting the blackbody zero-point offset (see module docstring)."""
+    correcting the blackbody zero-point offset (see module docstring).
+    reference_mag is the synthetic magnitude at maximum light (from
+    max_light_mag, independent of which epochs the curve samples); if
+    None the curve's own minimum is used (legacy behaviour, which
+    rectifies render jitter and depends on the phase window)."""
     anchors = dict(system.mag_anchors)
     m = np.asarray(synth_mags)
-    return m - m.min() + anchors[band]
+    ref = float(m.min()) if reference_mag is None else float(reference_mag)
+    return m - ref + anchors[band]

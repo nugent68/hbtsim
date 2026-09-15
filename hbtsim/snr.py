@@ -477,15 +477,14 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
     """
     from .aperture import resolve_pupils
     from .hbt import baseline_vectors_along_pa, binary_vis2_analytic
-    from .orbit import SkyPositions, sky_positions
+    from .orbit import positions_at
 
     telescope2 = telescope1 if telescope2 is None else telescope2
     detector2 = detector1 if detector2 is None else detector2
     det1 = replace(detector1, n_pixels=n_pixels_per_channel)
     det2 = replace(detector2, n_pixels=n_pixels_per_channel)
 
-    pos = SkyPositions(*(np.asarray(v) for v in
-                         sky_positions(2.0 * np.pi * orbital_phase, system)))
+    pos = positions_at(system, orbital_phase)
     nm = spectrograph.channel_centers_nm
     widths = spectrograph.channel_widths_nm
 

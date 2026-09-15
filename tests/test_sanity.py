@@ -8,8 +8,6 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-jax.config.update("jax_enable_x64", True)
-
 from hbtsim import hbt
 from hbtsim.limbdark import disk_flux_factor, visibility_ld_disk
 from hbtsim.orbit import SkyPositions, sky_positions

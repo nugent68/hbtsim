@@ -14,17 +14,13 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.animation import FFMpegWriter, FuncAnimation
 
 from .aperture import resolve_pupils
 from .hbt import baseline_vectors_along_pa, check_frequency, dft_points, split_frequency
 from .orbit import SkyPositions, sky_positions
 from .params import BinarySystem, GridConfig, MovieConfig, planck
-from .photometry import anchored_mags, apparent_ab_mag
+from .photometry import anchored_mags, apparent_ab_mag, max_light_mag
 from .render import check_extent, render_kernel, spectral_weights
 from .spectral import _auto_chunk
 
@@ -188,7 +184,7 @@ def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
                           / planck(lam_nm * 1e-9, WHITE_REF_TEFF))
 
     mags = {band: anchored_mags(apparent_ab_mag(flux[:, j], lam_nm, system, grid),
-                                band, system)
+                                band, system, max_light_mag(system, lam_nm, grid))
             for j, (band, lam_nm) in enumerate(cfg.bands)}
     extent = DISPLAY_HALF_PX * DISPLAY_BIN * grid.pixel_scale_mas
     return FrameData(system, grid, cfg, psi / (2 * np.pi), disp, extent,
@@ -197,6 +193,11 @@ def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
 
 
 def make_movie(fd: FrameData, path: str, verbose: bool = True) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FFMpegWriter, FuncAnimation
+
     cfg = fd.cfg
     nf = len(fd.phase)
     colors = {"g": "tab:blue", "i": "tab:red"}

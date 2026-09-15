@@ -24,7 +24,7 @@ import numpy as np
 from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, VLT_UT, Triangle,
                                binary_vis_complex_analytic,
                                equilateral_triangle, spectral_bispectrum)
-from hbtsim.orbit import SkyPositions, sky_positions
+from hbtsim.orbit import positions_at
 from hbtsim.params import SYSTEMS, GridConfig
 from hbtsim.snr import KECK, Spectrograph
 from hbtsim.snr3 import (array_g3_snr, array_time_to_cos_phi,
@@ -34,8 +34,7 @@ NIGHT_S = 8 * 3600.0
 
 
 def _pos(system, phase):
-    return SkyPositions(*(np.asarray(v) for v in
-                          sky_positions(2 * np.pi * phase, system)))
+    return positions_at(system, phase)
 
 
 def fig_gammas(system, sysname, triangle, out):

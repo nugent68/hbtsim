@@ -25,7 +25,7 @@ from dataclasses import replace
 import numpy as np
 
 from . import hbt
-from .orbit import SkyPositions, sky_positions
+from .orbit import positions_at, sky_positions
 from .params import SYSTEMS, GridConfig
 from .render import render_image
 from .snr import (C2PU, DISPERSED_BACKEND, FILTER_BACKEND, SPAD_LAMBDA,
@@ -34,8 +34,7 @@ from .snr import (C2PU, DISPERSED_BACKEND, FILTER_BACKEND, SPAD_LAMBDA,
 
 
 def narrowband(args, system, grid, tel, det) -> None:
-    psi = 2.0 * np.pi * args.phase
-    pos = SkyPositions(*(np.asarray(v) for v in sky_positions(psi, system)))
+    pos = positions_at(system, args.phase)
     print(f"Filter    : {args.filter_width:.1f} nm rectangular full width at "
           f"{', '.join(f'{w:.0f}' for w in args.wavelengths)} nm "
           f"(backend throughput {FILTER_BACKEND.throughput:.2f})\n")

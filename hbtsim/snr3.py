@@ -76,7 +76,7 @@ import numpy as np
 
 from .bispectrum import Array, Triangle, spectral_triple
 from .geometry import drift_loss, fringe_drift_cycles, hour_angle_blocks, hour_angle_window
-from .orbit import SkyPositions, sky_positions
+from .orbit import positions_at, sky_positions
 from .params import DAY, MAS, BinarySystem, GridConfig
 from .snr import (COHERENCE_SIGMA_FACTOR, Observation, Spectrograph, _check_dead_time,
                   coherence_time_s, incident_rate, polarization_streams,
@@ -214,8 +214,7 @@ def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
         vis_method = "render"
     nm = spectrograph.channel_centers_nm
     widths = spectrograph.channel_widths_nm
-    pos = SkyPositions(*(np.asarray(v) for v in
-                         sky_positions(2 * np.pi * orbital_phase, system)))
+    pos = positions_at(system, orbital_phase)
     ts = spectral_triple(pos, triangle, nm, system, grid, method=vis_method,
                          pupils=pupils, chunk_size=chunk_size)
     triple_amp = ts.triple_amp

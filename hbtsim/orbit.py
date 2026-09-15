@@ -85,6 +85,8 @@ def solve_kepler(mean_anomaly: np.ndarray, e: float,
 
 
 def sky_positions(psi: np.ndarray, system: BinarySystem) -> SkyPositions:
+    """Sky positions at mean anomaly psi (radians from periastron; scalar
+    or array)."""
     psi = np.asarray(psi, dtype=float)
     a = system.angular_semimajor_mas
     inc = np.radians(system.inclination_deg)
@@ -93,7 +95,7 @@ def sky_positions(psi: np.ndarray, system: BinarySystem) -> SkyPositions:
 
     if e == 0.0:
         r = a
-        u = w + psi  # nu = M = psi for a circular orbit
+        u = psi  # circular: no periastron, omega is meaningless and ignored
     else:
         E = solve_kepler(psi, e)
         nu = 2.0 * np.arctan2(np.sqrt(1.0 + e) * np.sin(E / 2.0),
@@ -123,3 +125,19 @@ def sky_positions(psi: np.ndarray, system: BinarySystem) -> SkyPositions:
         rho=np.hypot(dx, dy),
         pa=np.arctan2(dy, dx),
     )
+
+
+def positions_at(system: BinarySystem, orbital_phase: float) -> SkyPositions:
+    """Scalar-epoch SkyPositions (plain numpy scalars) at an orbital phase
+    in [0, 1) (mean anomaly / 2 pi from periastron; for circular orbits
+    phase 0 is quadrature)."""
+    return SkyPositions(*(np.asarray(v) for v in
+                          sky_positions(2.0 * np.pi * float(orbital_phase), system)))
+
+
+def max_separation_phase(system: BinarySystem, n: int = 4001) -> float:
+    """Orbital phase of the largest projected separation (out of eclipse
+    by construction): the reference epoch for maximum light."""
+    psi = np.linspace(0.0, 2.0 * np.pi, n, endpoint=False)
+    rho = sky_positions(psi, system).rho
+    return float(psi[int(np.argmax(rho))] / (2.0 * np.pi))

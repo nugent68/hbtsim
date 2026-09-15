@@ -42,7 +42,7 @@ import numpy as np
 from .aperture import TripleQuadrature, triple_quadrature_for
 from .geometry import HOUR, MAUNAKEA, PARANAL, Site, enu_to_uv
 from .hbt import vis_of_baselines
-from .orbit import SkyPositions, sky_positions
+from .orbit import SkyPositions, positions_at
 from .params import MAS, BinarySystem, GridConfig, require_out_of_eclipse
 from .snr import KECK, SPAD_LAMBDA, SPAD_LAMBDA_NG, SUBARU, Detector, Telescope
 from .spectral import spectral_vis
@@ -288,8 +288,7 @@ def closure_phase(system: BinarySystem, triangle: Triangle,
     (gammas stay the point values)."""
     method = _resolve_method(method)
     quad = resolve_triple_pupils(pupils, triangle)
-    pos = SkyPositions(*(np.asarray(v) for v in
-                         sky_positions(2 * np.pi * orbital_phase, system)))
+    pos = positions_at(system, orbital_phase)
     bvecs = triangle.baseline_vectors()
     pts = bvecs if quad is None else np.vstack([bvecs, quad.flat_points(bvecs)])
 

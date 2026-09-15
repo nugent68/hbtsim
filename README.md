@@ -285,17 +285,17 @@ JAX_PLATFORMS=cpu python scripts/bench_spectral.py  # force CPU
 # one-time setup (macOS)
 brew install ffmpeg
 uv venv --python 3.13 .venv
-uv pip install -p .venv/bin/python -e ".[test]"
+uv pip install -p .venv/bin/python -e ".[test,movie]"   # + [sed] for h5py, [gpu] for CUDA
 
-# orbit movies (240 frames, ~10 min each on CPU)
+# orbit movies (240 frames, ~1 min each on CPU); also installed as hbtsim-movie
 .venv/bin/python -m hbtsim --system betaaur
 .venv/bin/python -m hbtsim --system algol
 
-# SNR tables
+# SNR tables (hbtsim-snr)
 .venv/bin/python -m hbtsim.snr_cli --system algol --baseline 50 85
 
-# tests (analytic validation suite)
-.venv/bin/python -m pytest tests/ -v
+# tests (analytic validation suite, ~45 s)
+.venv/bin/python -m pytest
 ```
 
 ## Running on NERSC Perlmutter
