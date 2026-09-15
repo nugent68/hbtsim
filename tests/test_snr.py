@@ -102,7 +102,7 @@ def test_spectral_snr_quadrature_sum_and_channels():
 
     spec = Spectrograph(lambda_min_nm=400.0, lambda_max_nm=950.0, n_channels=32)
     res = spectral_g2_snr(BETA_AUR, 50.0, spectrograph=spec, t_int_s=3600.0,
-                          vis2_method="analytic")
+                          vis2_method="analytic", pupils=None)
     assert res.snr_total == pytest.approx(np.sqrt(np.sum(res.snr**2)), rel=1e-12)
     assert res.channel_nm.size == 32
     assert res.channel_nm[0] == pytest.approx(400.0 + 550.0 / 32 / 2)

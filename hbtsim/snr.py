@@ -114,17 +114,15 @@ SPAD_LAMBDA = Detector(
 
 C2PU = Telescope(diameter_m=1.0, throughput=0.3)
 
-# The two 10 m Keck telescopes on Maunakea, ~85 m apart.  Note two caveats
-# at this scale, neither modeled here: the photon rate per channel drives
-# a single SPAD pixel deep into dead-time saturation (spread the light
-# over more pixels), and a 10 m aperture on an 85 m baseline averages
-# |V|^2 over B +/- 10 m, smearing fringes whose period (lambda/rho ~
-# 25-50 m for Beta Aur) is not far above the aperture size.
+# The two 10 m Keck telescopes on Maunakea, ~85 m apart.  At this scale
+# the photon rate per channel drives a single SPAD pixel deep into
+# dead-time saturation (spread the light over more pixels), and the
+# 10 m pupils average |V|^2 over B +/- 10 m -- the spectral SNR
+# functions apply that aperture smearing (hbtsim.aperture) by default.
 KECK = Telescope(diameter_m=10.0, throughput=0.3)
 
 # Subaru (8.2 m), ~152 m from Keck I and ~226 m from Keck II -- the third
 # vertex of the Maunakea triangle (bispectrum.MAUNAKEA_SUBARU_KECK).
-# The same aperture-smearing caveat applies.
 SUBARU = Telescope(diameter_m=8.2, throughput=0.3)
 
 
@@ -262,7 +260,8 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
                     orbital_phase: float = 0.0,
                     vis2_method: str = "render",
                     grid: GridConfig = GridConfig(),
-                    chunk_size: int | None = None) -> SpectralSNRResult:
+                    chunk_size: int | None = None,
+                    pupils=True) -> SpectralSNRResult:
     """Total g2 SNR with the source spectrum dispersed over the array.
 
     Each channel (= one pixel per telescope, so dead time and dark counts
@@ -276,11 +275,18 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
       "analytic" -- hbt.binary_vis2_analytic: instant, but only valid OUT
                     of eclipse (raises during one).
     ("fft" is accepted as a deprecated alias of "render".)
+
+    pupils: True (default) averages |V|^2 over the two telescope
+    apertures (hbtsim.aperture), which is what the correlator measures
+    and what suppresses the binary fringe for pupils comparable to the
+    fringe period; None samples |V|^2 at a point; or a (d1, d2) pair /
+    PupilQuadrature.
     """
     import warnings
     from dataclasses import replace
 
-    from .hbt import binary_vis2_analytic
+    from .aperture import resolve_pupils
+    from .hbt import baseline_vectors_along_pa, binary_vis2_analytic
     from .orbit import SkyPositions, sky_positions
 
     telescope2 = telescope1 if telescope2 is None else telescope2
@@ -297,12 +303,20 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
         warnings.warn("vis2_method='fft' is now 'render'", DeprecationWarning,
                       stacklevel=2)
         vis2_method = "render"
+    quad = resolve_pupils(pupils, (telescope1.diameter_m, telescope2.diameter_m))
     if vis2_method == "render":
         from .spectral import spectral_vis2
         vis2 = np.asarray(spectral_vis2(pos, [baseline_m], nm, system, grid,
-                                        chunk_size=chunk_size))[:, 0].astype(float)
+                                        chunk_size=chunk_size,
+                                        pupils=quad))[:, 0].astype(float)
     elif vis2_method == "analytic":
-        vis2 = binary_vis2_analytic(baseline_m, nm, system, float(pos.rho))[:, 0]
+        if quad is None:
+            vis2 = binary_vis2_analytic(baseline_m, nm, system, float(pos.rho))[:, 0]
+        else:
+            from .bispectrum import binary_vis_complex_analytic
+            pts = quad.points(baseline_vectors_along_pa([baseline_m], float(pos.pa)))
+            v = binary_vis_complex_analytic(pts.reshape(-1, 2), nm, system, pos)
+            vis2 = quad.reduce(np.abs(v) ** 2)
     else:
         raise ValueError(f"unknown vis2_method {vis2_method!r} "
                          f"(expected 'render' or 'analytic')")

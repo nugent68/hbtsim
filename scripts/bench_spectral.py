@@ -48,16 +48,14 @@ def main() -> None:
 
     # --- spectral_vis2: compile vs steady state ---
     t0 = time.perf_counter()
-    v2 = spectral_vis2(pos, baselines, nm, system, grid, chunk_size=chunk)
-    v2.block_until_ready()
+    v2 = np.asarray(spectral_vis2(pos, baselines, nm, system, grid, chunk_size=chunk))
     t_first = time.perf_counter() - t0
     print(f"spectral_vis2 first call (compile + run): {t_first:8.2f} s")
 
     times = []
     for _ in range(args.repeat):
         t0 = time.perf_counter()
-        v2 = spectral_vis2(pos, baselines, nm, system, grid, chunk_size=chunk)
-        v2.block_until_ready()
+        v2 = np.asarray(spectral_vis2(pos, baselines, nm, system, grid, chunk_size=chunk))
         times.append(time.perf_counter() - t0)
     t_best = min(times)
     print(f"spectral_vis2 steady state (best of {args.repeat}): "

@@ -126,6 +126,16 @@ class BinarySystem:
     # used to anchor the synthetic lightcurves (Jester et al. 2005
     # Johnson->SDSS transformations of the literature photometry).
     mag_anchors: tuple = (("g", 1.80), ("i", 2.10))
+    # Sky orientation.  node_pa_deg is Omega, the position angle of the
+    # ASCENDING node (where the secondary crosses the sky plane receding
+    # from the observer), measured from North through East, in the
+    # visual/interferometric convention with the mirror ambiguity
+    # resolved by radial velocities or closure phases where the
+    # literature does so.  None keeps the legacy frame (line of nodes
+    # along +x), which is a mirror image and has no definite Omega.
+    node_pa_deg: float | None = None
+    dec_deg: float | None = None     # ICRS declination (for uv projection)
+    ra_hours: float | None = None    # ICRS right ascension
 
     # ---- derived angular quantities (sky plane) ----
     @property
@@ -186,6 +196,12 @@ BETA_AUR = BinarySystem(
     eccentricity=0.0,           # [S07]
     # from V = 1.90, B-V = 0.03 (Bright Star Catalogue): g ~ 1.80, i ~ 2.10
     mag_anchors=(("g", 1.80), ("i", 2.10)),
+    # Omega: Jonak et al. 2026 (arXiv:2609.03886; CHARA + RVs + closure
+    # phases resolve the mirror: 295.15 deg, vs H95's 115.4 = the other
+    # node); position: SIMBAD ICRS
+    node_pa_deg=295.15,
+    dec_deg=44.94743,
+    ra_hours=5.99214,
 )
 
 ALGOL = BinarySystem(
@@ -202,6 +218,9 @@ ALGOL = BinarySystem(
     # V_max = 2.12, B-V = -0.05 include Algol C (~10% third light, ~0.10
     # mag); C-corrected A-B-only anchors via Jester et al. 2005:
     mag_anchors=(("g", 2.07), ("i", 2.58)),
+    node_pa_deg=43.43,          # [B12] Table 6 inner orbit (+/- 0.32)
+    dec_deg=40.955647,
+    ra_hours=3.13615,
 )
 
 SPICA = BinarySystem(
@@ -219,6 +238,11 @@ SPICA = BinarySystem(
     # anchor is the anchored-blackbody color of a ~25 kK photosphere
     # (+/- ~0.1 mag; only shifts the red-channel zero point)
     mag_anchors=(("g", 0.71), ("i", 1.06)),
+    # Omega: [HE71] 131.6 +/- 2.1 (retrograde sense confirmed by the
+    # polarimetric orbit of Bailey et al. 2019, 130.4 +/- 6.8)
+    node_pa_deg=131.6,
+    dec_deg=-11.161319,
+    ra_hours=13.41989,
 )
 
 DELTA_VEL = BinarySystem(
@@ -237,6 +261,12 @@ DELTA_VEL = BinarySystem(
     # third light, excluded): A-only V ~ 1.99, B-V ~ 0.04 -> g ~ 1.90;
     # i anchor from the anchored-blackbody color (+- ~0.1 mag)
     mag_anchors=(("g", 1.90), ("i", 2.25)),
+    # Omega: [M11] Table 2, 65.0 +/- 0.6 (the interferometry-only
+    # element; NOTE ORB6 lists 155.0 with i -> 180 - i, which is not a
+    # valid mirror transformation -- the published value is used)
+    node_pa_deg=65.0,
+    dec_deg=-54.708821,
+    ra_hours=8.74506,
 )
 
 SYSTEMS = {"betaaur": BETA_AUR, "algol": ALGOL, "spica": SPICA,
@@ -280,6 +310,9 @@ class MovieConfig:
     fine_baseline_max_m: float = 160.0
     fine_baseline_step_m: float = 1.0
     baseline_pa: str | float = "follow"  # "follow" = along projected separation
+    # telescope diameter [m] for aperture-averaged g2 (None: point
+    # sampling -- the didactic curve)
+    aperture_m: float | None = None
     # lightcurve panel: SDSS effective wavelengths
     bands: tuple = (("g", 477.0), ("i", 763.0))
 

@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FFMpegWriter, FuncAnimation
 
+from .aperture import resolve_pupils
 from .hbt import baseline_vectors_along_pa, check_frequency, dft_points, split_frequency
 from .orbit import SkyPositions, sky_positions
 from .params import BinarySystem, GridConfig, MovieConfig, planck
@@ -144,7 +145,11 @@ def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
     fine_b = cfg.fine_baselines_m
     pts_b = np.asarray(cfg.baselines_m, dtype=float)
     b_all = np.concatenate([fine_b, pts_b])
+    quad = (None if cfg.aperture_m is None
+            else resolve_pupils((cfg.aperture_m, cfg.aperture_m), None))
     bvec = np.stack([baseline_vectors_along_pa(b_all, pa) for pa in pa_used])  # (nf, K, 2)
+    if quad is not None:
+        bvec = np.stack([quad.points(b).reshape(-1, 2) for b in bvec])   # (nf, K*M, 2)
     lam_m = np.asarray(cfg.wavelengths_nm, dtype=float) * 1e-9
     f = bvec[:, None, :, :] / lam_m[None, :, None, None] * grid.pixel_scale_rad
     check_frequency(f, grid.n)
@@ -167,7 +172,11 @@ def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
         grid.n, len(cfg.bands), len(RGB_DISPLAY_NM), chunk)
     flux = np.asarray(flux, dtype=float)                 # (nf, n_band)
     disp_raw = np.asarray(disp_raw, dtype=np.float32)    # (nf, 3, m, m)
-    g2 = 1.0 + np.asarray(vis2, dtype=np.float32)        # (nf, n_g2, K)
+    vis2 = np.asarray(vis2, dtype=np.float32)            # (nf, n_g2, K [* M])
+    if quad is not None:
+        vis2 = quad.reduce(vis2.reshape(nf, len(cfg.wavelengths_nm),
+                                        b_all.size, -1))
+    g2 = 1.0 + vis2                                      # (nf, n_g2, K)
     if verbose:
         print(f"  frame {nf}/{nf}", flush=True)
 

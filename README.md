@@ -172,8 +172,23 @@ and source translation), the entry point to image reconstruction.
 image by the same exact DFT (validated against the analytic binary to
 <0.1° in closure phase, renderer-limited), defines
 telescope triangles (built in: `MAUNAKEA_SUBARU_KECK` — Subaru + Keck I
-+ Keck II at 152/85/226 m, from site coordinates), and computes
-closure phases through eclipses via a GPU-batched spectral path.
++ Keck II at 152/85/226 m, from site coordinates; `VLT_UT`), projects
+them onto the (u, v) plane for a real hour angle and declination
+(`Triangle.projected`, `hbtsim.geometry`), and computes closure phases
+through eclipses via a GPU-batched spectral path.
+
+Two effects a real correlator cannot avoid are modeled by default in
+the SNR functions: **aperture smearing** — a 10 m pupil on an 85 m
+baseline averages |V|² over B ± 10 m, which keeps only
+A(πD₁ρ/λ)·A(πD₂ρ/λ) of a binary fringe's contrast (0.66 for Keck on
+β Aur at 400 nm, 0.45 for the VLT UTs on δ Vel at maximum
+separation); the triple product is averaged exactly over all three
+pupils (`hbtsim.aperture`) — and **sky orientation**: every system
+carries the position angle of its ascending node, so closure phases
+on a fixed ground triangle are computed at the true orientation, and
+`snr3.track_g3_snr` integrates a night block by block along the uv
+track, flagging blocks over which the fringe drifts by more than 1/8
+cycle.
 `hbtsim/snr3.py` extends the photon budget to triple coincidences
 (pol₃ = ¼, 2D lag-plane matched filter; SNR₃ ∝ 1/σ_jitter and
 ∝ Δλ^(−1/2) — narrowband multiplexing is the lever).
@@ -275,7 +290,10 @@ movie locally with `--render-only`.
 - `hbtsim/params.py` — constants, `Star`/`BinarySystem`/`GridConfig`/
   `MovieConfig`, per-star LD tables, the `BETA_AUR` and `ALGOL`
   instances and the `SYSTEMS` registry (single source of truth)
-- `hbtsim/orbit.py` — circular-orbit sky geometry
+- `hbtsim/orbit.py` — Keplerian sky geometry, oriented on the sky by Ω
+- `hbtsim/aperture.py` — finite-aperture (pupil) averaging of |V|² and
+  of the three-pupil bispectrum
+- `hbtsim/geometry.py` — sites, hour angle, uv projection, fringe drift
 - `hbtsim/limbdark.py` — linear LD law + analytic disk visibility
 - `hbtsim/render.py` — JAX rendering of the occulted limb-darkened disks
 - `hbtsim/hbt.py` — exact K-point DFT sampling of V(u, v), |V|², g²(B);

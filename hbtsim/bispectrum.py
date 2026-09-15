@@ -22,18 +22,25 @@ eclipse.  This module also defines the telescope-triangle geometry, with
 the Maunakea Subaru + Keck I + Keck II triangle built in (site
 coordinates give pairwise distances 152.1 / 84.9 / 225.9 m, confirming
 the nominal 150 / 85 / 225 m) and the four VLT Unit Telescopes.
-Baselines are projected assuming a flat layout with the source at zenith
--- a documented simplification (summit elevations agree to ~20 m;
-hour-angle projection is planned).
+Triangle.baseline_vectors() gives the flat-layout, source-at-zenith
+baselines; Triangle.projected(hour_angle, dec) rotates the station
+positions into the (u, v) plane for a real pointing (hbtsim.geometry).
+
+Finite apertures: with pupils=True the triple product is the exact
+three-pupil average of hbtsim.aperture (the correlator does not sample
+gamma at a point), and the pair-smeared |gamma_ij|^2 that make up the
+pair ridges of the triple correlation come from the same samples.
 """
 
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
+from .aperture import TripleQuadrature, triple_quadrature_for
+from .geometry import HOUR, MAUNAKEA, PARANAL, Site, enu_to_uv
 from .hbt import vis_of_baselines
 from .orbit import SkyPositions, sky_positions
 from .params import MAS, BinarySystem, GridConfig, planck, require_out_of_eclipse
@@ -94,13 +101,33 @@ class Station:
     north_m: float
     telescope: Telescope
     detector: Detector = SPAD_LAMBDA
+    up_m: float = 0.0
+
+    @property
+    def enu_m(self) -> np.ndarray:
+        return np.array([self.east_m, self.north_m, self.up_m])
+
+
+def _project_stations(stations, site, hour_angle_h, dec_deg):
+    """Stations at their (u, v) positions [m] for the given pointing."""
+    if site is None or dec_deg is None:
+        raise ValueError("projection needs a Site (Triangle/Array.site) "
+                         "and the source declination")
+    enu = np.array([s.enu_m for s in stations])
+    uv = enu_to_uv(enu, hour_angle_h * HOUR, np.radians(dec_deg),
+                   site.latitude_rad)
+    return tuple(replace(s, east_m=float(u), north_m=float(v), up_m=0.0)
+                 for s, (u, v) in zip(stations, uv))
 
 
 @dataclass(frozen=True)
 class Triangle:
     """Three stations; baselines are the closed cycle B12, B23, B31
-    (vector sum identically zero).  Flat layout, source at zenith."""
+    (vector sum identically zero).  baseline_vectors() is the flat
+    layout with the source at zenith; projected() gives the triangle
+    for a real pointing."""
     stations: tuple
+    site: Site | None = None
 
     def baseline_vectors(self) -> np.ndarray:
         """(3, 2) [m]: B12 = p2 - p1, B23 = p3 - p2, B31 = p1 - p3."""
@@ -111,6 +138,20 @@ class Triangle:
         b = self.baseline_vectors()
         return np.hypot(b[:, 0], b[:, 1])
 
+    @property
+    def diameters_m(self) -> tuple:
+        return tuple(s.telescope.diameter_m for s in self.stations)
+
+    @property
+    def name(self) -> str:
+        return "-".join(s.name for s in self.stations)
+
+    def projected(self, hour_angle_h: float, dec_deg: float) -> "Triangle":
+        """The same telescopes at their projected (u, v) positions for a
+        source at the given hour angle [h] and declination."""
+        return Triangle(_project_stations(self.stations, self.site,
+                                          hour_angle_h, dec_deg), self.site)
+
 
 # Maunakea: ENU positions relative to Subaru, from site coordinates
 # (Subaru 19d49m32s N 155d28m34s W; Keck I 19.8259465 N 155.474719 W;
@@ -120,7 +161,7 @@ MAUNAKEA_SUBARU_KECK = Triangle((
     Station("Subaru", 0.0, 0.0, SUBARU),
     Station("Keck I", 145.8, 43.3, KECK),
     Station("Keck II", 196.6, 111.3, KECK),
-))
+), site=MAUNAKEA)
 
 
 @dataclass(frozen=True)
@@ -131,6 +172,7 @@ class Array:
     (largely) independent accidental noise, so all contribute to the
     detection sensitivity."""
     stations: tuple
+    site: Site | None = None
 
     def pairs(self):
         """[(i, j, baseline_vector), ...] for i < j."""
@@ -146,8 +188,12 @@ class Array:
         """All C(N,3) Triangle objects."""
         from itertools import combinations
         return [Triangle((self.stations[i], self.stations[j],
-                          self.stations[k]))
+                          self.stations[k]), self.site)
                 for i, j, k in combinations(range(len(self.stations)), 3)]
+
+    def projected(self, hour_angle_h: float, dec_deg: float) -> "Array":
+        return Array(_project_stations(self.stations, self.site,
+                                       hour_angle_h, dec_deg), self.site)
 
 
 # The four VLT Unit Telescopes (8.2 m) at Paranal, published VLTI station
@@ -160,7 +206,7 @@ VLT_UT = Array(tuple(
     for name, (e, n) in (("UT1", (-9.925, -20.335)),
                          ("UT2", (14.887, 30.502)),
                          ("UT3", (44.915, 66.183)),
-                         ("UT4", (103.306, 43.999)))))
+                         ("UT4", (103.306, 43.999)))), site=PARANAL)
 
 
 def equilateral_triangle(side_m: float, telescope: Telescope = KECK,
@@ -180,13 +226,36 @@ def equilateral_triangle(side_m: float, telescope: Telescope = KECK,
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class BispectrumResult:
-    gammas: np.ndarray       # complex (3,): gamma_12, gamma_23, gamma_31
-    bispectrum: complex      # gamma_12 * gamma_23 * gamma_31
-    triple_amp: float        # |gamma_12 gamma_23 gamma_31|
+    gammas: np.ndarray       # complex (3,): point gamma_12, gamma_23, gamma_31
+    bispectrum: complex      # <gamma_12 gamma_23 gamma_31> (pupil-averaged if smeared)
+    triple_amp: float        # |bispectrum|
     phi_c: float             # closure phase [rad]
     cos_phi_c: float
     wavelength_nm: float
     orbital_phase: float
+    vis2_pairs: np.ndarray = None   # (3,) pair-smeared |gamma_ij|^2
+    smeared: bool = False
+
+
+def resolve_triple_pupils(pupils, triangle) -> TripleQuadrature | None:
+    """None/False -> point sampling; True -> the triangle's telescope
+    diameters; or a ready TripleQuadrature."""
+    if pupils is None or pupils is False:
+        return None
+    if pupils is True:
+        return triple_quadrature_for(triangle)
+    if isinstance(pupils, TripleQuadrature):
+        return pupils
+    raise TypeError("pupils must be None, True or a TripleQuadrature")
+
+
+def reduce_triple(gam_points, quad: TripleQuadrature | None):
+    """From point gammas (..., K): (bispectrum (...,), vis2_pairs (..., 3)).
+    Without a quadrature K = 3 and the bispectrum is the plain product."""
+    g = np.asarray(gam_points)
+    if quad is None:
+        return g[..., 0] * g[..., 1] * g[..., 2], np.abs(g) ** 2
+    return quad.reduce(g)
 
 
 def _resolve_method(method: str) -> str:
@@ -203,29 +272,38 @@ def _resolve_method(method: str) -> str:
 def closure_phase(system: BinarySystem, triangle: Triangle,
                   wavelength_nm: float, orbital_phase: float = 0.0,
                   method: str = "analytic",
-                  grid: GridConfig = GridConfig()) -> BispectrumResult:
+                  grid: GridConfig = GridConfig(), *,
+                  pupils=None) -> BispectrumResult:
     """Model gammas and closure phase on the triangle at one epoch.
 
     method="analytic" (instant; out of eclipse only) or "render" (renders
-    the binary and samples its exact DFT; valid at all phases)."""
+    the binary and samples its exact DFT; valid at all phases).  With
+    pupils=True the bispectrum, triple_amp, phi_c and cos_phi_c are the
+    exact three-pupil averages for the triangle's telescope diameters
+    (gammas stay the point values)."""
     method = _resolve_method(method)
+    quad = resolve_triple_pupils(pupils, triangle)
     pos = SkyPositions(*(np.asarray(v) for v in
                          sky_positions(2 * np.pi * orbital_phase, system)))
     bvecs = triangle.baseline_vectors()
+    pts = bvecs if quad is None else np.vstack([bvecs, quad.flat_points(bvecs)])
 
     if method == "analytic":
-        gam = binary_vis_complex_analytic(bvecs, wavelength_nm, system, pos)
+        gam = binary_vis_complex_analytic(pts, wavelength_nm, system, pos)
     else:
         from .render import render_image
         img = render_image(pos, system, wavelength_nm, grid)
-        gam = np.asarray(vis_of_baselines(img, bvecs, wavelength_nm * 1e-9, grid))
+        gam = np.asarray(vis_of_baselines(img, pts, wavelength_nm * 1e-9, grid))
 
-    bis = complex(gam[0] * gam[1] * gam[2])
-    return BispectrumResult(gammas=np.asarray(gam), bispectrum=bis,
+    bis, v2 = reduce_triple(gam[3:] if quad is not None else gam, quad)
+    bis = complex(bis)
+    return BispectrumResult(gammas=np.asarray(gam[:3]), bispectrum=bis,
                             triple_amp=abs(bis), phi_c=float(np.angle(bis)),
                             cos_phi_c=float(np.cos(np.angle(bis))),
                             wavelength_nm=wavelength_nm,
-                            orbital_phase=orbital_phase)
+                            orbital_phase=orbital_phase,
+                            vis2_pairs=np.asarray(v2, dtype=float),
+                            smeared=quad is not None)
 
 
 # ---------------------------------------------------------------------------
@@ -235,8 +313,51 @@ def spectral_bispectrum(pos: SkyPositions, triangle: Triangle,
                         wavelengths_nm, system: BinarySystem,
                         grid: GridConfig, *,
                         chunk_size: int | None = None):
-    """Complex (gamma_12, gamma_23, gamma_31) for every wavelength channel
-    at one epoch via the batched render + DFT pipeline -- (n_lambda, 3)
-    complex64.  Valid at all orbital phases including eclipses."""
+    """Point-sampled complex (gamma_12, gamma_23, gamma_31) for every
+    wavelength channel at one epoch via the batched render + DFT pipeline
+    -- (n_lambda, 3) complex64.  Valid at all orbital phases including
+    eclipses.  See spectral_triple for the pupil-averaged bispectrum."""
     return spectral_vis(pos, triangle.baseline_vectors(), wavelengths_nm,
                         system, grid, chunk_size=chunk_size)
+
+
+@dataclass(frozen=True)
+class TripleSamples:
+    """Per-channel triple-correlation model on one triangle."""
+    gammas: np.ndarray       # (n_lambda, 3) point gammas
+    bispectrum: np.ndarray   # (n_lambda,) complex, pupil-averaged if smeared
+    vis2_pairs: np.ndarray   # (n_lambda, 3) pair-smeared |gamma_ij|^2
+    smeared: bool
+
+    @property
+    def triple_amp(self) -> np.ndarray:
+        return np.abs(self.bispectrum)
+
+    @property
+    def cos_phi_c(self) -> np.ndarray:
+        return np.cos(np.angle(self.bispectrum))
+
+
+def spectral_triple(pos: SkyPositions, triangle: Triangle, wavelengths_nm,
+                    system: BinarySystem, grid: GridConfig = GridConfig(), *,
+                    method: str = "analytic", pupils=True,
+                    chunk_size: int | None = None) -> TripleSamples:
+    """The triple-correlation model for every channel at one epoch: the
+    (optionally three-pupil-averaged) bispectrum and the pair-smeared
+    |gamma_ij|^2, by the analytic two-disk model (out of eclipse) or the
+    batched render + DFT pipeline (any phase)."""
+    method = _resolve_method(method)
+    quad = resolve_triple_pupils(pupils, triangle)
+    bvecs = triangle.baseline_vectors()
+    pts = bvecs if quad is None else np.vstack([bvecs, quad.flat_points(bvecs)])
+    nm = np.atleast_1d(np.asarray(wavelengths_nm, dtype=float))
+    if method == "analytic":
+        gam = binary_vis_complex_analytic(pts, nm, system, pos)
+    else:
+        gam = np.asarray(spectral_vis(pos, pts, nm, system, grid,
+                                      chunk_size=chunk_size))
+    bis, v2 = reduce_triple(gam[:, 3:] if quad is not None else gam, quad)
+    return TripleSamples(gammas=np.asarray(gam[:, :3]),
+                         bispectrum=np.asarray(bis),
+                         vis2_pairs=np.asarray(v2, dtype=float),
+                         smeared=quad is not None)

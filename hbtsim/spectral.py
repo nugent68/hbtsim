@@ -29,6 +29,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+from .aperture import resolve_pupils
 from .hbt import baseline_vectors_along_pa, check_frequency, dft_points, split_frequency
 from .orbit import SkyPositions
 from .params import BinarySystem, GridConfig
@@ -97,16 +98,23 @@ def spectral_vis2(pos: SkyPositions, baselines_m, wavelengths_nm,
                   system: BinarySystem, grid: GridConfig, *,
                   pa_rad: float | None = None,
                   chunk_size: int | None = None,
-                  return_flux: bool = False):
+                  return_flux: bool = False,
+                  pupils=None):
     """|V|^2 for every (wavelength, scalar baseline) pair at one epoch,
-    (n_lambda, n_B) float32.  The baseline position angle defaults to the
+    (n_lambda, n_B).  The baseline position angle defaults to the
     projected separation axis (matching the movie panel and the analytic
-    binary visibility).  See spectral_vis for return_flux."""
+    binary visibility).  pupils = (d1, d2) [m] or an aperture.
+    PupilQuadrature averages |V|^2 over the two telescope apertures
+    (what a correlator measures); None samples at a point.  See
+    spectral_vis for return_flux."""
     pa = float(pos.pa) if pa_rad is None else float(pa_rad)
-    out = spectral_vis(pos, baseline_vectors_along_pa(baselines_m, pa),
-                       wavelengths_nm, system, grid, chunk_size=chunk_size,
-                       return_flux=return_flux)
-    if return_flux:
-        vis, flux = out
-        return jnp.abs(vis) ** 2, flux
-    return jnp.abs(out) ** 2
+    bvecs = baseline_vectors_along_pa(baselines_m, pa)
+    quad = resolve_pupils(pupils, None)
+    pts = bvecs if quad is None else quad.points(bvecs).reshape(-1, 2)
+    out = spectral_vis(pos, pts, wavelengths_nm, system, grid,
+                       chunk_size=chunk_size, return_flux=return_flux)
+    vis, flux = out if return_flux else (out, None)
+    vis2 = np.asarray(jnp.abs(vis) ** 2)
+    if quad is not None:
+        vis2 = quad.reduce(vis2.reshape(vis2.shape[0], bvecs.shape[0], -1))
+    return (vis2, np.asarray(flux)) if return_flux else vis2

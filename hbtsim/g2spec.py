@@ -46,8 +46,10 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
                grid: GridConfig = GridConfig(),
                chunk_size: int | None = None,
                seed: int = 42, verbose: bool = True) -> dict:
-    """Per-hour |V|^2(lambda), 1-sigma errors and one noisy realization
-    over one orbital period.  Returns a dict of arrays (np.savez-able)."""
+    """Per-hour |V|^2(lambda) (averaged over the two telescope apertures,
+    as the correlator measures it), 1-sigma errors and one noisy
+    realization over one orbital period.  Returns a dict of arrays
+    (np.savez-able)."""
     period_h = system.period_days * 24.0
     hours = np.arange(0.0, np.floor(period_h) + 0.5)  # 0..95 for Beta Aur
     phases = hours / period_h
@@ -63,7 +65,8 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
         pos = SkyPositions(*(np.asarray(v) for v in
                              sky_positions(2 * np.pi * ph, system)))
         v2, fl = spectral_vis2(pos, [baseline_m], nm, system, grid,
-                               chunk_size=chunk_size, return_flux=True)
+                               chunk_size=chunk_size, return_flux=True,
+                               pupils=(telescope.diameter_m, telescope.diameter_m))
         vis2[k] = np.asarray(v2)[:, 0]
         flux[k] = np.asarray(fl)
         disp[k] = render_display_rgb(pos, system, grid)
