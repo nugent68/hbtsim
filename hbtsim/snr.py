@@ -11,39 +11,61 @@ histogram shows a bump of contrast
 where tau_c = lambda^2 / (c dlambda) is the coherence time of a
 rectangular passband of width dlambda and the kernel is the (normalized)
 pair time-response: a Gaussian of width sigma_pair =
-sqrt(sigma_1^2 + sigma_2^2) set by the detectors' timing jitter, since
-tau_c (tens of fs) << jitter (tens of ps).
+sqrt(sigma_1^2 + sigma_2^2 + sigma_c^2) set by the detectors' timing
+jitter and, marginally, by the coherence time itself (sigma_c = 0.376
+tau_c, the Gaussian of the same FWHM as the sinc^2 coherence function of
+a rectangular band; a few per cent at 0.1 nm channels in the red).
 
 Over an integration time T the excess (signal) coincidences are
 
-    N_sig = (1/2) |V|^2 tau_c R1 R2 T,
+    N_sig = p2 |V|^2 tau_c R1 R2 T,
 
-with R_i the detected stellar count rates.  The accidental-coincidence
-density is rho = b1 b2 T per unit time lag, where b_i = R_i + dark + sky
-includes uncorrelated counts.  Weighting the histogram with the known
-Gaussian kernel (matched filter) gives
+with R_i the detected stellar count rates and p2 the polarization
+factor.  The accidental-coincidence density is rho = b1 b2 T per unit
+time lag, where b_i = R_i + dark + sky includes uncorrelated counts.
+Weighting the histogram with the known Gaussian kernel (matched filter)
+gives
 
     SNR = N_sig / sqrt(rho * 2 sqrt(pi) sigma_pair)
-        = (1/2) |V|^2 tau_c R1 R2 sqrt(T)
-          / sqrt(b1 b2 * 2 sqrt(pi) sigma_pair).
+        = p2 |V|^2 tau_c R1 R2 sqrt(T) / sqrt(b1 b2 * 2 sqrt(pi) sigma_pair).
 
-Notes:
-  * SNR is nearly independent of the filter width: R_i ~ dlambda while
-    tau_c ~ 1/dlambda (until dead time or sky/dark counts matter).
-  * Detector dead time is applied per pixel (non-paralyzable,
-    r -> r / (1 + r tau_dead)); spreading the light over n_pixels of an
-    array detector raises the saturation ceiling.
-  * pol_factor = 1/2 for unpolarized light; use 1 for a polarized setup
-    (with the corresponding flux loss applied via throughput).
+Polarization (Observation.polarization_mode):
+  * "unpolarized" -- one stream per telescope carrying both modes:
+    p2 = 1/2 (the two modes are mutually incoherent).
+  * "pbs" -- a polarizing beamsplitter feeds two detectors per telescope,
+    each with half the rate and p2 = 1 within its stream; the two
+    stream correlations add in quadrature: sqrt(2) better than
+    unpolarized at the same photon budget AND half the per-pixel load
+    (for the triple correlation the gain is a factor 2, hbtsim.snr3).
+  * "single_pol" -- one polarizer, half the light thrown away: p2 = 1
+    on half the rate, no net gain over unpolarized.
+
+Throughput is split into Telescope.throughput (atmosphere + telescope
+optics to the backend entrance, 0.3) and a Backend (0.9 for a
+narrow-band filter, 0.5 for a cross-dispersed spectrograph with its
+coupling optics: a dispersed channel therefore sees 0.15 overall, not
+0.3).  Detector PDE is applied separately.
+
+Readout.  The count rates of a bright star dispersed over thousands of
+channels reach 1e10-1e11 detected photons per second per telescope --
+orders of magnitude beyond any time-tag link.  Detector.readout is
+"timetag" (with Detector.max_total_cps the link ceiling; the spectral
+functions scale the rates down to it like a neutral-density filter and
+set readout_limited) or "correlator" (on-detector/FPGA correlation,
+no link ceiling, the next-generation design).  Dead time is applied
+per pixel (non-paralyzable, r -> r / (1 + r tau_dead)); the model is
+only trustworthy for r tau_dead <~ 1, which dead_time_load reports.
 
 All defaults describe the C2PU pair (Centre Pedagogique Planete Univers,
 Calern plateau): two 1 m telescopes on a 15 m baseline, with Pi Imaging
-SPAD Lambda detectors (datasheet: background/SPADlambdadatasheet.pdf).
+SPAD Lambda detectors (datasheet: background/general/SPADlambdadatasheet.pdf).
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import warnings
+from dataclasses import dataclass, field, replace
+from functools import lru_cache
 
 import numpy as np
 
@@ -51,6 +73,23 @@ from .params import (AB_ZERO_FNU, C_LIGHT, H_PLANCK, MAS, BinarySystem,
                      GridConfig, planck)
 
 FWHM_TO_SIGMA = 1.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+# Gaussian of the same FWHM as sinc^2(pi dnu tau): FWHM = 0.886 tau_c
+COHERENCE_SIGMA_FACTOR = 0.886 * FWHM_TO_SIGMA   # 0.376
+
+POLARIZATION_MODES = {
+    # mode: (streams per telescope, flux fraction per stream, p2, p3)
+    "unpolarized": (1, 1.0, 0.5, 0.25),
+    "pbs": (2, 0.5, 1.0, 1.0),
+    "single_pol": (1, 0.5, 1.0, 1.0),
+}
+
+
+def polarization_streams(mode: str) -> tuple:
+    try:
+        return POLARIZATION_MODES[mode]
+    except KeyError:
+        raise ValueError(f"unknown polarization_mode {mode!r}; expected one "
+                         f"of {sorted(POLARIZATION_MODES)}") from None
 
 
 # ---------------------------------------------------------------------------
@@ -58,14 +97,27 @@ FWHM_TO_SIGMA = 1.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Telescope:
-    """A light collector; throughput covers atmosphere, optics and coupling
-    losses up to (but not including) the detector PDE."""
+    """A light collector; throughput covers atmosphere, telescope optics
+    and coupling losses up to the backend entrance (not the backend
+    itself, nor the detector PDE)."""
     diameter_m: float
     throughput: float = 0.3
 
     @property
     def area_m2(self) -> float:
         return np.pi * (self.diameter_m / 2.0) ** 2
+
+
+@dataclass(frozen=True)
+class Backend:
+    """The optics between the telescope focus and the detector."""
+    name: str
+    throughput: float
+    kind: str = "filter"   # "filter" | "dispersed"
+
+
+FILTER_BACKEND = Backend("narrow-band filter", 0.9, "filter")
+DISPERSED_BACKEND = Backend("cross-dispersed spectrograph", 0.5, "dispersed")
 
 
 @dataclass(frozen=True)
@@ -76,11 +128,24 @@ class Detector:
     jitter_fwhm_ps: float
     dead_time_ns: float
     dark_cps_per_pixel: float
-    n_pixels: int = 1  # pixels the stellar light is spread over
+    n_pixels: int = 1          # pixels the stellar light is spread over
+    readout: str = "timetag"   # "timetag" | "correlator"
+    max_total_cps: float | None = None   # time-tag link ceiling per detector
+    _pde_lam: np.ndarray = field(init=False, repr=False, compare=False)
+    _pde_val: np.ndarray = field(init=False, repr=False, compare=False)
 
-    def pde(self, wavelength_nm: float) -> float:
+    def __post_init__(self):
+        if self.readout not in ("timetag", "correlator"):
+            raise ValueError(f"readout must be 'timetag' or 'correlator', "
+                             f"not {self.readout!r}")
         lam, p = zip(*self.pde_table_nm)
-        return float(np.interp(wavelength_nm, lam, p))
+        object.__setattr__(self, "_pde_lam", np.asarray(lam, dtype=float))
+        object.__setattr__(self, "_pde_val", np.asarray(p, dtype=float))
+
+    def pde(self, wavelength_nm):
+        """PDE at a wavelength or array of wavelengths [nm]."""
+        out = np.interp(wavelength_nm, self._pde_lam, self._pde_val)
+        return float(out) if np.ndim(out) == 0 else out
 
     @property
     def jitter_sigma_s(self) -> float:
@@ -90,16 +155,26 @@ class Detector:
     def dark_cps(self) -> float:
         return self.dark_cps_per_pixel * self.n_pixels
 
-    def detected_rate(self, incident_cps: float) -> float:
-        """Non-paralyzable dead time applied per pixel."""
-        r = incident_cps / self.n_pixels
+    def dead_time_load(self, incident_cps):
+        """r tau_dead per pixel: the model is valid for values <~ 1."""
+        return np.asarray(incident_cps, dtype=float) / self.n_pixels * self.dead_time_ns * 1e-9
+
+    def detected_rate(self, incident_cps):
+        """Non-paralyzable dead time applied per pixel (array-capable)."""
+        r = np.asarray(incident_cps, dtype=float) / self.n_pixels
         r_det = r / (1.0 + r * self.dead_time_ns * 1e-9)
-        return r_det * self.n_pixels
+        out = r_det * self.n_pixels
+        return float(out) if np.ndim(out) == 0 else out
 
 
 # Pi Imaging SPAD Lambda (datasheet v2.3, 01.2026).  PDE read from the
 # "Photon detection probability" curve (peak 50% at 520 nm); median DCR
 # 250 cps/pixel; dead time 10 ns; timing jitter 120 ps FWHM typical.
+# Time tags leave the camera over two USB3 links: with >= 32-bit tags
+# that is a few 1e8 events/s at most -- max_total_cps = 1e8 is an
+# ESTIMATE (the datasheet quotes no time-tag throughput; to be confirmed
+# with Pi Imaging), well below the 1e10-1e11 cps a bright star delivers
+# to a 10 m telescope.
 SPAD_LAMBDA = Detector(
     name="Pi Imaging SPAD Lambda",
     pde_table_nm=((400.0, 0.22), (450.0, 0.40), (500.0, 0.49), (520.0, 0.50),
@@ -110,15 +185,25 @@ SPAD_LAMBDA = Detector(
     dead_time_ns=10.0,
     dark_cps_per_pixel=250.0,
     n_pixels=1,
+    readout="timetag",
+    max_total_cps=1e8,
 )
+
+# The next-generation design assumed for the R ~ 5000 studies: the same
+# SPAD pixel performance with the correlation done on the detector
+# electronics (FPGA correlator), so the rate is limited only by dead
+# time, not by a time-tag link.
+SPAD_LAMBDA_NG = replace(SPAD_LAMBDA, name="next-gen SPAD Lambda (correlator readout)",
+                         readout="correlator", max_total_cps=None)
 
 C2PU = Telescope(diameter_m=1.0, throughput=0.3)
 
 # The two 10 m Keck telescopes on Maunakea, ~85 m apart.  At this scale
 # the photon rate per channel drives a single SPAD pixel deep into
-# dead-time saturation (spread the light over more pixels), and the
-# 10 m pupils average |V|^2 over B +/- 10 m -- the spectral SNR
-# functions apply that aperture smearing (hbtsim.aperture) by default.
+# dead-time saturation (spread the light over more pixels), the total
+# rate exceeds any time-tag link (see Detector.readout), and the 10 m
+# pupils average |V|^2 over B +/- 10 m -- the spectral SNR functions
+# apply that aperture smearing (hbtsim.aperture) by default.
 KECK = Telescope(diameter_m=10.0, throughput=0.3)
 
 # Subaru (8.2 m), ~152 m from Keck I and ~226 m from Keck II -- the third
@@ -128,59 +213,124 @@ SUBARU = Telescope(diameter_m=8.2, throughput=0.3)
 
 @dataclass(frozen=True)
 class Observation:
-    wavelength_nm: float
-    filter_width_nm: float = 10.0
+    """One channel (or an array of channels: wavelength_nm and
+    filter_width_nm may be arrays of equal shape)."""
+    wavelength_nm: object
+    filter_width_nm: object = 10.0     # rectangular passband FULL width
     t_int_s: float = 3600.0
-    pol_factor: float = 0.5  # unpolarized light
-    sky_cps: float = 0.0     # detected sky background per telescope
+    sky_cps: float = 0.0               # detected sky background per telescope
+    polarization_mode: str = "unpolarized"
+    backend_throughput: float = FILTER_BACKEND.throughput
+    coherence_broadening: bool = True
 
 
 @dataclass(frozen=True)
 class Spectrograph:
     """Light dispersed along the detector's linear array: each pixel is an
-    independent spectral channel that measures its own g2.  Channel SNRs add
-    in quadrature, a ~sqrt(n_channels) multiplexing gain over a single
-    filter of the same total band."""
+    independent spectral channel that measures its own g2.  Channel SNRs
+    add in quadrature, a ~sqrt(n_channels) multiplexing gain over a
+    single filter of the same total band.
+
+    Channels are uniform in wavelength (the default: the SPAD Lambda's
+    320 pixels over 400-950 nm, 1.72 nm each) or, via
+    from_resolving_power, geometric with a constant lambda/dlambda = R.
+    throughput is the backend's (DISPERSED_BACKEND, 0.5)."""
     lambda_min_nm: float = 400.0   # SPAD Lambda sensitivity range
     lambda_max_nm: float = 950.0
     n_channels: int = 320          # SPAD Lambda: 320 x 1 pixels
+    resolving_power: float | None = None
+    throughput: float = DISPERSED_BACKEND.throughput
+    name: str = ""
+
+    @classmethod
+    def from_resolving_power(cls, R: float, lambda_min_nm: float = 400.0,
+                             lambda_max_nm: float = 950.0,
+                             throughput: float = DISPERSED_BACKEND.throughput,
+                             name: str = "") -> "Spectrograph":
+        """Geometric channel edges e_k = lambda_min q^k with
+        q = (2R + 1)/(2R - 1), so every channel has centre/width = R
+        exactly; the last edge lands at or just beyond lambda_max."""
+        q = (2.0 * R + 1.0) / (2.0 * R - 1.0)
+        n = int(np.ceil(np.log(lambda_max_nm / lambda_min_nm) / np.log(q) - 1e-9))
+        return cls(lambda_min_nm=lambda_min_nm, lambda_max_nm=lambda_min_nm * q**n,
+                   n_channels=n, resolving_power=float(R), throughput=throughput,
+                   name=name or f"R = {R:g} spectrograph")
 
     @property
-    def channel_width_nm(self) -> float:
-        return (self.lambda_max_nm - self.lambda_min_nm) / self.n_channels
+    def channel_edges_nm(self) -> np.ndarray:
+        if self.resolving_power is None:
+            return np.linspace(self.lambda_min_nm, self.lambda_max_nm,
+                               self.n_channels + 1)
+        return self.lambda_min_nm * np.exp(
+            np.arange(self.n_channels + 1)
+            * np.log(self.lambda_max_nm / self.lambda_min_nm) / self.n_channels)
 
     @property
     def channel_centers_nm(self) -> np.ndarray:
-        return (self.lambda_min_nm
-                + (np.arange(self.n_channels) + 0.5) * self.channel_width_nm)
+        e = self.channel_edges_nm
+        return 0.5 * (e[:-1] + e[1:])
+
+    @property
+    def channel_widths_nm(self) -> np.ndarray:
+        return np.diff(self.channel_edges_nm)
+
+    @property
+    def channel_width_nm(self) -> float:
+        """The common channel width; raises for a constant-R grid."""
+        w = self.channel_widths_nm
+        if not np.allclose(w, w[0], rtol=1e-9):
+            raise ValueError("channel widths are not uniform (constant-R "
+                             "spectrograph): use channel_widths_nm")
+        return float(w[0])
+
+    @property
+    def is_uniform(self) -> bool:
+        return self.resolving_power is None
 
 
 # ---------------------------------------------------------------------------
 # Photon budget
 # ---------------------------------------------------------------------------
-def coherence_time_s(wavelength_nm: float, filter_width_nm: float) -> float:
+def coherence_time_s(wavelength_nm, filter_width_nm):
     """tau_c = lambda^2 / (c dlambda) for a rectangular passband."""
-    lam = wavelength_nm * 1e-9
-    return lam**2 / (C_LIGHT * filter_width_nm * 1e-9)
+    lam = np.asarray(wavelength_nm, dtype=float) * 1e-9
+    return lam**2 / (C_LIGHT * np.asarray(filter_width_nm, dtype=float) * 1e-9)
 
 
-def photon_flux(mag_ab: float, wavelength_nm: float,
-                filter_width_nm: float) -> float:
+def photon_flux(mag_ab, wavelength_nm, filter_width_nm):
     """Source photon flux through the filter [photons / m^2 / s]."""
-    lam = wavelength_nm * 1e-9
-    f_nu = AB_ZERO_FNU * 10.0 ** (-0.4 * mag_ab)
+    lam = np.asarray(wavelength_nm, dtype=float) * 1e-9
+    f_nu = AB_ZERO_FNU * 10.0 ** (-0.4 * np.asarray(mag_ab, dtype=float))
     nu = C_LIGHT / lam
-    dnu = C_LIGHT * filter_width_nm * 1e-9 / lam**2
+    dnu = C_LIGHT * np.asarray(filter_width_nm, dtype=float) * 1e-9 / lam**2
     return f_nu / (H_PLANCK * nu) * dnu
 
 
-def stellar_rate(mag_ab: float, telescope: Telescope, detector: Detector,
-                 obs: Observation) -> float:
-    """Detected stellar count rate [cps], including dead time."""
-    incident = (photon_flux(mag_ab, obs.wavelength_nm, obs.filter_width_nm)
-                * telescope.area_m2 * telescope.throughput
-                * detector.pde(obs.wavelength_nm))
-    return detector.detected_rate(incident)
+def incident_rate(mag_ab, telescope: Telescope, detector: Detector,
+                  obs: Observation):
+    """Photon rate at the detector before dead time [cps], per stream:
+    flux x area x telescope x backend throughput x PDE x polarization
+    flux fraction."""
+    _, frac, _, _ = polarization_streams(obs.polarization_mode)
+    return (photon_flux(mag_ab, obs.wavelength_nm, obs.filter_width_nm)
+            * telescope.area_m2 * telescope.throughput * obs.backend_throughput
+            * detector.pde(obs.wavelength_nm) * frac)
+
+
+def stellar_rate(mag_ab, telescope: Telescope, detector: Detector,
+                 obs: Observation):
+    """Detected stellar count rate per stream [cps], including dead time."""
+    return detector.detected_rate(incident_rate(mag_ab, telescope, detector, obs))
+
+
+def pair_sigma_s(detector1: Detector, detector2: Detector, obs: Observation):
+    """Width of the pair kernel: detector jitters plus, optionally, the
+    coherence-time broadening."""
+    s2 = detector1.jitter_sigma_s**2 + detector2.jitter_sigma_s**2
+    if obs.coherence_broadening:
+        s2 = s2 + (COHERENCE_SIGMA_FACTOR
+                   * coherence_time_s(obs.wavelength_nm, obs.filter_width_nm))**2
+    return np.sqrt(s2)
 
 
 # ---------------------------------------------------------------------------
@@ -188,52 +338,78 @@ def stellar_rate(mag_ab: float, telescope: Telescope, detector: Detector,
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class SNRResult:
-    snr: float
-    rate1_cps: float
-    rate2_cps: float
-    tau_c_s: float
-    sigma_pair_s: float
-    n_signal: float        # excess (signal) coincidences in T
-    n_background: float    # accidental coincidences in the matched window
-    vis2: float
+    snr: object            # total over polarization streams
+    rate1_cps: object      # detected stellar rate per stream, telescope 1
+    rate2_cps: object
+    tau_c_s: object
+    sigma_pair_s: object
+    n_signal: object       # excess (signal) coincidences in T, per stream
+    n_background: object   # accidental coincidences in the matched window
+    vis2: object
     obs: Observation
+    n_streams: int = 1
+    dead_time_load: object = 0.0   # max over the two telescopes
 
 
-def vis2_noise(mag_ab: float, obs: Observation,
+def g2_snr(vis2, mag_ab, obs: Observation,
+           telescope1: Telescope = C2PU, telescope2: Telescope | None = None,
+           detector1: Detector = SPAD_LAMBDA,
+           detector2: Detector | None = None) -> SNRResult:
+    """SNR of the g2 bump for one baseline (see module docstring);
+    array-capable over channels when obs carries arrays."""
+    telescope2 = telescope1 if telescope2 is None else telescope2
+    detector2 = detector1 if detector2 is None else detector2
+    n_streams, _, p2, _ = polarization_streams(obs.polarization_mode)
+
+    inc1 = incident_rate(mag_ab, telescope1, detector1, obs)
+    inc2 = incident_rate(mag_ab, telescope2, detector2, obs)
+    r1 = detector1.detected_rate(inc1)
+    r2 = detector2.detected_rate(inc2)
+    b1 = r1 + detector1.dark_cps + obs.sky_cps / n_streams
+    b2 = r2 + detector2.dark_cps + obs.sky_cps / n_streams
+
+    tau_c = coherence_time_s(obs.wavelength_nm, obs.filter_width_nm)
+    sigma_pair = pair_sigma_s(detector1, detector2, obs)
+
+    n_sig = p2 * np.asarray(vis2, dtype=float) * tau_c * r1 * r2 * obs.t_int_s
+    eff_window = 2.0 * np.sqrt(np.pi) * sigma_pair  # matched-filter width
+    n_bkg = b1 * b2 * obs.t_int_s * eff_window
+    snr = np.sqrt(n_streams) * n_sig / np.sqrt(n_bkg)
+    load = np.maximum(detector1.dead_time_load(inc1), detector2.dead_time_load(inc2))
+    f = (lambda a: float(a) if np.ndim(a) == 0 else a)
+    return SNRResult(snr=f(snr), rate1_cps=f(r1), rate2_cps=f(r2),
+                     tau_c_s=f(tau_c), sigma_pair_s=f(sigma_pair),
+                     n_signal=f(n_sig), n_background=f(n_bkg), vis2=vis2,
+                     obs=obs, n_streams=n_streams, dead_time_load=f(load))
+
+
+def vis2_noise(mag_ab, obs: Observation,
                telescope1: Telescope = C2PU,
                telescope2: Telescope | None = None,
                detector1: Detector = SPAD_LAMBDA,
-               detector2: Detector | None = None) -> float:
+               detector2: Detector | None = None):
     """1-sigma uncertainty of a |V|^2 measurement over obs.t_int_s (the
-    noise-equivalent squared visibility): sigma = sqrt(N_bkg) /
-    (pol_factor tau_c R1 R2 T), i.e. SNR = |V|^2 / vis2_noise."""
+    noise-equivalent squared visibility): SNR = |V|^2 / vis2_noise."""
     r = g2_snr(1.0, mag_ab, obs, telescope1=telescope1, telescope2=telescope2,
                detector1=detector1, detector2=detector2)
     return 1.0 / r.snr
 
 
-def g2_snr(vis2: float, mag_ab: float, obs: Observation,
-           telescope1: Telescope = C2PU, telescope2: Telescope | None = None,
-           detector1: Detector = SPAD_LAMBDA,
-           detector2: Detector | None = None) -> SNRResult:
-    """SNR of the g2 bump for one baseline (see module docstring)."""
-    telescope2 = telescope1 if telescope2 is None else telescope2
-    detector2 = detector1 if detector2 is None else detector2
+def _check_dead_time(load, where: str) -> None:
+    lmax = float(np.max(load))
+    if lmax > 1.0:
+        warnings.warn(f"{where}: per-pixel dead-time load r tau_dead reaches "
+                      f"{lmax:.1f} (> 1): the non-paralyzable model is "
+                      f"unreliable there; spread the light over more pixels "
+                      f"or a polarizing beamsplitter", stacklevel=3)
 
-    r1 = stellar_rate(mag_ab, telescope1, detector1, obs)
-    r2 = stellar_rate(mag_ab, telescope2, detector2, obs)
-    b1 = r1 + detector1.dark_cps + obs.sky_cps
-    b2 = r2 + detector2.dark_cps + obs.sky_cps
 
-    tau_c = coherence_time_s(obs.wavelength_nm, obs.filter_width_nm)
-    sigma_pair = np.hypot(detector1.jitter_sigma_s, detector2.jitter_sigma_s)
-
-    n_sig = obs.pol_factor * vis2 * tau_c * r1 * r2 * obs.t_int_s
-    eff_window = 2.0 * np.sqrt(np.pi) * sigma_pair  # matched-filter width
-    n_bkg = b1 * b2 * obs.t_int_s * eff_window
-    return SNRResult(snr=n_sig / np.sqrt(n_bkg), rate1_cps=r1, rate2_cps=r2,
-                     tau_c_s=tau_c, sigma_pair_s=sigma_pair, n_signal=n_sig,
-                     n_background=n_bkg, vis2=vis2, obs=obs)
+def readout_scale(detector: Detector, total_incident_cps: float) -> float:
+    """Factor (<= 1) by which the rates must be attenuated to fit the
+    detector's time-tag link; 1 for a correlator readout."""
+    if detector.readout == "correlator" or detector.max_total_cps is None:
+        return 1.0
+    return min(1.0, detector.max_total_cps / max(total_incident_cps, 1e-300))
 
 
 @dataclass(frozen=True)
@@ -243,10 +419,17 @@ class SpectralSNRResult:
     baseline_m: float
     channel_nm: np.ndarray
     snr: np.ndarray          # per channel
-    rate_cps: np.ndarray     # detected stellar rate per channel per telescope
+    rate_cps: np.ndarray     # detected stellar rate per channel per stream, telescope 1
     vis2: np.ndarray         # per channel
     mag_ab: np.ndarray       # per channel
     vis2_method: str = ""
+    channel_widths_nm: np.ndarray = None
+    total_rate_cps: tuple = (0.0, 0.0)   # detected per telescope (all streams)
+    readout_limited: bool = False
+    readout_scale: float = 1.0           # attenuation applied to fit the link
+    dead_time_load_max: float = 0.0
+    polarization_mode: str = "unpolarized"
+    smeared: bool = False
 
 
 def spectral_g2_snr(system: BinarySystem, baseline_m: float,
@@ -256,18 +439,23 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
                     telescope2: Telescope | None = None,
                     detector1: Detector = SPAD_LAMBDA,
                     detector2: Detector | None = None,
-                    pol_factor: float = 0.5, sky_cps_per_channel: float = 0.0,
+                    polarization_mode: str = "unpolarized",
+                    sky_cps_per_channel: float = 0.0,
                     orbital_phase: float = 0.0,
                     vis2_method: str = "render",
                     grid: GridConfig = GridConfig(),
                     chunk_size: int | None = None,
-                    pupils=True) -> SpectralSNRResult:
+                    pupils=True,
+                    n_pixels_per_channel: int = 1,
+                    coherence_broadening: bool = True,
+                    enforce_readout: bool = True) -> SpectralSNRResult:
     """Total g2 SNR with the source spectrum dispersed over the array.
 
-    Each channel (= one pixel per telescope, so dead time and dark counts
-    are per channel) measures g2 independently at its own wavelength, with
-    the baseline along the projected separation axis at the requested
-    orbital phase.  SNR_total = sqrt(sum SNR_i^2).
+    Each channel (n_pixels_per_channel pixels per telescope and stream,
+    so dead time and dark counts are per channel) measures g2
+    independently at its own wavelength, with the baseline along the
+    projected separation axis at the requested orbital phase.
+    SNR_total = sqrt(sum SNR_i^2).
 
     vis2_method:
       "render"   -- batched render + exact DFT (hbtsim.spectral): valid at
@@ -281,23 +469,25 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
     and what suppresses the binary fringe for pupils comparable to the
     fringe period; None samples |V|^2 at a point; or a (d1, d2) pair /
     PupilQuadrature.
-    """
-    import warnings
-    from dataclasses import replace
 
+    Throughput = telescope x spectrograph.throughput x PDE.  With
+    enforce_readout the rates of a time-tag detector are scaled to its
+    link ceiling (readout_limited / readout_scale report it); a
+    per-pixel dead-time load above 1 raises a warning.
+    """
     from .aperture import resolve_pupils
     from .hbt import baseline_vectors_along_pa, binary_vis2_analytic
     from .orbit import SkyPositions, sky_positions
 
     telescope2 = telescope1 if telescope2 is None else telescope2
     detector2 = detector1 if detector2 is None else detector2
-    # one pixel per channel
-    det1 = replace(detector1, n_pixels=1)
-    det2 = replace(detector2, n_pixels=1)
+    det1 = replace(detector1, n_pixels=n_pixels_per_channel)
+    det2 = replace(detector2, n_pixels=n_pixels_per_channel)
 
     pos = SkyPositions(*(np.asarray(v) for v in
                          sky_positions(2.0 * np.pi * orbital_phase, system)))
     nm = spectrograph.channel_centers_nm
+    widths = spectrograph.channel_widths_nm
 
     if vis2_method == "fft":
         warnings.warn("vis2_method='fft' is now 'render'", DeprecationWarning,
@@ -321,56 +511,91 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
         raise ValueError(f"unknown vis2_method {vis2_method!r} "
                          f"(expected 'render' or 'analytic')")
 
-    snr = np.empty(nm.size)
-    rate = np.empty(nm.size)
-    mag = np.empty(nm.size)
-    for k, lam_nm in enumerate(nm):
-        mag[k] = system_ab_mag(system, lam_nm)
-        obs = Observation(wavelength_nm=lam_nm,
-                          filter_width_nm=spectrograph.channel_width_nm,
-                          t_int_s=t_int_s, pol_factor=pol_factor,
-                          sky_cps=sky_cps_per_channel)
-        res = g2_snr(float(vis2[k]), mag[k], obs, telescope1=telescope1,
-                     telescope2=telescope2, detector1=det1, detector2=det2)
-        snr[k] = res.snr
-        rate[k] = res.rate1_cps
-    return SpectralSNRResult(snr_total=float(np.sqrt(np.sum(snr**2))),
-                             spectrograph=spectrograph, baseline_m=baseline_m,
-                             channel_nm=nm, snr=snr, rate_cps=rate, vis2=vis2,
-                             mag_ab=mag, vis2_method=vis2_method)
+    mag = system_ab_mag(system, nm)
+    obs = Observation(wavelength_nm=nm, filter_width_nm=widths, t_int_s=t_int_s,
+                      sky_cps=sky_cps_per_channel,
+                      polarization_mode=polarization_mode,
+                      backend_throughput=spectrograph.throughput,
+                      coherence_broadening=coherence_broadening)
+    n_streams, _, _, _ = polarization_streams(polarization_mode)
+
+    # readout ceiling: total incident rate over all channels and streams
+    scale = 1.0
+    if enforce_readout:
+        tot = [float(np.sum(incident_rate(mag, t, d, obs))) * n_streams
+               for t, d in ((telescope1, det1), (telescope2, det2))]
+        scale = min(readout_scale(det1, tot[0]), readout_scale(det2, tot[1]))
+    mag_eff = mag - 2.5 * np.log10(scale) if scale < 1.0 else mag
+
+    res = g2_snr(vis2, mag_eff, obs, telescope1=telescope1, telescope2=telescope2,
+                 detector1=det1, detector2=det2)
+    _check_dead_time(res.dead_time_load, "spectral_g2_snr")
+    total = (float(np.sum(res.rate1_cps)) * n_streams,
+             float(np.sum(res.rate2_cps)) * n_streams)
+    return SpectralSNRResult(
+        snr_total=float(np.sqrt(np.sum(res.snr**2))),
+        spectrograph=spectrograph, baseline_m=baseline_m, channel_nm=nm,
+        snr=np.asarray(res.snr), rate_cps=np.asarray(res.rate1_cps), vis2=vis2,
+        mag_ab=mag, vis2_method=vis2_method, channel_widths_nm=widths,
+        total_rate_cps=total, readout_limited=scale < 1.0, readout_scale=scale,
+        dead_time_load_max=float(np.max(res.dead_time_load)),
+        polarization_mode=polarization_mode, smeared=quad is not None)
 
 
 # ---------------------------------------------------------------------------
 # Source model: out-of-eclipse magnitude of the binary at any wavelength
 # ---------------------------------------------------------------------------
-def system_ab_mag(system: BinarySystem, wavelength_nm: float) -> float:
-    """Apparent AB magnitude of the (uneclipsed) binary at one wavelength:
-    blackbody disks f_nu = sum_s B_lambda(T_s) pi theta_s^2 (1 - u/3) lam^2/c,
-    corrected by the observed anchor offsets (params.BinarySystem.mag_anchors)
-    interpolated linearly in wavelength -- the same blackbody zero-point fix
-    applied to the lightcurves (see photometry.py)."""
-    lam = wavelength_nm * 1e-9
+BAND_LAMBDA_NM = {"g": 477.0, "i": 763.0}
+
+
+def _blackbody_ab_mag(system: BinarySystem, wavelength_nm):
+    """Synthetic AB magnitude of the uneclipsed binary: blackbody disks
+    f_nu = sum_s B_lambda(T_s) pi theta_s^2 (1 - u_s/3) lambda^2/c."""
+    lam_nm = np.asarray(wavelength_nm, dtype=float)
+    lam = lam_nm * 1e-9
     f_nu = 0.0
     for star in (system.primary, system.secondary):
         theta_r = system.angular_radius_mas(star) * MAS
-        f_nu += (planck(lam, star.teff) * np.pi * theta_r**2
-                 * (1.0 - star.ld_coeff(wavelength_nm) / 3.0)
-                 * lam**2 / C_LIGHT)
-    m_synth = -2.5 * np.log10(f_nu / AB_ZERO_FNU)
+        f_nu = f_nu + (planck(lam, star.teff) * np.pi * theta_r**2
+                       * (1.0 - np.asarray(star.ld_coeff(lam_nm)) / 3.0)
+                       * lam**2 / C_LIGHT)
+    return -2.5 * np.log10(f_nu / AB_ZERO_FNU)
 
-    # anchor offsets at the photometric bands, interpolated in wavelength
-    band_lam = {"g": 477.0, "i": 763.0}
-    lams, offsets = [], []
+
+@lru_cache(maxsize=None)
+def _anchor_offsets(system: BinarySystem):
+    """(log10 lambda_nm, offset) at the anchor bands, sorted."""
+    lams, offs = [], []
     for band, m_obs in system.mag_anchors:
-        lam_b = band_lam[band]
-        f_b = sum(planck(lam_b * 1e-9, s.teff) * np.pi
-                  * (system.angular_radius_mas(s) * MAS) ** 2
-                  * (1.0 - s.ld_coeff(lam_b) / 3.0)
-                  * (lam_b * 1e-9) ** 2 / C_LIGHT
-                  for s in (system.primary, system.secondary))
-        lams.append(lam_b)
-        offsets.append(m_obs - (-2.5 * np.log10(f_b / AB_ZERO_FNU)))
+        lam_b = BAND_LAMBDA_NM[band]
+        lams.append(np.log10(lam_b))
+        offs.append(m_obs - float(_blackbody_ab_mag(system, lam_b)))
     order = np.argsort(lams)
-    offset = float(np.interp(wavelength_nm, np.array(lams)[order],
-                             np.array(offsets)[order]))
-    return m_synth + offset
+    return np.asarray(lams)[order], np.asarray(offs)[order]
+
+
+def system_ab_mag(system: BinarySystem, wavelength_nm):
+    """Apparent AB magnitude of the (uneclipsed) binary at one wavelength
+    or an array: the anchored blackbody model -- the synthetic blackbody
+    magnitude corrected by the observed anchor offsets
+    (params.BinarySystem.mag_anchors) interpolated, and extrapolated,
+    linearly in log lambda.  Outside the anchor bands (477-763 nm) the
+    offset is an extrapolation and a warning is issued (once per call
+    site); real SEDs (hbtsim.sed) replace this."""
+    lam_nm = np.asarray(wavelength_nm, dtype=float)
+    loglam, offs = _anchor_offsets(system)
+    x = np.log10(lam_nm)
+    if offs.size >= 2:
+        slope = (offs[-1] - offs[0]) / (loglam[-1] - loglam[0])
+        offset = np.where(x < loglam[0], offs[0] + slope * (x - loglam[0]),
+                          np.where(x > loglam[-1], offs[-1] + slope * (x - loglam[-1]),
+                                   np.interp(x, loglam, offs)))
+    else:
+        offset = np.full_like(x, offs[0])
+    if np.any(x < loglam[0] - 1e-12) or np.any(x > loglam[-1] + 1e-12):
+        warnings.warn(f"{system.name}: anchored-blackbody magnitude "
+                      f"extrapolated outside the anchor bands "
+                      f"({10**loglam[0]:.0f}-{10**loglam[-1]:.0f} nm); "
+                      f"attach an SED table for accurate rates", stacklevel=2)
+    out = _blackbody_ab_mag(system, lam_nm) + offset
+    return float(out) if np.ndim(out) == 0 else out

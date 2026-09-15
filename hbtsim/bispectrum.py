@@ -44,7 +44,7 @@ from .geometry import HOUR, MAUNAKEA, PARANAL, Site, enu_to_uv
 from .hbt import vis_of_baselines
 from .orbit import SkyPositions, sky_positions
 from .params import MAS, BinarySystem, GridConfig, planck, require_out_of_eclipse
-from .snr import KECK, SPAD_LAMBDA, SUBARU, Detector, Telescope
+from .snr import KECK, SPAD_LAMBDA, SPAD_LAMBDA_NG, SUBARU, Detector, Telescope
 from .spectral import spectral_vis
 
 
@@ -200,9 +200,13 @@ class Array:
 # (E, N) coordinates [m]; pairwise separations 46.6 (UT2-UT3) to 130.2 m
 # (UT1-UT4).  NOTE Paranal is at latitude -24.6 deg: Algol and Beta Aur
 # (dec ~ +41/+45 deg) culminate below ~25 deg altitude and are not useful
-# targets from there; Spica (dec -11 deg) transits at ~77 deg.
+# targets from there; Spica (dec -11 deg) transits at ~77 deg.  The
+# stations carry the next-generation detector (correlator readout): the
+# R ~ 5000 design is a bright-star instrument whose 1e10-1e11 cps per
+# telescope no time-tag link can carry.
 VLT_UT = Array(tuple(
-    Station(name, e, n, Telescope(diameter_m=8.2, throughput=0.3))
+    Station(name, e, n, Telescope(diameter_m=8.2, throughput=0.3),
+            SPAD_LAMBDA_NG)
     for name, (e, n) in (("UT1", (-9.925, -20.335)),
                          ("UT2", (14.887, 30.502)),
                          ("UT3", (44.915, 66.183)),

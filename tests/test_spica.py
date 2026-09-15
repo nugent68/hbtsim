@@ -42,7 +42,8 @@ def test_spica_is_the_better_g3_target():
     >5x in SNR (>25x in time).  At wide channels both targets are
     dead-time saturated and the gap shrinks -- so test the regime the
     recommendation is actually about."""
-    spec = Spectrograph(n_channels=5500)  # 0.1 nm channels
-    s = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, spectrograph=spec)
-    a = spectral_g3_snr(ALGOL, MAUNAKEA_SUBARU_KECK, spectrograph=spec)
+    spec = Spectrograph.from_resolving_power(5000.0)
+    kw = dict(spectrograph=spec, enforce_readout=False)
+    s = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, **kw)
+    a = spectral_g3_snr(ALGOL, MAUNAKEA_SUBARU_KECK, **kw)
     assert s.snr_total > 5.0 * a.snr_total

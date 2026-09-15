@@ -109,10 +109,10 @@ def feasibility_table(system, sysname, triangle, label):
         res = spectral_g3_snr(system, triangle, spectrograph=spec)
         t03 = time_to_cos_phi(system, triangle, 0.3, spectrograph=spec)
         t01 = time_to_cos_phi(system, triangle, 0.1, spectrograph=spec)
-        print(f"{n_ch:>10} ({note[:9]}) {spec.channel_width_nm:>8.2f} "
+        print(f"{n_ch:>10} ({note[:9]}) {spec.channel_widths_nm.mean():>8.2f} "
               f"{res.snr.max():>15.2e} {res.snr_total:>11.2e} "
               f"{t03 / NIGHT_S:>14.3g} {t01 / NIGHT_S:>14.3g}")
-        rows.append((n_ch, spec.channel_width_nm, res, t03, t01))
+        rows.append((n_ch, spec.channel_widths_nm.mean(), res, t03, t01))
     return rows
 
 

@@ -3,23 +3,28 @@
 import numpy as np
 import pytest
 
-from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, Station, Triangle,
+import warnings
+from dataclasses import replace
+
+from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, VLT_UT, Station, Triangle,
                                equilateral_triangle)
-from hbtsim.params import ALGOL, BETA_AUR
-from hbtsim.snr import Detector, Observation, Spectrograph, Telescope, g2_snr
-from hbtsim.snr3 import (POL_FACTOR_TRIPLE, g3_snr, spectral_g3_snr,
-                         time_to_cos_phi, triple_window_s2)
+from hbtsim.params import ALGOL, BETA_AUR, C_LIGHT, SPICA
+from hbtsim.snr import (SPAD_LAMBDA_NG, Detector, Observation, Spectrograph,
+                        Telescope, g2_snr)
+from hbtsim.snr3 import (POL_FACTOR_TRIPLE, array_g3_snr, binned_closure_phase_snr,
+                         g3_snr, spectral_g3_snr, time_to_cos_phi,
+                         time_to_precision, triple_window_s2)
 
 IDEAL_DET = Detector(name="ideal", pde_table_nm=((300.0, 1.0), (1000.0, 1.0)),
                      jitter_fwhm_ps=120.0, dead_time_ns=0.0,
-                     dark_cps_per_pixel=0.0)
-OBS = Observation(wavelength_nm=600.0, filter_width_nm=1.0, t_int_s=3600.0)
+                     dark_cps_per_pixel=0.0, readout="correlator")
+OBS = Observation(wavelength_nm=600.0, filter_width_nm=1.0, t_int_s=3600.0,
+                  coherence_broadening=False)
 
 
 def _tri(diam=1.0, jitter_ps=120.0, dead_ns=0.0, side=85.0):
-    det = Detector(name="d", pde_table_nm=IDEAL_DET.pde_table_nm,
-                   jitter_fwhm_ps=jitter_ps, dead_time_ns=dead_ns,
-                   dark_cps_per_pixel=0.0)
+    det = replace(IDEAL_DET, name="d", jitter_fwhm_ps=jitter_ps,
+                  dead_time_ns=dead_ns)
     return equilateral_triangle(side, Telescope(diam, 0.3), det)
 
 
@@ -37,8 +42,7 @@ def test_snr3_scalings():
     big = g3_snr(0.1, 2.0, OBS, _tri(diam=np.sqrt(2.0)))
     assert big.snr == pytest.approx(2.0**1.5 * base.snr, rel=1e-9)
     # ~ sqrt(T)
-    obs4 = Observation(wavelength_nm=600.0, filter_width_nm=1.0,
-                       t_int_s=4 * 3600.0)
+    obs4 = replace(OBS, t_int_s=4 * 3600.0)
     assert g3_snr(0.1, 2.0, obs4, _tri()).snr == pytest.approx(
         2.0 * base.snr, rel=1e-9)
     # ~ 1/sigma_jitter (note: g2 scales only as 1/sqrt(sigma))
@@ -49,9 +53,13 @@ def test_snr3_scalings():
         2.0 * base.snr, rel=1e-9)
     assert g3_snr(0.1, 2.0, OBS, _tri(), cos_phi_c=0.5).snr == pytest.approx(
         0.5 * base.snr, rel=1e-9)
-    # polarized light: x4 over unpolarized
-    pol = g3_snr(0.1, 2.0, OBS, _tri(), pol_factor_triple=1.0)
-    assert pol.snr == pytest.approx(4.0 * base.snr, rel=1e-12)
+    # a polarizing beamsplitter: x2 over unpolarized; a single polarizer
+    # (half the light discarded): x sqrt(2)
+    pbs = g3_snr(0.1, 2.0, replace(OBS, polarization_mode="pbs"), _tri())
+    assert pbs.snr == pytest.approx(2.0 * base.snr, rel=1e-12)
+    assert pbs.rates_cps[0] == pytest.approx(0.5 * base.rates_cps[0])
+    one = g3_snr(0.1, 2.0, replace(OBS, polarization_mode="single_pol"), _tri())
+    assert one.snr == pytest.approx(np.sqrt(2.0) * base.snr, rel=1e-12)
 
 
 def test_snr3_bandwidth_scaling_unsaturated():
@@ -60,25 +68,88 @@ def test_snr3_bandwidth_scaling_unsaturated():
     tri = _tri()
     snrs = []
     for dl in (0.5, 2.0):
-        obs = Observation(wavelength_nm=600.0, filter_width_nm=dl,
-                          t_int_s=3600.0)
+        obs = replace(OBS, filter_width_nm=dl)
         snrs.append(g3_snr(0.1, 2.0, obs, tri).snr)
     assert snrs[0] / snrs[1] == pytest.approx(2.0, rel=1e-6)
 
 
-def test_snr3_reduces_to_ndds_scaling():
-    """SNR3 / [|ggg| (R)^{3/2} tau_c^2 sqrt(T) / sqrt(A_2D)] is constant:
-    the Nunez & Domiciano de Souza eq. 8 shape."""
+def test_first_principles_snr3_normalization():
+    """Hand-computed from the module-docstring formula with explicit
+    numbers, reusing none of g3_snr's outputs: m_AB = 2 at 600 nm, 1 nm
+    band, three 1 m telescopes (throughput 0.3, backend 0.9, PDE 1),
+    120 ps FWHM jitters, |g12 g23 g31| = 0.1, 1 h, unpolarized."""
+    lam, dlam, mag, T = 600e-9, 1e-9, 2.0, 3600.0
+    h = 6.62607015e-34
+    f_nu = 3.631e-23 * 10 ** (-0.4 * mag)
+    flux = f_nu / (h * C_LIGHT / lam) * (C_LIGHT * dlam / lam**2)
+    R = flux * np.pi * 0.25 * 0.3 * 0.9
+    tau_c = lam**2 / (C_LIGHT * dlam)
+    s = 120e-12 / (2 * np.sqrt(2 * np.log(2)))
+    A2d = 4 * np.pi * np.sqrt(3.0) * s**2
+    n_sig = 0.25 * 2.0 * 0.1 * tau_c**2 * R**3 * T
+    n_bkg = R**3 * T * A2d
+    expect = n_sig / np.sqrt(n_bkg)
+    got = g3_snr(0.1, mag, OBS, _tri(diam=1.0))
+    assert got.snr == pytest.approx(expect, rel=1e-9)
+    assert got.rates_cps[0] == pytest.approx(R, rel=1e-9)
+    assert got.window_s2 == pytest.approx(A2d, rel=1e-12)
+
+
+def test_zmija_hess_anchor():
+    """Order-of-magnitude anchor against Zmija et al. 2025, Table 2:
+    H.E.S.S. (3 x 100 m^2, tau_e = 5 ns, 10 nm, one channel) needs
+    ~1100-2400 yr to reach Delta cos phi_c <= 0.1 on m_B ~ 2 stars.
+    Their figure scales their MEASURED sensitivity; here a 5 ns FWHM
+    Gaussian response, ~2 GHz detected per telescope ("of order GHz"),
+    |g12 g23 g31| ~ 0.7.  Agreement within an order of magnitude checks
+    the tau_c^2 / lag-plane normalization; a tau_c-vs-tau_c^2 slip would
+    be off by 1e5."""
+    det = replace(IDEAL_DET, jitter_fwhm_ps=5000.0)
+    obs = Observation(wavelength_nm=440.0, filter_width_nm=10.0, t_int_s=3600.0,
+                      coherence_broadening=False)
+    d = 2 * np.sqrt(100.0 / np.pi)
+    tri = equilateral_triangle(100.0, Telescope(d, 1.0), det)
+    # choose the magnitude that gives ~2 GHz detected per telescope
+    from hbtsim.snr import stellar_rate
+    mag = 2.0
+    rate = stellar_rate(mag, tri.stations[0].telescope, det, obs)
+    scale = 2e9 / rate
+    mag_eff = mag - 2.5 * np.log10(scale)
+    r = g3_snr(0.7, mag_eff, obs, tri)
+    years = 3600.0 * (10.0 / r.snr) ** 2 / (365.25 * 86400.0)
+    assert 1e2 < years < 1e5
+
+
+def test_coherence_broadening_triple():
     tri = _tri()
-    vals = []
-    for mag in (1.0, 3.0):
-        r = g3_snr(0.1, mag, OBS, tri)
-        pred = (POL_FACTOR_TRIPLE * 2.0 * 0.1 * r.tau_c_s**2
-                * np.prod(r.rates_cps) * OBS.t_int_s
-                / np.sqrt(np.prod(r.rates_cps) * OBS.t_int_s * r.window_s2))
-        vals.append(r.snr / pred)
-    assert vals[0] == pytest.approx(vals[1], rel=1e-12)
-    assert vals[0] == pytest.approx(1.0, rel=1e-12)
+    red = Observation(wavelength_nm=950.0, filter_width_nm=0.1, t_int_s=3600.0)
+    a = g3_snr(0.1, 2.0, replace(red, coherence_broadening=False), tri)
+    b = g3_snr(0.1, 2.0, red, tri)
+    assert 0.9 < b.snr / a.snr < 0.995
+    assert b.window_s2 > a.window_s2
+    # the closed form: Sigma + sigma_c^2 [[1, -1/2], [-1/2, 1]]
+    from hbtsim.snr import COHERENCE_SIGMA_FACTOR, coherence_time_s
+    s2 = IDEAL_DET.jitter_sigma_s**2
+    c2 = (COHERENCE_SIGMA_FACTOR * coherence_time_s(950.0, 0.1))**2
+    det_sigma = (2 * s2 + c2) ** 2 - (s2 + 0.5 * c2) ** 2
+    assert b.window_s2 == pytest.approx(4 * np.pi * np.sqrt(det_sigma), rel=1e-12)
+
+
+def test_ridge_ratio():
+    """Pair ridges exceed the triple term by ~(p2/2p3)|g|^2 A_2D /
+    (2 sqrt(pi) sigma tau_c |ggg|): hundreds at 0.1 nm."""
+    obs = Observation(wavelength_nm=600.0, filter_width_nm=0.1, t_int_s=3600.0,
+                      coherence_broadening=False)
+    r = g3_snr(0.1, 2.0, obs, _tri(), pair_vis2=np.array([0.3, 0.3, 0.3]))
+    s = IDEAL_DET.jitter_sigma_s
+    expect = 3 * (0.5 / 0.5) * 0.3 * r.window_s2 / (2 * np.sqrt(np.pi) * np.sqrt(2) * s
+                                                    * r.tau_c_s * 0.1)
+    assert r.ridge_ratio == pytest.approx(expect, rel=1e-9)
+    assert 50 < r.ridge_ratio < 2000
+    spec = Spectrograph(lambda_min_nm=450.0, lambda_max_nm=900.0, n_channels=8)
+    res = spectral_g3_snr(SPICA, VLT_UT.triangles()[0], spectrograph=spec)
+    assert res.ridge_ratio.shape == (8,)
+    assert np.all(res.required_kernel_accuracy(0.1) == 0.1 / res.ridge_ratio)
 
 
 def test_spectral_g3_quadrature_and_methods():
@@ -127,11 +198,46 @@ def test_array_g3_quadrature_combination():
     assert res.snr_total > max(r.snr_total for r in res.per_triangle)
 
 
-def test_time_to_cos_phi_inversion():
-    spec = Spectrograph(lambda_min_nm=450.0, lambda_max_nm=900.0,
-                        n_channels=8)
-    t = time_to_cos_phi(BETA_AUR, MAUNAKEA_SUBARU_KECK, target_dcos=0.1,
-                        spectrograph=spec)
-    ref = spectral_g3_snr(BETA_AUR, MAUNAKEA_SUBARU_KECK, spectrograph=spec,
-                          t_int_s=t)
+def test_time_to_precision_inversions_and_ordering():
+    spec = Spectrograph(lambda_min_nm=450.0, lambda_max_nm=900.0, n_channels=16)
+    kw = dict(spectrograph=spec, enforce_readout=False)
+    times = {s: time_to_precision(SPICA, 0.1, triangle=MAUNAKEA_SUBARU_KECK,
+                                  statistic=s, R_bin=50.0, **kw)
+             for s in ("total", "amplitude", "binned", "channel")}
+    # inversions
+    ref = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, t_int_s=times["total"], **kw)
     assert ref.snr_total == pytest.approx(10.0, rel=1e-6)
+    ref = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, t_int_s=times["amplitude"], **kw)
+    assert ref.snr_amplitude == pytest.approx(10.0, rel=1e-6)
+    ref = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, t_int_s=times["binned"], **kw)
+    assert np.median(binned_closure_phase_snr(ref, 50.0)[1]) == pytest.approx(10.0, rel=1e-6)
+    ref = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, t_int_s=times["channel"], **kw)
+    assert np.median(ref.snr) == pytest.approx(10.0, rel=1e-6)
+    # ordering: a global amplitude is the easiest, a single channel the hardest
+    assert times["total"] <= times["amplitude"] <= times["binned"] <= times["channel"]
+    # deprecated wrappers still answer
+    with pytest.warns(DeprecationWarning):
+        t_old = time_to_cos_phi(SPICA, MAUNAKEA_SUBARU_KECK, target_dcos=0.1, **kw)
+    assert t_old == pytest.approx(times["total"])
+    with pytest.raises(ValueError, match="exactly one"):
+        time_to_precision(SPICA, 0.1)
+
+
+def test_readout_and_polarization_in_spectral_g3():
+    spec = Spectrograph(lambda_min_nm=450.0, lambda_max_nm=900.0, n_channels=6)
+    a = spectral_g3_snr(SPICA, VLT_UT.triangles()[0], spectrograph=spec)
+    b = spectral_g3_snr(SPICA, VLT_UT.triangles()[0], spectrograph=spec,
+                        polarization_mode="pbs")
+    assert not a.readout_limited      # next-gen correlator stations
+    # six 75 nm channels: each pixel is saturated (1/tau_dead = 1e8 cps)
+    assert a.dead_time_load_max > 10.0
+    assert a.total_rate_cps[0] > 5e8
+    # PBS: x2 in the ideal case, more here since it halves the dead-time load
+    assert b.snr_total > 2.0 * a.snr_total
+    # Maunakea's SPAD Lambda stations are time-tag limited
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        m = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, spectrograph=spec)
+        m0 = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, spectrograph=spec,
+                             enforce_readout=False)
+    assert m.readout_limited and m.snr_total < 0.1 * m0.snr_total

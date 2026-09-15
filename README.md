@@ -127,9 +127,37 @@ accidental floor (dark and sky counts included),
     SNR = ½ |V|² τ_c R₁ R₂ √T / √(b₁ b₂ · 2√π σ_pair),
 
 with per-pixel non-paralyzable dead time. Everything is parameterized
-via `Telescope`, `Detector`, `Observation` dataclasses. Built-in
-hardware: the **C2PU pair** (Calern, 2 × 1 m, 15 m apart), the **Keck
-pair** (2 × 10 m, ~85 m), and the Pi Imaging **SPAD Lambda** detector
+via `Telescope`, `Backend`, `Detector`, `Observation` and `Spectrograph`
+dataclasses. The instrument model carries the effects a real
+implementation cannot escape:
+
+- **Throughput** is telescope (atmosphere + optics, 0.3) × backend
+  (0.9 for a narrow-band filter, **0.5 for a cross-dispersed
+  spectrograph** — every dispersed channel sees 0.15, not 0.3) × PDE.
+- **Constant resolving power**: `Spectrograph.from_resolving_power(5000)`
+  builds the geometric channel grid an R ≈ 5000 spectrograph actually
+  has (4325 channels of 0.08–0.19 nm over 400–950 nm), not 5500
+  uniform 0.1 nm channels.
+- **Readout**: a bright star dispersed over thousands of channels
+  delivers 10¹⁰–10¹¹ detected photons/s per 8–10 m telescope, far
+  beyond any time-tag link. `Detector.readout` is `"timetag"` (the
+  SPAD Lambda as delivered, USB3, `max_total_cps` ≈ 10⁸ — the spectral
+  functions scale the rates down to the ceiling and flag
+  `readout_limited`) or `"correlator"` (the next-generation design,
+  `SPAD_LAMBDA_NG`, correlation done on the detector electronics). A
+  per-pixel dead-time load r·τ_dead > 1 raises a warning (the
+  non-paralyzable model is unreliable there; spread the light over
+  more pixels).
+- **Polarization**: `polarization_mode="pbs"` (a polarizing beamsplitter
+  into two detectors per telescope) gains √2 in g² SNR and ×2 in g³ at
+  the same photon budget while halving the per-pixel load;
+  `"single_pol"` gains nothing; the default is unpolarized (p₂ = ½,
+  p₃ = ¼).
+- **Coherence broadening** of the correlation kernel (σ_c = 0.376 τ_c)
+  — a ~1 % loss at 0.1 nm in the red, on by default.
+
+Built-in hardware: the **C2PU pair** (Calern, 2 × 1 m, 15 m apart), the
+**Keck pair** (2 × 10 m, ~85 m), and the Pi Imaging **SPAD Lambda** detector
 (320×1 pixels, PDE 22%/14% at 400/800 nm, 120 ps FWHM jitter, 10 ns
 dead time, 250 cps dark; datasheet in `background/`).
 
@@ -139,8 +167,12 @@ Two observing modes (`python -m hbtsim.snr_cli --system {betaaur,algol}`):
   Lambda's 320-pixel array: each pixel pair is an independent ~1.7 nm
   channel measuring its own g², and channel SNRs add in quadrature
   (~√320 ≈ 18× multiplexing gain). Per-channel |V|²(B, λ) comes from the
-  batched render + DFT pipeline (valid through eclipses); `--vis2-method
-  analytic` is the instant out-of-eclipse alternative (agrees to 1e-3).
+  batched render + DFT pipeline (valid through eclipses), averaged over
+  the two apertures; `--vis2-method analytic` is the instant
+  out-of-eclipse alternative (agrees to 1e-3). `--resolving-power R`
+  switches to a constant-R grid, `--readout correlator` lifts the
+  time-tag ceiling, `--polarization pbs` adds the beamsplitter,
+  `--n-pixels` spreads each channel over several pixels.
 - **Narrowband** — single filters (`--mode narrowband --wavelengths 400
   800 --filter-width 10`).
 

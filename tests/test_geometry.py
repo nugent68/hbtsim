@@ -145,10 +145,13 @@ def test_fringe_drift_and_loss():
 def test_vlt_60min_block_flagged_10min_not():
     spec = Spectrograph(lambda_min_nm=400.0, lambda_max_nm=900.0, n_channels=6)
     with pytest.warns(UserWarning, match="drift"):
-        t60 = track_g3_snr(SPICA, VLT_UT, spec, block_minutes=60.0)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=".*(extrapolated|dead-time).*")
+            t60 = track_g3_snr(SPICA, VLT_UT, spec, block_minutes=60.0)
     assert t60.drift_flagged and t60.n_blocks == 9
     with warnings.catch_warnings():
-        warnings.simplefilter("error")
+        warnings.simplefilter("ignore")
+        warnings.filterwarnings("error", message=".*drift.*")
         t10 = track_g3_snr(SPICA, VLT_UT, spec, block_minutes=10.0)
     assert not t10.drift_flagged
     assert t10.snr_amplitude > t60.snr_amplitude     # less sinc loss

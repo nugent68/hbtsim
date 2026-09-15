@@ -12,7 +12,8 @@ pipeline (hbtsim.spectral), which handles the overlapping disks.
 
 g2 is shown in the ideal Siegert normalization 1 + |V|^2, consistent
 with the orbit movie; the error bars carry the instrument response
-(jitter, dead time, dark counts, unpolarized-light factor 1/2).
+(jitter, dead time, dark counts, polarization mode, spectrograph
+throughput, and -- for a time-tag readout -- the link ceiling).
 
 Workflow (compute is GPU-friendly, rendering needs ffmpeg):
 
@@ -33,8 +34,9 @@ from .movie import (DISPLAY_BIN, DISPLAY_HALF_PX, render_display_rgb,
                     stretch_rgb)
 from .orbit import SkyPositions, sky_positions
 from .params import BETA_AUR, BinarySystem, GridConfig
-from .snr import (C2PU, SPAD_LAMBDA, Detector, Observation, Spectrograph,
-                  Telescope, system_ab_mag, vis2_noise)
+from .snr import (C2PU, SPAD_LAMBDA, SPAD_LAMBDA_NG, Detector, Observation,
+                  Spectrograph, Telescope, incident_rate, polarization_streams,
+                  readout_scale, system_ab_mag, vis2_noise)
 from .spectral import spectral_vis2
 
 
@@ -45,6 +47,7 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
                detector: Detector = SPAD_LAMBDA,
                grid: GridConfig = GridConfig(),
                chunk_size: int | None = None,
+               polarization_mode: str = "unpolarized",
                seed: int = 42, verbose: bool = True) -> dict:
     """Per-hour |V|^2(lambda) (averaged over the two telescope apertures,
     as the correlator measures it), 1-sigma errors and one noisy
@@ -54,6 +57,7 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
     hours = np.arange(0.0, np.floor(period_h) + 0.5)  # 0..95 for Beta Aur
     phases = hours / period_h
     nm = spectrograph.channel_centers_nm
+    widths = spectrograph.channel_widths_nm
     det1 = replace(detector, n_pixels=1)
 
     n_e, n_c = hours.size, nm.size
@@ -75,18 +79,26 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
 
     # per-epoch, per-channel magnitude: out-of-eclipse anchored value plus
     # the eclipse dimming from the rendered flux
-    mag0 = np.array([system_ab_mag(system, float(l)) for l in nm])
+    mag0 = np.asarray(system_ab_mag(system, nm))
     dmag = -2.5 * np.log10(flux / flux.max(axis=0, keepdims=True))
     mags = mag0[None, :] + dmag
 
-    sigma = np.empty((n_e, n_c), np.float32)
-    for k in range(n_e):
-        for j, lam_nm in enumerate(nm):
-            obs = Observation(wavelength_nm=float(lam_nm),
-                              filter_width_nm=spectrograph.channel_width_nm,
-                              t_int_s=t_int_s)
-            sigma[k, j] = vis2_noise(float(mags[k, j]), obs,
-                                     telescope1=telescope, detector1=det1)
+    obs = Observation(wavelength_nm=nm[None, :], filter_width_nm=widths[None, :],
+                      t_int_s=t_int_s, polarization_mode=polarization_mode,
+                      backend_throughput=spectrograph.throughput)
+    # time-tag link ceiling (a correlator readout has none)
+    n_streams = polarization_streams(polarization_mode)[0]
+    tot = float(np.sum(incident_rate(mag0, telescope, det1,
+                                     replace(obs, wavelength_nm=nm,
+                                             filter_width_nm=widths)))) * n_streams
+    scale = readout_scale(det1, tot)
+    if scale < 1.0:
+        print(f"  readout-limited: {tot:.2e} cps/telescope exceeds the "
+              f"{det1.max_total_cps:.1e} cps time-tag ceiling; rates scaled "
+              f"by {scale:.2e}")
+    sigma = np.asarray(vis2_noise(mags - 2.5 * np.log10(scale), obs,
+                                  telescope1=telescope, detector1=det1),
+                       dtype=np.float32)
 
     rng = np.random.default_rng(seed)
     noisy = vis2 + sigma * rng.standard_normal(vis2.shape).astype(np.float32)
@@ -226,6 +238,15 @@ def main(argv=None) -> None:
     p.add_argument("--time", type=float, default=3600.0,
                    help="integration time per frame in s")
     p.add_argument("--channels", type=int, default=320)
+    p.add_argument("--resolving-power", type=float, default=None,
+                   help="constant-R channel grid instead of --channels")
+    p.add_argument("--readout", choices=("timetag", "correlator"),
+                   default="correlator",
+                   help="detector readout: the SPAD Lambda's USB3 time-tag "
+                        "link (rates capped at its ceiling) or an on-detector "
+                        "correlator (design study; default)")
+    p.add_argument("--polarization", choices=("unpolarized", "pbs", "single_pol"),
+                   default="unpolarized")
     p.add_argument("--chunk", type=int, default=None)
     p.add_argument("--fps", type=int, default=8)
     p.add_argument("--seed", type=int, default=42)
@@ -236,14 +257,18 @@ def main(argv=None) -> None:
     out = args.out or f"output/g2spec_{args.system}.mp4"
     os.makedirs(os.path.dirname(npz) or ".", exist_ok=True)
     if not args.render_only:
-        spec = Spectrograph(n_channels=args.channels)
+        spec = (Spectrograph(n_channels=args.channels) if args.resolving_power is None
+                else Spectrograph.from_resolving_power(args.resolving_power))
         tel = Telescope(diameter_m=args.diameter, throughput=args.throughput)
+        det = SPAD_LAMBDA if args.readout == "timetag" else SPAD_LAMBDA_NG
         print(f"Computing g2(lambda) every hour over one period of "
               f"{system.name} (2 x {tel.diameter_m:.0f} m, "
-              f"B = {args.baseline:.0f} m, {args.channels} channels) ...")
+              f"B = {args.baseline:.0f} m, {spec.n_channels} channels, "
+              f"{det.readout} readout) ...")
         data = precompute(system=system, baseline_m=args.baseline,
                           spectrograph=spec, t_int_s=args.time, telescope=tel,
-                          chunk_size=args.chunk, seed=args.seed)
+                          detector=det, chunk_size=args.chunk,
+                          polarization_mode=args.polarization, seed=args.seed)
         np.savez_compressed(npz, **data)
         print(f"Wrote {npz}")
     if not args.compute_only:

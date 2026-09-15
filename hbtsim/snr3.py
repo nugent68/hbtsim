@@ -3,21 +3,25 @@
 Extends the matched-filter photon budget of hbtsim.snr to three
 telescopes.  Per spectral channel:
 
-  signal:  N_sig = pol3 . 2|g12 g23 g31| cos(phi_c) . tau_c^2 . R1 R2 R3 . T
+  signal:  N_sig = p3 . 2|g12 g23 g31| cos(phi_c) . tau_c^2 . R1 R2 R3 . T
 
   -- the lag-plane (tau1, tau2) integral of the triple term for a
   rectangular passband is exactly tau_c^2 = 1/dnu^2 (Parseval on the
   cubed unit-area spectrum), paralleling the pair case's tau_c.
-  pol3 = 1/4 for unpolarized light: two independent modes each carry
+  p3 = 1/4 for unpolarized light: two independent modes each carry
   I/2, and the triple term scales as 2 (1/2)^3 (the pair terms carry
-  the familiar 1/2).
+  the familiar 1/2).  With a polarizing beamsplitter (two streams per
+  telescope at half the rate, p3 = 1 each) the two stream triples add
+  in quadrature: a factor 2 in SNR3 over unpolarized light at the same
+  photon budget (hbtsim.snr.POLARIZATION_MODES).
 
   noise:   accidental triples at density b1 b2 b3 per unit lag^2,
   smeared by the detectors' jitters into a correlated 2D Gaussian with
   covariance Sigma = [[s1^2+s2^2, -s2^2], [-s2^2, s2^2+s3^2]] (telescope
-  2 enters both lags with opposite signs); the matched-filter effective
-  area is A_2D = 4 pi sqrt(det Sigma), det Sigma = s1^2 s2^2 + s2^2 s3^2
-  + s3^2 s1^2 (equal jitters: 4 pi sqrt(3) s^2).
+  2 enters both lags with opposite signs), plus the coherence-time
+  broadening sigma_c^2 [[1, -1/2], [-1/2, 1]]; the matched-filter
+  effective area is A_2D = 4 pi sqrt(det Sigma) (equal jitters, no
+  broadening: 4 pi sqrt(3) s^2).
 
   SNR3 = N_sig / sqrt(b1 b2 b3 . T . A_2D)
 
@@ -29,17 +33,32 @@ contrasts with the pair SNR: three-telescope sensitivity scales as
 (not bandwidth-independent) -- narrow channels and heavy spectral
 multiplexing are the levers.
 
+Pair ridges.  The same triple histogram carries the pair correlations
+as ridges (|g12|^2 along tau1 = 0 for every tau2, etc.) whose excess
+inside the triple matched-filter window exceeds the triple term by
+
+    ridge_ratio = sum_pairs (p2 / 2 p3) |g_ij|^2 A_2D
+                  / (2 sqrt(pi) sigma_ij tau_c |g12 g23 g31|)
+
+-- typically 50-750.  They are subtracted with the simultaneously
+measured g2's, which is statistically cheap, but a fractional error
+eps in the modeled pair kernel shape biases cos phi_c by eps x
+ridge_ratio: required_kernel_accuracy = target / ridge_ratio is the
+kernel-calibration requirement.
+
 Statistics.  The per-channel snr is the sensitivity at cos(phi_c) = 1.
-Two ways of combining channels are reported:
-  * snr_total     -- quadrature sum, the sensitivity to a common
-                     amplitude if every channel had cos = 1 (an upper
-                     bound that ignores the model's own signs);
-  * snr_amplitude -- sqrt(sum (snr_ch cos phi_c,ch)^2), the sensitivity
-                     to ONE global amplitude multiplying the model's
-                     per-channel cos phi_c pattern (a template fit).
-Neither is the precision of an individual channel's closure phase,
-which is snr_ch alone (hundreds to thousands of times worse); the
-paper's per-statistic framing is built on these in Phase 3.
+Three ways of combining channels are reported, and time_to_precision
+inverts any of them:
+  * "amplitude" -- snr_amplitude = sqrt(sum (snr_ch cos phi_c,ch)^2):
+                   one global amplitude multiplying the model's
+                   per-channel cos phi_c pattern (a template fit; this
+                   is what "detecting the closure-phase signal" means);
+  * "binned"    -- closure phases binned to resolving power R_bin
+                   (channels within a bin combined in quadrature; the
+                   median bin is quoted);
+  * "channel"   -- one closure phase per channel (the median channel).
+snr_total, the quadrature sum at cos = 1 everywhere, is kept as the
+(unattainable) upper bound of "amplitude".
 
 Multi-hour observations: the (u, v) points rotate with hour angle, so
 consecutive blocks see different baselines and different bispectra --
@@ -59,53 +78,84 @@ from .bispectrum import Array, Triangle, spectral_triple
 from .geometry import drift_loss, fringe_drift_cycles, hour_angle_blocks, hour_angle_window
 from .orbit import SkyPositions, sky_positions
 from .params import DAY, MAS, BinarySystem, GridConfig
-from .snr import (Observation, Spectrograph, coherence_time_s, stellar_rate,
-                  system_ab_mag)
+from .snr import (COHERENCE_SIGMA_FACTOR, Observation, Spectrograph, _check_dead_time,
+                  coherence_time_s, incident_rate, polarization_streams,
+                  readout_scale, system_ab_mag)
 
-POL_FACTOR_TRIPLE = 0.25  # unpolarized; 1.0 for fully polarized light
+POL_FACTOR_TRIPLE = 0.25  # p3 for unpolarized light (see POLARIZATION_MODES)
 
 
-def triple_window_s2(det1, det2, det3) -> float:
+def triple_window_s2(det1, det2, det3, obs: Observation | None = None):
     """Matched-filter effective area on the (tau1, tau2) lag plane,
-    4 pi sqrt(det Sigma) [s^2]."""
+    4 pi sqrt(det Sigma) [s^2], including the coherence broadening when
+    obs is given with coherence_broadening=True (array-capable)."""
     s1, s2, s3 = (d.jitter_sigma_s for d in (det1, det2, det3))
-    det_sigma = s1**2 * s2**2 + s2**2 * s3**2 + s3**2 * s1**2
+    c2 = 0.0
+    if obs is not None and obs.coherence_broadening:
+        c2 = (COHERENCE_SIGMA_FACTOR
+              * coherence_time_s(obs.wavelength_nm, obs.filter_width_nm))**2
+    a = s1**2 + s2**2 + c2
+    b = -(s2**2) - 0.5 * c2
+    d = s2**2 + s3**2 + c2
+    det_sigma = a * d - b * b
     return 4.0 * np.pi * np.sqrt(det_sigma)
 
 
 @dataclass(frozen=True)
 class SNR3Result:
-    snr: float               # of the triple term (signed by cos phi_c)
-    rates_cps: tuple         # detected stellar rate per station
-    tau_c_s: float
-    window_s2: float
-    n_signal: float
-    n_background: float
-    triple_amp: float        # |g12 g23 g31|
-    cos_phi_c: float
+    snr: object              # of the triple term (signed by cos phi_c), all streams
+    rates_cps: tuple         # detected stellar rate per station per stream
+    tau_c_s: object
+    window_s2: object
+    n_signal: object         # per stream
+    n_background: object
+    triple_amp: object       # |g12 g23 g31|
+    cos_phi_c: object
     obs: Observation
+    n_streams: int = 1
+    ridge_ratio: object = None      # pair-ridge excess / triple excess
+    dead_time_load: object = 0.0
 
 
-def g3_snr(triple_amp: float, mag_ab: float, obs: Observation,
-           triangle: Triangle, *, cos_phi_c: float = 1.0,
-           pol_factor_triple: float = POL_FACTOR_TRIPLE) -> SNR3Result:
-    """SNR of the bispectrum term for one spectral channel (see module
-    docstring).  Each station's light goes to one detector pixel."""
+def g3_snr(triple_amp, mag_ab, obs: Observation, triangle: Triangle, *,
+           cos_phi_c=1.0, pair_vis2=None) -> SNR3Result:
+    """SNR of the bispectrum term for one spectral channel (or arrays of
+    channels).  Each station's light goes to one detector pixel per
+    stream.  pair_vis2 (..., 3) = |g12|^2, |g23|^2, |g31|^2 enables the
+    ridge_ratio."""
     dets = [replace(s.detector, n_pixels=1) for s in triangle.stations]
-    rates = tuple(stellar_rate(mag_ab, s.telescope, d, obs)
-                  for s, d in zip(triangle.stations, dets))
-    bg = [r + d.dark_cps + obs.sky_cps for r, d in zip(rates, dets)]
+    n_streams, _, p2, p3 = polarization_streams(obs.polarization_mode)
+    inc = [incident_rate(mag_ab, s.telescope, d, obs)
+           for s, d in zip(triangle.stations, dets)]
+    rates = tuple(d.detected_rate(i) for d, i in zip(dets, inc))
+    bg = [r + d.dark_cps + obs.sky_cps / n_streams for r, d in zip(rates, dets)]
 
     tau_c = coherence_time_s(obs.wavelength_nm, obs.filter_width_nm)
-    window = triple_window_s2(*dets)
+    window = triple_window_s2(*dets, obs)
+    amp = np.asarray(triple_amp, dtype=float)
 
-    n_sig = (pol_factor_triple * 2.0 * triple_amp * cos_phi_c
+    n_sig = (p3 * 2.0 * amp * cos_phi_c
              * tau_c**2 * rates[0] * rates[1] * rates[2] * obs.t_int_s)
     n_bkg = bg[0] * bg[1] * bg[2] * obs.t_int_s * window
-    return SNR3Result(snr=n_sig / np.sqrt(n_bkg), rates_cps=rates,
-                      tau_c_s=tau_c, window_s2=window, n_signal=n_sig,
-                      n_background=n_bkg, triple_amp=triple_amp,
-                      cos_phi_c=cos_phi_c, obs=obs)
+    snr = np.sqrt(n_streams) * n_sig / np.sqrt(n_bkg)
+
+    ridge = None
+    if pair_vis2 is not None:
+        v2 = np.asarray(pair_vis2, dtype=float)
+        pairs = ((0, 1), (1, 2), (2, 0))
+        ridge = 0.0
+        for k, (i, j) in enumerate(pairs):
+            s_ij = np.sqrt(dets[i].jitter_sigma_s**2 + dets[j].jitter_sigma_s**2)
+            ridge = ridge + (p2 / (2.0 * p3)) * v2[..., k] * window / (
+                2.0 * np.sqrt(np.pi) * s_ij * tau_c * np.maximum(amp, 1e-300))
+    load = np.max([d.dead_time_load(i) for d, i in zip(dets, inc)], axis=0)
+    f = (lambda a: float(a) if np.ndim(a) == 0 else a)
+    return SNR3Result(snr=f(snr), rates_cps=tuple(f(r) for r in rates),
+                      tau_c_s=f(tau_c), window_s2=f(window), n_signal=f(n_sig),
+                      n_background=f(n_bkg), triple_amp=triple_amp,
+                      cos_phi_c=cos_phi_c, obs=obs, n_streams=n_streams,
+                      ridge_ratio=None if ridge is None else f(ridge),
+                      dead_time_load=f(load))
 
 
 @dataclass(frozen=True)
@@ -117,7 +167,7 @@ class SpectralSNR3Result:
     snr: np.ndarray          # per channel, at cos = 1 (sensitivity)
     triple_amp: np.ndarray   # per channel (pupil-averaged if smeared)
     cos_phi_c: np.ndarray    # model closure-phase cosine per channel
-    rates_cps: np.ndarray    # (n_channels, 3)
+    rates_cps: np.ndarray    # (n_channels, 3), per stream
     mag_ab: np.ndarray
     vis_method: str = ""
     snr_amplitude: float = 0.0     # template-fit sensitivity, sqrt(sum (snr cos)^2)
@@ -125,6 +175,19 @@ class SpectralSNR3Result:
     smeared: bool = False
     t_int_s: float = 3600.0
     orbital_phase: float = 0.0
+    ridge_ratio: np.ndarray = None
+    channel_widths_nm: np.ndarray = None
+    total_rate_cps: tuple = ()     # detected, per station, all streams
+    readout_limited: bool = False
+    readout_scale: float = 1.0
+    dead_time_load_max: float = 0.0
+    polarization_mode: str = "unpolarized"
+
+    def required_kernel_accuracy(self, target_dcos: float = 0.1) -> np.ndarray:
+        """Fractional accuracy of the pair-kernel model needed per
+        channel to keep the ridge-subtraction bias on cos phi_c below
+        target_dcos."""
+        return target_dcos / self.ridge_ratio
 
 
 def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
@@ -133,20 +196,24 @@ def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
                     vis_method: str = "analytic",
                     grid: GridConfig = GridConfig(),
                     chunk_size: int | None = None,
-                    pol_factor_triple: float = POL_FACTOR_TRIPLE,
+                    polarization_mode: str = "unpolarized",
                     sky_cps_per_channel: float = 0.0,
-                    pupils=True) -> SpectralSNR3Result:
+                    pupils=True, coherence_broadening: bool = True,
+                    enforce_readout: bool = True) -> SpectralSNR3Result:
     """Per-channel bispectrum sensitivity with the source dispersed over
-    the array, plus the quadrature total and the template-amplitude
-    sensitivity (module docstring).  pupils=True (default) uses the
-    exact three-pupil average for the triangle's telescope diameters;
-    None samples the bispectrum at a point.  vis_method "analytic"
-    (out of eclipse) or "render" (any phase)."""
+    the array, plus the combined statistics (module docstring).
+    pupils=True (default) uses the exact three-pupil average for the
+    triangle's telescope diameters; None samples the bispectrum at a
+    point.  vis_method "analytic" (out of eclipse) or "render" (any
+    phase).  Throughput = telescope x spectrograph.throughput x PDE;
+    time-tag detectors are scaled to their link ceiling when
+    enforce_readout."""
     if vis_method == "fft":
         warnings.warn("vis_method='fft' is now 'render'", DeprecationWarning,
                       stacklevel=2)
         vis_method = "render"
     nm = spectrograph.channel_centers_nm
+    widths = spectrograph.channel_widths_nm
     pos = SkyPositions(*(np.asarray(v) for v in
                          sky_positions(2 * np.pi * orbital_phase, system)))
     ts = spectral_triple(pos, triangle, nm, system, grid, method=vis_method,
@@ -154,18 +221,26 @@ def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
     triple_amp = ts.triple_amp
     cosphi = ts.cos_phi_c
 
-    snr = np.empty(nm.size)
-    rates = np.empty((nm.size, 3))
-    mags = np.empty(nm.size)
-    for k, lam_nm in enumerate(nm):
-        mags[k] = system_ab_mag(system, float(lam_nm))
-        obs = Observation(wavelength_nm=float(lam_nm),
-                          filter_width_nm=spectrograph.channel_width_nm,
-                          t_int_s=t_int_s, sky_cps=sky_cps_per_channel)
-        r = g3_snr(float(triple_amp[k]), mags[k], obs, triangle,
-                   cos_phi_c=1.0, pol_factor_triple=pol_factor_triple)
-        snr[k] = r.snr
-        rates[k] = r.rates_cps
+    mags = system_ab_mag(system, nm)
+    obs = Observation(wavelength_nm=nm, filter_width_nm=widths, t_int_s=t_int_s,
+                      sky_cps=sky_cps_per_channel,
+                      polarization_mode=polarization_mode,
+                      backend_throughput=spectrograph.throughput,
+                      coherence_broadening=coherence_broadening)
+    n_streams, _, _, _ = polarization_streams(polarization_mode)
+    scale = 1.0
+    if enforce_readout:
+        dets = [replace(s.detector, n_pixels=1) for s in triangle.stations]
+        tots = [float(np.sum(incident_rate(mags, s.telescope, d, obs))) * n_streams
+                for s, d in zip(triangle.stations, dets)]
+        scale = min(readout_scale(d, t) for d, t in zip(dets, tots))
+    mag_eff = mags - 2.5 * np.log10(scale) if scale < 1.0 else mags
+
+    r = g3_snr(triple_amp, mag_eff, obs, triangle, cos_phi_c=1.0,
+               pair_vis2=ts.vis2_pairs)
+    _check_dead_time(r.dead_time_load, "spectral_g3_snr")
+    snr = np.asarray(r.snr)
+    rates = np.stack(r.rates_cps, axis=-1)
     return SpectralSNR3Result(
         snr_total=float(np.sqrt(np.sum(snr**2))),
         triangle=triangle, spectrograph=spectrograph, channel_nm=nm, snr=snr,
@@ -173,7 +248,74 @@ def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
         vis_method=vis_method,
         snr_amplitude=float(np.sqrt(np.sum((snr * cosphi)**2))),
         vis2_pairs=ts.vis2_pairs, smeared=ts.smeared, t_int_s=t_int_s,
-        orbital_phase=orbital_phase)
+        orbital_phase=orbital_phase, ridge_ratio=np.asarray(r.ridge_ratio),
+        channel_widths_nm=widths,
+        total_rate_cps=tuple(float(np.sum(rates[:, k])) * n_streams
+                             for k in range(3)),
+        readout_limited=scale < 1.0, readout_scale=scale,
+        dead_time_load_max=float(np.max(r.dead_time_load)),
+        polarization_mode=polarization_mode)
+
+
+def binned_closure_phase_snr(res: SpectralSNR3Result, R_bin: float = 100.0):
+    """Closure-phase sensitivity per bin when the channels are binned to
+    resolving power R_bin (geometric bins; channels combined in
+    quadrature within a bin, assuming cos phi_c is constant across it).
+    Returns (bin_centre_nm, snr_bin)."""
+    edges = res.spectrograph.channel_edges_nm
+    lo, hi = edges[0], edges[-1]
+    q = (2.0 * R_bin + 1.0) / (2.0 * R_bin - 1.0)
+    n = max(1, int(np.ceil(np.log(hi / lo) / np.log(q) - 1e-9)))
+    bedges = lo * np.exp(np.arange(n + 1) * np.log(hi / lo) / n)
+    idx = np.clip(np.searchsorted(bedges, res.channel_nm, side="right") - 1, 0, n - 1)
+    s2 = np.bincount(idx, weights=res.snr**2, minlength=n)
+    centres = 0.5 * (bedges[:-1] + bedges[1:])
+    keep = np.bincount(idx, minlength=n) > 0     # bins narrower than a channel stay empty
+    return centres[keep], np.sqrt(s2[keep])
+
+
+def _statistic_snr(results, statistic: str, R_bin: float, aggregate: str) -> float:
+    """Combined SNR of a statistic over a list of SpectralSNR3Result
+    (one per triangle)."""
+    agg = {"median": np.median, "max": np.max, "min": np.min}[aggregate]
+    if statistic == "amplitude":
+        return float(np.sqrt(sum(r.snr_amplitude**2 for r in results)))
+    if statistic == "total":
+        return float(np.sqrt(sum(r.snr_total**2 for r in results)))
+    if statistic == "binned":
+        per = [binned_closure_phase_snr(r, R_bin)[1] for r in results]
+        return float(agg(np.sqrt(np.sum(np.stack(per), axis=0)**2 / len(per)))) \
+            if len(per) > 1 else float(agg(per[0]))
+    if statistic == "channel":
+        per = np.stack([r.snr for r in results])
+        # a closure phase per channel per triangle: the typical one
+        return float(agg(per))
+    raise ValueError(f"unknown statistic {statistic!r}")
+
+
+def time_to_precision(system: BinarySystem, target_dcos: float = 0.1, *,
+                      triangle: Triangle | None = None, array=None,
+                      statistic: str = "amplitude", R_bin: float = 100.0,
+                      aggregate: str = "median", t_ref_s: float = 3600.0,
+                      spectrograph: Spectrograph = Spectrograph(),
+                      orbital_phase: float = 0.0, vis_method: str = "analytic",
+                      **kw) -> float:
+    """Integration time [s] for the chosen statistic (see the module
+    docstring: "amplitude", "binned", "channel", or the upper-bound
+    "total") to reach a 1-sigma precision of target_dcos on cos phi_c,
+    on one triangle or on every triangle of an array (independent
+    accidental noise per triangle: quadrature; for "binned"/"channel"
+    the typical bin/channel is quoted).  SNR3 grows as sqrt(T)."""
+    if (triangle is None) == (array is None):
+        raise ValueError("pass exactly one of triangle= or array=")
+    tris = [triangle] if triangle is not None else array.triangles()
+    results = [spectral_g3_snr(system, tri, spectrograph=spectrograph,
+                               t_int_s=t_ref_s, orbital_phase=orbital_phase,
+                               vis_method=vis_method, **kw) for tri in tris]
+    snr = _statistic_snr(results, statistic, R_bin, aggregate)
+    if snr <= 0.0:
+        return np.inf
+    return t_ref_s * (1.0 / target_dcos / snr) ** 2
 
 
 @dataclass(frozen=True)
@@ -202,24 +344,21 @@ def array_g3_snr(system: BinarySystem, array, **kw) -> ArraySNR3Result:
 
 def array_time_to_cos_phi(system: BinarySystem, array,
                           target_dcos: float = 0.1, **kw) -> float:
-    """Integration time [s] for the array-combined bispectrum sensitivity
-    (snr_total) to reach sigma(cos phi_c) <= target_dcos."""
-    ref = array_g3_snr(system, array, t_int_s=3600.0, **kw)
-    return 3600.0 * (1.0 / target_dcos / ref.snr_total) ** 2
+    """Deprecated: time_to_precision(system, target, array=..., statistic="total")."""
+    warnings.warn("array_time_to_cos_phi is deprecated; use time_to_precision"
+                  "(..., array=array, statistic='total'|'amplitude')",
+                  DeprecationWarning, stacklevel=2)
+    return time_to_precision(system, target_dcos, array=array, statistic="total", **kw)
 
 
 def time_to_cos_phi(system: BinarySystem, triangle: Triangle,
-                    target_dcos: float = 0.1,
-                    spectrograph: Spectrograph = Spectrograph(),
-                    orbital_phase: float = 0.0,
-                    vis_method: str = "analytic", **kw) -> float:
-    """Integration time [s] for the multiplexed bispectrum (snr_total) to
-    reach sigma(cos phi_c) <= target_dcos (SNR3 proportional to sqrt(T))."""
-    ref = spectral_g3_snr(system, triangle, spectrograph=spectrograph,
-                          t_int_s=3600.0, orbital_phase=orbital_phase,
-                          vis_method=vis_method, **kw)
-    needed = 1.0 / target_dcos
-    return 3600.0 * (needed / ref.snr_total) ** 2
+                    target_dcos: float = 0.1, **kw) -> float:
+    """Deprecated: time_to_precision(system, target, triangle=..., statistic="total")."""
+    warnings.warn("time_to_cos_phi is deprecated; use time_to_precision"
+                  "(..., triangle=triangle, statistic='total'|'amplitude')",
+                  DeprecationWarning, stacklevel=2)
+    return time_to_precision(system, target_dcos, triangle=triangle,
+                             statistic="total", **kw)
 
 
 # ---------------------------------------------------------------------------
@@ -250,6 +389,18 @@ class TrackResult:
     def n_blocks(self) -> int:
         return len(self.blocks)
 
+    def statistic_snr(self, statistic: str = "amplitude", R_bin: float = 100.0,
+                      aggregate: str = "median") -> float:
+        """Combined SNR of a statistic over the whole track: blocks add
+        in quadrature (independent noise) with their drift losses."""
+        if statistic in ("amplitude", "total"):
+            return {"amplitude": self.snr_amplitude, "total": self.snr_total}[statistic]
+        s2 = 0.0
+        for b in self.blocks:
+            s2 += b.drift_loss**2 * _statistic_snr(list(b.per_triangle), statistic,
+                                                  R_bin, aggregate)**2
+        return float(np.sqrt(s2))
+
 
 def track_g3_snr(system: BinarySystem, array, spectrograph: Spectrograph = Spectrograph(),
                  *, block_minutes: float = 30.0,
@@ -271,7 +422,8 @@ def track_g3_snr(system: BinarySystem, array, spectrograph: Spectrograph = Spect
     Blocks are combined as a template fit (never coherently):
     snr_amplitude = sqrt(sum_blocks sum_triangles sum_channels
     (snr cos phi_c)^2).  With vis_method="analytic" a block inside an
-    eclipse raises; use "render"."""
+    eclipse raises; use "render".  Extra keyword arguments go to
+    spectral_g3_snr (polarization_mode, coherence_broadening, ...)."""
     if system.dec_deg is None or array.site is None:
         raise ValueError("track_g3_snr needs system.dec_deg and array.site")
     h0, h1 = (hour_angle_window(system.dec_deg, array.site.latitude_deg,
@@ -327,11 +479,11 @@ def track_g3_snr(system: BinarySystem, array, spectrograph: Spectrograph = Spect
 
 
 def nights_to_precision(track: TrackResult, target_dcos: float = 0.1,
-                        statistic: str = "amplitude") -> float:
+                        statistic: str = "amplitude", R_bin: float = 100.0,
+                        aggregate: str = "median") -> float:
     """Nights of the given track needed for the chosen combined statistic
     to reach a 1-sigma precision target_dcos on cos phi_c."""
-    snr = {"amplitude": track.snr_amplitude,
-           "total": track.snr_total}[statistic]
+    snr = track.statistic_snr(statistic, R_bin, aggregate)
     if snr <= 0.0:
         return np.inf
     return (1.0 / target_dcos / snr) ** 2

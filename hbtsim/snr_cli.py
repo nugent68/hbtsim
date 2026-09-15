@@ -20,6 +20,7 @@ in both modes.
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 
 import numpy as np
 
@@ -27,15 +28,17 @@ from . import hbt
 from .orbit import SkyPositions, sky_positions
 from .params import SYSTEMS, GridConfig
 from .render import render_image
-from .snr import (C2PU, SPAD_LAMBDA, Detector, Observation, Spectrograph,
-                  Telescope, g2_snr, spectral_g2_snr, system_ab_mag)
+from .snr import (C2PU, DISPERSED_BACKEND, FILTER_BACKEND, SPAD_LAMBDA,
+                  SPAD_LAMBDA_NG, Observation, Spectrograph, Telescope,
+                  g2_snr, spectral_g2_snr, system_ab_mag)
 
 
 def narrowband(args, system, grid, tel, det) -> None:
     psi = 2.0 * np.pi * args.phase
     pos = SkyPositions(*(np.asarray(v) for v in sky_positions(psi, system)))
-    print(f"Filter    : {args.filter_width:.1f} nm FWHM at "
-          f"{', '.join(f'{w:.0f}' for w in args.wavelengths)} nm\n")
+    print(f"Filter    : {args.filter_width:.1f} nm rectangular full width at "
+          f"{', '.join(f'{w:.0f}' for w in args.wavelengths)} nm "
+          f"(backend throughput {FILTER_BACKEND.throughput:.2f})\n")
 
     hdr = (f"{'lam[nm]':>8} {'B[m]':>7} {'mag(AB)':>8} {'rate[Mcps]':>11} "
            f"{'tau_c[fs]':>10} {'|V|^2':>7} {'N_sig':>10} {'N_bkg':>12} {'SNR':>8}")
@@ -50,7 +53,8 @@ def narrowband(args, system, grid, tel, det) -> None:
         for b_m, vis2 in zip(args.baseline, v2):
             obs = Observation(wavelength_nm=lam_nm,
                               filter_width_nm=args.filter_width,
-                              t_int_s=args.time)
+                              t_int_s=args.time,
+                              polarization_mode=args.polarization)
             r = g2_snr(float(vis2), mag, obs, telescope1=tel, detector1=det)
             print(f"{lam_nm:8.0f} {b_m:7.1f} {mag:8.2f} "
                   f"{r.rate1_cps / 1e6:11.3f} {r.tau_c_s * 1e15:10.1f} "
@@ -59,25 +63,42 @@ def narrowband(args, system, grid, tel, det) -> None:
 
 
 def spectral(args, system, tel, det) -> None:
-    spec = Spectrograph(lambda_min_nm=args.lambda_min,
-                        lambda_max_nm=args.lambda_max,
-                        n_channels=args.channels)
-    print(f"Spectro   : {spec.n_channels} channels x "
-          f"{spec.channel_width_nm:.2f} nm over "
+    if args.resolving_power is None:
+        spec = Spectrograph(lambda_min_nm=args.lambda_min,
+                            lambda_max_nm=args.lambda_max,
+                            n_channels=args.channels,
+                            throughput=args.backend_throughput)
+        chan = f"{spec.n_channels} channels x {spec.channel_width_nm:.2f} nm"
+    else:
+        spec = Spectrograph.from_resolving_power(
+            args.resolving_power, args.lambda_min, args.lambda_max,
+            throughput=args.backend_throughput)
+        w = spec.channel_widths_nm
+        chan = (f"{spec.n_channels} channels, R = {spec.resolving_power:g} "
+                f"({w.min():.3f}-{w.max():.3f} nm)")
+    print(f"Spectro   : {chan} over "
           f"{spec.lambda_min_nm:.0f}-{spec.lambda_max_nm:.0f} nm "
-          f"(1 pixel/channel)\n")
+          f"({args.n_pixels} pixel/channel, backend throughput "
+          f"{spec.throughput:.2f}, {det.readout} readout, "
+          f"{args.polarization})\n")
 
     for b_m in args.baseline:
         res = spectral_g2_snr(system, b_m, spectrograph=spec,
                               t_int_s=args.time, telescope1=tel,
                               detector1=det, orbital_phase=args.phase,
                               vis2_method=args.vis2_method,
-                              chunk_size=args.chunk)
-        print(f"Baseline {b_m:.1f} m ({res.vis2_method} |V|^2): "
+                              chunk_size=args.chunk,
+                              polarization_mode=args.polarization,
+                              n_pixels_per_channel=args.n_pixels)
+        flag = (f"; READOUT-LIMITED x{res.readout_scale:.1e}"
+                if res.readout_limited else "")
+        print(f"Baseline {b_m:.1f} m ({res.vis2_method} |V|^2, "
+              f"{'aperture-averaged' if res.smeared else 'point'}): "
               f"total SNR = {res.snr_total:.2f} "
               f"(best channel {res.snr.max():.2f} at "
               f"{res.channel_nm[res.snr.argmax()]:.0f} nm; "
-              f"total rate {res.rate_cps.sum() / 1e6:.1f} Mcps/telescope)")
+              f"total rate {res.total_rate_cps[0] / 1e6:.1f} Mcps/telescope; "
+              f"max dead-time load {res.dead_time_load_max:.2f}{flag})")
         hdr = (f"  {'lam[nm]':>8} {'mag(AB)':>8} {'rate[Mcps/ch]':>14} "
                f"{'|V|^2':>7} {'SNR/ch':>8}")
         print(hdr)
@@ -103,7 +124,8 @@ def main(argv=None) -> None:
     p.add_argument("--time", type=float, default=3600.0,
                    help="integration time in s")
     p.add_argument("--phase", type=float, default=0.0,
-                   help="orbital phase in [0,1); 0 = greatest separation")
+                   help="orbital phase in [0,1): mean anomaly from periastron "
+                        "(circular systems: 0 = greatest separation)")
     # spectral mode
     p.add_argument("--channels", type=int, default=320,
                    help="spectral channels (SPAD Lambda: 320)")
@@ -116,23 +138,31 @@ def main(argv=None) -> None:
                         "out of eclipse only)")
     p.add_argument("--chunk", type=int, default=None,
                    help="channels per GPU/CPU batch (default: auto)")
+    p.add_argument("--resolving-power", type=float, default=None,
+                   help="constant-R channel grid instead of --channels")
+    p.add_argument("--backend-throughput", type=float,
+                   default=DISPERSED_BACKEND.throughput,
+                   help="spectrograph + coupling throughput (spectral mode)")
+    p.add_argument("--readout", choices=("timetag", "correlator"),
+                   default="timetag",
+                   help="SPAD Lambda time-tag link (rates capped at its "
+                        "ceiling) or an on-detector correlator")
+    p.add_argument("--polarization", choices=("unpolarized", "pbs", "single_pol"),
+                   default="unpolarized")
     # narrowband mode
     p.add_argument("--wavelengths", type=float, nargs="+", default=[400.0, 800.0])
     p.add_argument("--filter-width", type=float, default=10.0,
-                   help="filter FWHM in nm")
+                   help="rectangular filter full width in nm")
     p.add_argument("--n-pixels", type=int, default=1,
-                   help="pixels the light is spread over (narrowband mode)")
+                   help="pixels the light is spread over per channel")
     p.add_argument("--mag", type=float, default=None,
                    help="override source AB magnitude (narrowband mode)")
     args = p.parse_args(argv)
 
     system, grid = SYSTEMS[args.system], GridConfig()
     tel = Telescope(diameter_m=args.diameter, throughput=args.throughput)
-    det = Detector(name=SPAD_LAMBDA.name, pde_table_nm=SPAD_LAMBDA.pde_table_nm,
-                   jitter_fwhm_ps=SPAD_LAMBDA.jitter_fwhm_ps,
-                   dead_time_ns=SPAD_LAMBDA.dead_time_ns,
-                   dark_cps_per_pixel=SPAD_LAMBDA.dark_cps_per_pixel,
-                   n_pixels=args.n_pixels)
+    base = SPAD_LAMBDA if args.readout == "timetag" else SPAD_LAMBDA_NG
+    det = replace(base, n_pixels=args.n_pixels)
 
     pos = sky_positions(2.0 * np.pi * args.phase, system)
     print(f"Source    : {system.name}, orbital phase {args.phase:.3f} "
