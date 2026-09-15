@@ -4,8 +4,8 @@
     JAX_PLATFORMS=cpu python scripts/bench_spectral.py  # force CPU
 
 Reports compile time, steady-state wall time and ms/channel for
-spectral_vis2, then the end-to-end spectral SNR (FFT method) with a
-cross-check against the analytic visibility (out of eclipse only).
+spectral_vis2 (render + exact DFT), then the end-to-end spectral SNR
+with a cross-check against the analytic visibility (out of eclipse only).
 """
 
 from __future__ import annotations
@@ -37,9 +37,8 @@ def main() -> None:
           f"devices {jax.devices()}")
     print(f"{args.channels} channels (400-950 nm), chunk {chunk}, "
           f"B = {args.baseline} m, phase {args.phase}")
-    est_gib = chunk * 0.85
-    print(f"estimated peak FFT memory ~ {est_gib:.0f} GiB "
-          f"({chunk} x ~0.85 GiB/channel)\n")
+    print(f"estimated peak memory ~ {chunk * 0.03:.1f} GiB "
+          f"({chunk} x ~30 MB/channel of render temporaries)\n")
 
     system, grid = BETA_AUR, GridConfig()
     pos = SkyPositions(*(np.asarray(v) for v in
@@ -68,10 +67,10 @@ def main() -> None:
     spec = Spectrograph(n_channels=args.channels)
     t0 = time.perf_counter()
     res = spectral_g2_snr(system, args.baseline, spectrograph=spec,
-                          orbital_phase=args.phase, vis2_method="fft",
+                          orbital_phase=args.phase, vis2_method="render",
                           chunk_size=chunk)
     t_snr = time.perf_counter() - t0
-    print(f"\nspectral_g2_snr (fft):  total SNR = {res.snr_total:.2f}  "
+    print(f"\nspectral_g2_snr (rnd):  total SNR = {res.snr_total:.2f}  "
           f"[{t_snr:.2f} s]")
     try:
         ana = spectral_g2_snr(system, args.baseline, spectrograph=spec,
@@ -79,7 +78,7 @@ def main() -> None:
                               vis2_method="analytic")
         rel = abs(res.snr_total - ana.snr_total) / ana.snr_total
         print(f"spectral_g2_snr (ana):  total SNR = {ana.snr_total:.2f}  "
-              f"(fft vs analytic: {100 * rel:.2f}%)")
+              f"(render vs analytic: {100 * rel:.2f}%)")
     except ValueError as exc:
         print(f"analytic cross-check skipped: {exc}")
 

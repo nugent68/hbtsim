@@ -11,12 +11,10 @@ from hbtsim import hbt
 from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, BispectrumResult,
                                Station, Triangle,
                                binary_vis_complex_analytic, closure_phase,
-                               equilateral_triangle, spectral_bispectrum,
-                               uv_bins_of_baseline, vis_complex_map,
-                               vis_complex_of_uv)
+                               equilateral_triangle, spectral_bispectrum)
 from hbtsim.orbit import SkyPositions, sky_positions
 from hbtsim.params import ALGOL, BETA_AUR, GridConfig
-from hbtsim.render import _render_kernel, render_image
+from hbtsim.render import render_image, render_kernel
 from hbtsim.snr import KECK
 
 GRID = GridConfig()
@@ -37,28 +35,32 @@ def test_triangle_geometry():
     assert eq.baseline_lengths() == pytest.approx([85.0] * 3, rel=1e-12)
 
 
-def test_complex_map_modulus_equals_vis2_map():
-    img = render_image(_pos(BETA_AUR, 0.0), BETA_AUR, 500.0, GRID)
-    v2 = np.asarray(hbt.vis2_map(img, GRID.pad))
-    vc = np.asarray(vis_complex_map(img, GRID.n, GRID.pad))
-    # the recentering ramp is a pure phase: moduli must agree to f32 eps
-    assert np.allclose(np.abs(vc) ** 2, v2, atol=1e-6)
-
-
-def test_fft_complex_vis_matches_analytic():
-    """Modulus to <1% and phase to <0.5 deg out of eclipse, both systems."""
+def test_rendered_complex_vis_matches_analytic():
+    """Modulus to 1e-3 and phases to 0.1 deg out of eclipse, both systems
+    (renderer-limited: the exact DFT itself is good to 1e-6 / 1e-5 rad,
+    tests/test_dft_core.py)."""
     for system in (BETA_AUR, ALGOL):
         for phase in (0.0, 0.1):
-            pos = _pos(system, 2 * np.pi * phase)
             for lam in (450.0, 800.0):
-                fft = closure_phase(system, TRI, lam, phase, method="fft")
+                rnd = closure_phase(system, TRI, lam, phase, method="render")
                 ana = closure_phase(system, TRI, lam, phase, method="analytic")
-                assert np.allclose(np.abs(fft.gammas), np.abs(ana.gammas),
-                                   atol=5e-3)
-                dphase = np.abs(np.angle(fft.gammas * np.conj(ana.gammas)))
-                assert np.degrees(dphase).max() < 0.5
-                dphic = abs(np.angle(np.exp(1j * (fft.phi_c - ana.phi_c))))
-                assert np.degrees(dphic) < 0.5
+                assert np.allclose(np.abs(rnd.gammas), np.abs(ana.gammas),
+                                   atol=1e-3)
+                dphase = np.abs(np.angle(rnd.gammas * np.conj(ana.gammas)))
+                assert np.degrees(dphase).max() < 0.1
+                dphic = abs(np.angle(np.exp(1j * (rnd.phi_c - ana.phi_c))))
+                assert np.degrees(dphic) < 0.1
+
+
+def test_analytic_vectorized_over_wavelength():
+    pos = _pos(ALGOL, 0.05)
+    bv = TRI.baseline_vectors()
+    nm = np.array([420.0, 610.0, 880.0])
+    batch = binary_vis_complex_analytic(bv, nm, ALGOL, pos)
+    assert batch.shape == (3, 3)
+    for k, lam in enumerate(nm):
+        assert np.allclose(batch[k], binary_vis_complex_analytic(bv, float(lam),
+                                                                 ALGOL, pos))
 
 
 def test_closure_phase_translation_invariance():
@@ -93,23 +95,21 @@ def test_station_relabeling_conjugates_only():
 def test_point_source_and_single_disk():
     """A tiny centered single 'star' has gamma ~ 1 and phi_c ~ 0; a single
     centered LD disk has a REAL bispectrum (phases 0 or pi)."""
+    bv = TRI.baseline_vectors()
     # tiny disk = effectively unresolved point source
-    img = _render_kernel(0.0, 0.0, 300.0, 300.0, False,
-                         3.0, 1.0, 1.0, 0.0, 0.3, 0.0, GRID.n)
-    vmap = vis_complex_map(img, GRID.n, GRID.pad)
-    f = np.asarray(uv_bins_of_baseline(TRI.baseline_vectors(), 500e-9, GRID))
-    g = np.asarray(vis_complex_of_uv(vmap, f[:, 0], f[:, 1]))
+    img = render_kernel(0.0, 0.0, 300.0, 300.0, False,
+                        3.0, 1.0, 1.0, 0.0, 0.3, 0.0, GRID.n)
+    g = np.asarray(hbt.vis_of_baselines(img, bv, 500e-9, GRID))
     # a 3 px (0.03 mas radius) disk on the 226 m arm already has
     # |V| = 1 - x^2/8 ~ 0.979 -- "unresolved" is approximate
     assert np.abs(g).min() > 0.97
-    assert abs(np.angle(g.prod())) < 0.01
+    assert abs(np.angle(g.prod())) < 1e-4
 
     # resolved centered disk: bispectrum real (sign from the lobes)
-    img = _render_kernel(0.0, 0.0, 300.0, 300.0, False,
-                         50.0, 1.0, 1.0, 0.0, 0.3, 0.0, GRID.n)
-    vmap = vis_complex_map(img, GRID.n, GRID.pad)
-    g = np.asarray(vis_complex_of_uv(vmap, f[:, 0], f[:, 1]))
-    assert abs(np.sin(np.angle(g.prod()))) < 0.02
+    img = render_kernel(0.0, 0.0, 300.0, 300.0, False,
+                        50.0, 1.0, 1.0, 0.0, 0.3, 0.0, GRID.n)
+    g = np.asarray(hbt.vis_of_baselines(img, bv, 500e-9, GRID))
+    assert abs(np.sin(np.angle(g.prod()))) < 1e-4
 
 
 def test_spectral_bispectrum_matches_closure_phase_and_chunks():
@@ -119,15 +119,15 @@ def test_spectral_bispectrum_matches_closure_phase_and_chunks():
                                          chunk_size=2))
     gam1 = np.asarray(spectral_bispectrum(pos, TRI, nm, BETA_AUR, GRID,
                                           chunk_size=1))
-    assert np.array_equal(gam, gam1)
+    assert np.allclose(gam, gam1, atol=1e-7)
     for k, lam in enumerate(nm):
-        ref = closure_phase(BETA_AUR, TRI, float(lam), 0.0, method="fft")
-        assert np.allclose(gam[k], ref.gammas, atol=2e-4)
+        ref = closure_phase(BETA_AUR, TRI, float(lam), 0.0, method="render")
+        assert np.allclose(gam[k], ref.gammas, atol=1e-6)
 
 
 def test_spectral_bispectrum_through_eclipse():
-    """Mid primary eclipse of Algol: the analytic path refuses, the FFT
-    path returns finite, bounded, smooth-in-lambda gammas."""
+    """Mid primary eclipse of Algol: the analytic path refuses, the
+    rendered path returns finite, bounded, smooth-in-lambda gammas."""
     with pytest.raises(ValueError, match="eclipse"):
         closure_phase(ALGOL, TRI, 600.0, 0.25, method="analytic")
     pos = _pos(ALGOL, np.pi / 2)

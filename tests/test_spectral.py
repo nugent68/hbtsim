@@ -1,4 +1,4 @@
-"""Tests of the batched multi-wavelength FFT pipeline (hbtsim.spectral)."""
+"""Tests of the batched multi-wavelength render + DFT pipeline (hbtsim.spectral)."""
 
 import numpy as np
 import pytest
@@ -19,17 +19,37 @@ def _pos(psi):
 
 
 def test_batched_matches_single_channel_pipeline():
-    """The lax.map path reproduces render_image + vis2_map + vis2_of_baseline
-    channel by channel (same float32 chain, so near machine precision)."""
+    """The lax.map path reproduces render_image + vis2_along_pa channel by
+    channel (same float32 chain; only summation order may differ)."""
     pos = _pos(0.3)
     batched = np.asarray(spectral_vis2(pos, BASELINES, [400.0, 800.0],
                                        BETA_AUR, GRID, chunk_size=2))
     for j, lam_nm in enumerate((400.0, 800.0)):
         img = render_image(pos, BETA_AUR, lam_nm, GRID)
-        v2map = hbt.vis2_map(img, GRID.pad)
-        ref = np.asarray(hbt.vis2_of_baseline(v2map, BASELINES, lam_nm * 1e-9,
-                                              float(pos.pa), GRID))
-        assert np.allclose(batched[j], ref, atol=1e-4)
+        ref = np.asarray(hbt.vis2_along_pa(img, BASELINES, lam_nm * 1e-9,
+                                           float(pos.pa), GRID))
+        assert np.allclose(batched[j], ref, atol=1e-6)
+
+
+def test_spectral_vis_complex_and_flux():
+    """spectral_vis returns complex64 (n_lambda, K) at arbitrary baseline
+    vectors, with Hermitian symmetry, and return_flux gives the rendered
+    image sum per channel."""
+    from hbtsim.spectral import spectral_vis
+
+    pos = _pos(0.4)
+    bv = np.array([[30.0, 10.0], [-30.0, -10.0], [0.0, 120.0]])
+    nm = np.array([450.0, 700.0, 900.0])
+    vis, flux = spectral_vis(pos, bv, nm, BETA_AUR, GRID, chunk_size=2,
+                             return_flux=True)
+    vis, flux = np.asarray(vis), np.asarray(flux)
+    assert vis.shape == (3, 3) and vis.dtype == np.complex64
+    assert np.allclose(vis[:, 0], np.conj(vis[:, 1]), atol=1e-6)
+    for j, lam_nm in enumerate(nm):
+        img = render_image(pos, BETA_AUR, float(lam_nm), GRID)
+        assert flux[j] == pytest.approx(float(img.sum()), rel=1e-6)
+        ref = np.asarray(hbt.vis_of_baselines(img, bv, lam_nm * 1e-9, GRID))
+        assert np.allclose(vis[j], ref, atol=1e-6)
 
 
 def test_batched_matches_analytic_out_of_eclipse():
@@ -40,7 +60,7 @@ def test_batched_matches_analytic_out_of_eclipse():
     for j, lam_nm in enumerate(nm):
         ana = hbt.binary_vis2_analytic(BASELINES, float(lam_nm), BETA_AUR,
                                        float(pos.rho))
-        assert np.allclose(v2[j], ana, atol=5e-3), f"channel {lam_nm} nm"
+        assert np.allclose(v2[j], ana, atol=1e-3), f"channel {lam_nm} nm"
 
 
 def test_batched_in_eclipse_sane():
@@ -56,25 +76,32 @@ def test_batched_in_eclipse_sane():
 
 
 def test_chunk_size_invariance():
+    """Including a chunk that does not divide n_lambda (padding path) and
+    one larger than n_lambda (clamped)."""
     pos = _pos(0.0)
     nm = np.linspace(420.0, 900.0, 10)
     a = np.asarray(spectral_vis2(pos, BASELINES, nm, BETA_AUR, GRID,
                                  chunk_size=1))
-    b = np.asarray(spectral_vis2(pos, BASELINES, nm, BETA_AUR, GRID,
-                                 chunk_size=5))
-    assert np.array_equal(a, b)
+    for chunk in (3, 5, 64):
+        b = np.asarray(spectral_vis2(pos, BASELINES, nm, BETA_AUR, GRID,
+                                     chunk_size=chunk))
+        assert np.allclose(a, b, atol=1e-7), chunk
 
 
 def test_spectral_snr_methods_agree():
     spec = Spectrograph(lambda_min_nm=410.0, lambda_max_nm=940.0,
                         n_channels=16)
-    fft = spectral_g2_snr(BETA_AUR, 50.0, spectrograph=spec,
-                          vis2_method="fft")
+    rnd = spectral_g2_snr(BETA_AUR, 50.0, spectrograph=spec,
+                          vis2_method="render")
     ana = spectral_g2_snr(BETA_AUR, 50.0, spectrograph=spec,
                           vis2_method="analytic")
-    assert fft.vis2_method == "fft" and ana.vis2_method == "analytic"
-    assert np.allclose(fft.vis2, ana.vis2, atol=5e-3)
-    assert fft.snr_total == pytest.approx(ana.snr_total, rel=2e-2)
+    assert rnd.vis2_method == "render" and ana.vis2_method == "analytic"
+    assert np.allclose(rnd.vis2, ana.vis2, atol=1e-3)
+    assert rnd.snr_total == pytest.approx(ana.snr_total, rel=5e-3)
+    with pytest.warns(DeprecationWarning):
+        old = spectral_g2_snr(BETA_AUR, 50.0, spectrograph=spec,
+                              vis2_method="fft")
+    assert old.vis2_method == "render"
 
 
 def test_spectral_snr_eclipse_dispatch():
@@ -83,7 +110,7 @@ def test_spectral_snr_eclipse_dispatch():
     with pytest.raises(ValueError, match="eclipse"):
         spectral_g2_snr(BETA_AUR, 50.0, spectrograph=spec,
                         orbital_phase=0.25, vis2_method="analytic")
-    # the FFT method handles it
+    # the rendered path handles it
     res = spectral_g2_snr(BETA_AUR, 50.0, spectrograph=spec,
-                          orbital_phase=0.25, vis2_method="fft")
+                          orbital_phase=0.25, vis2_method="render")
     assert np.isfinite(res.snr_total) and res.snr_total > 0.0

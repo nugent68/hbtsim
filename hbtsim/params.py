@@ -103,9 +103,12 @@ class Star:
     # per-star linear limb-darkening u(lambda) table, ((nm, u), ...) [C11]
     ld_table_nm: tuple = LD_BETA_AUR
 
-    def ld_coeff(self, wavelength_nm: float) -> float:
+    def ld_coeff(self, wavelength_nm):
+        """Linear LD coefficient at one wavelength (float) or an array of
+        wavelengths (ndarray)."""
         lam, u = zip(*self.ld_table_nm)
-        return float(np.interp(wavelength_nm, lam, u))
+        out = np.interp(wavelength_nm, lam, u)
+        return float(out) if np.ndim(out) == 0 else out
 
 
 @dataclass(frozen=True)
@@ -131,6 +134,43 @@ class BinarySystem:
 
     def angular_radius_mas(self, star: Star) -> float:
         return (star.radius_rsun * R_SUN) / (self.distance_pc * PARSEC) / MAS
+
+    @property
+    def sum_of_radii_mas(self) -> float:
+        return (self.angular_radius_mas(self.primary)
+                + self.angular_radius_mas(self.secondary))
+
+
+# ---------------------------------------------------------------------------
+# Eclipse test shared by every analytic (non-overlapping disks) path
+# ---------------------------------------------------------------------------
+ECLIPSE_MARGIN = 1.05  # "near eclipse" safety factor on the sum of the radii
+
+
+def in_eclipse_rho(system: BinarySystem, rho_mas, margin: float = ECLIPSE_MARGIN):
+    """True where the projected separation rho (mas; scalar or array) is
+    below margin x (theta_1 + theta_2), i.e. the disks overlap or nearly
+    do and the analytic two-disk visibility is invalid."""
+    return np.asarray(rho_mas, dtype=float) < margin * system.sum_of_radii_mas
+
+
+def in_eclipse(system: BinarySystem, pos, margin: float = ECLIPSE_MARGIN):
+    """in_eclipse_rho for an orbit.SkyPositions (scalar epoch or array)."""
+    return in_eclipse_rho(system, pos.rho, margin)
+
+
+def require_out_of_eclipse(system: BinarySystem, rho_mas,
+                           what: str = "the analytic binary visibility",
+                           alternative: str = "the rendered-image path",
+                           margin: float = ECLIPSE_MARGIN) -> None:
+    """Raise ValueError if any epoch is in (or near) eclipse."""
+    rho = np.asarray(rho_mas, dtype=float)
+    if np.any(in_eclipse_rho(system, rho, margin)):
+        limit = margin * system.sum_of_radii_mas
+        raise ValueError(
+            f"in (or near) eclipse (rho = {float(rho.min()):.3f} mas; the "
+            f"disks overlap below {limit:.3f} mas): {what} is invalid "
+            f"there; use {alternative}")
 
 
 BETA_AUR = BinarySystem(
@@ -210,14 +250,23 @@ SYSTEMS = {"betaaur": BETA_AUR, "algol": ALGOL, "spica": SPICA,
 class GridConfig:
     n: int = 1024                 # source image grid (pixels)
     pixel_scale_mas: float = 0.01  # mas / pixel
-    pad: int = 8192               # zero-padded FFT size (dB ~ 1 m at 400 nm)
+    # zero-padded FFT size for the 2-D |V|^2 maps of hbtsim.fftmap only
+    # (dB ~ 1 m at 400 nm); the science path samples V(u, v) by an exact
+    # DFT (hbtsim.hbt) and does not use it
+    pad: int = 8192
 
     @property
     def pixel_scale_rad(self) -> float:
         return self.pixel_scale_mas * MAS
 
+    @property
+    def half_extent_mas(self) -> float:
+        """Largest |x| or |y| (mas) a pixel centre can have on the grid."""
+        return (self.n - 1) / 2.0 * self.pixel_scale_mas
+
     def baseline_step_m(self, wavelength_m: float) -> float:
-        """Baseline sampling of the padded FFT: dB = lambda / (pad * dtheta)."""
+        """Baseline sampling of the padded FFT map (hbtsim.fftmap only):
+        dB = lambda / (pad * dtheta)."""
         return wavelength_m / (self.pad * self.pixel_scale_rad)
 
 

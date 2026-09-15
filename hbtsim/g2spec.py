@@ -7,7 +7,7 @@ with its 1-sigma error bar (the noise-equivalent |V|^2 from the photon
 budget, snr.vis2_noise), on top of the true curve.  As the binary moves
 through its 3.96-day orbit the fringe pattern sweeps across the band
 and washes out through the eclipses, where the analytic visibility is
-invalid -- |V|^2(B, lambda) therefore comes from the batched FFT
+invalid -- |V|^2(B, lambda) therefore comes from the batched render + DFT
 pipeline (hbtsim.spectral), which handles the overlapping disks.
 
 g2 is shown in the ideal Siegert normalization 1 + |V|^2, consistent

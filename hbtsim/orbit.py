@@ -45,9 +45,15 @@ def solve_kepler(mean_anomaly: np.ndarray, e: float,
     """Eccentric anomaly E from Kepler's equation E - e sin E = M
     (Newton iteration; converges to machine precision for e < 0.95)."""
     M = np.asarray(mean_anomaly, dtype=float)
+    if not 0.0 <= e < 1.0:
+        raise ValueError(f"eccentricity {e} outside [0, 1)")
     E = M + e * np.sin(M)
     for _ in range(n_iter):
         E = E - (E - e * np.sin(E) - M) / (1.0 - e * np.cos(E))
+    resid = np.max(np.abs(E - e * np.sin(E) - M)) if M.size else 0.0
+    if not resid < 1e-10:
+        raise RuntimeError(f"Kepler solver did not converge (e = {e}, "
+                           f"max residual {resid:.2e})")
     return E
 
 

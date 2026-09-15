@@ -115,23 +115,25 @@ def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
     """Per-channel bispectrum sensitivity with the source dispersed over
     the array, and the quadrature total (the sensitivity to a global
     rescaling of the model's per-channel cos phi_c pattern)."""
+    import warnings
+
     nm = spectrograph.channel_centers_nm
     pos = SkyPositions(*(np.asarray(v) for v in
                          sky_positions(2 * np.pi * orbital_phase, system)))
     bvecs = triangle.baseline_vectors()
 
+    if vis_method == "fft":
+        warnings.warn("vis_method='fft' is now 'render'", DeprecationWarning,
+                      stacklevel=2)
+        vis_method = "render"
     if vis_method == "analytic":
-        sum_r = (system.angular_radius_mas(system.primary)
-                 + system.angular_radius_mas(system.secondary))
-        if float(pos.rho) < 1.05 * sum_r:
-            raise ValueError("in (or near) eclipse: use vis_method='fft'")
-        gam = np.array([binary_vis_complex_analytic(bvecs, float(l), system, pos)
-                        for l in nm])  # (n_lambda, 3)
-    elif vis_method == "fft":
+        gam = binary_vis_complex_analytic(bvecs, nm, system, pos)  # (n_lambda, 3)
+    elif vis_method == "render":
         gam = np.asarray(spectral_bispectrum(pos, triangle, nm, system, grid,
                                              chunk_size=chunk_size))
     else:
-        raise ValueError(f"unknown vis_method {vis_method!r}")
+        raise ValueError(f"unknown vis_method {vis_method!r} "
+                         f"(expected 'analytic' or 'render')")
 
     bis = gam[:, 0] * gam[:, 1] * gam[:, 2]
     triple_amp = np.abs(bis)

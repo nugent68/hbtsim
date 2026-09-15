@@ -13,8 +13,8 @@ jax.config.update("jax_enable_x64", True)
 from hbtsim import hbt
 from hbtsim.limbdark import disk_flux_factor, visibility_ld_disk
 from hbtsim.orbit import SkyPositions, sky_positions
-from hbtsim.params import BETA_AUR, MAS, GridConfig, MovieConfig
-from hbtsim.render import _render_kernel, render_image
+from hbtsim.params import BETA_AUR, MAS, GridConfig
+from hbtsim.render import render_image, render_kernel
 
 SYSTEM = BETA_AUR
 GRID = GridConfig()
@@ -24,7 +24,7 @@ THETA1_MAS = 2 * SYSTEM.angular_radius_mas(SYSTEM.primary)   # angular diameter
 def single_star_image(radius_mas: float, u: float) -> jnp.ndarray:
     """One star at the grid center, the other switched off (w2 = 0)."""
     r_px = radius_mas / GRID.pixel_scale_mas
-    return _render_kernel(0.0, 0.0, 300.0, 300.0, False,
+    return render_kernel(0.0, 0.0, 300.0, 300.0, False,
                           r_px, 1.0, 1.0, 0.0, u, 0.0, GRID.n)
 
 
@@ -61,9 +61,8 @@ def test_g2_zero_baseline_is_two():
         pos = SkyPositions(*(np.asarray(v) for v in sky_positions(psi, SYSTEM)))
         for lam_nm in (400.0, 800.0):
             img = render_image(pos, SYSTEM, lam_nm, GRID)
-            v2 = hbt.vis2_map(img, GRID.pad)
-            g2 = hbt.g2_of_baseline(v2, np.array([0.0]), lam_nm * 1e-9,
-                                    float(pos.pa), GRID)
+            g2 = hbt.g2_along_pa(img, np.array([0.0]), lam_nm * 1e-9,
+                                 float(pos.pa), GRID)
             assert float(g2[0]) == pytest.approx(2.0, abs=1e-6)
 
 
@@ -73,16 +72,16 @@ def test_uniform_disk_matches_airy():
 
     lam = 400e-9
     img = single_star_image(THETA1_MAS / 2, 0.0)
-    v2map = hbt.vis2_map(img, GRID.pad)
     B = np.linspace(5.0, 150.0, 200)
-    v2 = np.asarray(hbt.vis2_of_baseline(v2map, B, lam, 0.0, GRID))
+    v2 = np.asarray(hbt.vis2_along_pa(img, B, lam, 0.0, GRID))
     x = np.pi * THETA1_MAS * MAS * B / lam
     airy = (2 * j1(x) / x) ** 2
-    assert np.allclose(v2, airy, atol=2e-3)
+    # the exact DFT leaves only the soft-rim rendering error (~1e-4)
+    assert np.allclose(v2, airy, atol=1e-3)
 
     b_null_expected = 1.22 * lam / (THETA1_MAS * MAS)  # ~97.7 m
     fine = np.linspace(80, 115, 701)
-    v2f = np.asarray(hbt.vis2_of_baseline(v2map, fine, lam, 0.0, GRID))
+    v2f = np.asarray(hbt.vis2_along_pa(img, fine, lam, 0.0, GRID))
     assert fine[np.argmin(v2f)] == pytest.approx(b_null_expected, rel=0.01)
 
 
@@ -91,12 +90,11 @@ def test_limb_darkened_disk_matches_analytic():
     lam = 400e-9
     u = SYSTEM.primary.ld_coeff(400.0)
     img = single_star_image(THETA1_MAS / 2, u)
-    v2map = hbt.vis2_map(img, GRID.pad)
     B = np.linspace(5.0, 150.0, 200)
-    v2 = np.asarray(hbt.vis2_of_baseline(v2map, B, lam, 0.0, GRID))
+    v2 = np.asarray(hbt.vis2_along_pa(img, B, lam, 0.0, GRID))
     x = np.pi * THETA1_MAS * MAS * B / lam
     v_ana = visibility_ld_disk(x, u)
-    assert np.allclose(v2, v_ana**2, atol=2e-3)
+    assert np.allclose(v2, v_ana**2, atol=1e-3)
 
 
 def test_binary_vis2_matches_analytic_at_quadrature():
@@ -108,27 +106,12 @@ def test_binary_vis2_matches_analytic_at_quadrature():
     for lam_nm in (400.0, 800.0):
         lam = lam_nm * 1e-9
         img = render_image(pos, SYSTEM, lam_nm, GRID)
-        v2map = hbt.vis2_map(img, GRID.pad)
         B = np.arange(0.0, 150.0, 0.5)
-        v2 = np.asarray(hbt.vis2_of_baseline(v2map, B, lam, float(pos.pa), GRID))
+        v2 = np.asarray(hbt.vis2_along_pa(img, B, lam, float(pos.pa), GRID))
         v2_ana = hbt.binary_vis2_analytic(B, lam_nm, SYSTEM, float(pos.rho))
-        # agreement to better than 1% of the zero-baseline amplitude checks
-        # both the fringe period (lambda/rho) and the disk envelopes
-        assert np.allclose(v2, v2_ana, atol=5e-3)
-
-
-def test_interpolation_matches_direct_dft():
-    """FFT + bilinear interpolation vs direct DFT at the 15 requested baselines."""
-    cfg = MovieConfig()
-    pos = SkyPositions(*(np.asarray(v) for v in sky_positions(0.3, SYSTEM)))
-    lam = 400e-9
-    img = np.asarray(render_image(pos, SYSTEM, 400.0, GRID), dtype=float)
-    v2map = hbt.vis2_map(jnp.asarray(img), GRID.pad)
-    b = np.asarray(cfg.baselines_m)
-    v2_interp = np.asarray(hbt.vis2_of_baseline(v2map, b, lam, float(pos.pa), GRID))
-    v2_exact = hbt.vis2_direct(img, b, lam, float(pos.pa), GRID)
-    # bilinear interpolation on the ~1 m FFT grid is good to a few 1e-3
-    assert np.allclose(v2_interp, v2_exact, atol=5e-3)
+        # agreement to 1e-3 (renderer-limited) checks both the fringe
+        # period (lambda/rho) and the disk envelopes
+        assert np.allclose(v2, v2_ana, atol=1e-3)
 
 
 # ---------------------------------------------------------------------------
@@ -191,7 +174,7 @@ def test_uniform_disk_eclipse_depth_matches_circle_overlap():
     pos = sky_positions(np.pi / 2, SYSTEM)  # mid-eclipse
     d = float(pos.rho) / GRID.pixel_scale_mas
 
-    img_ecl = _render_kernel(float(pos.x1) / GRID.pixel_scale_mas,
+    img_ecl = render_kernel(float(pos.x1) / GRID.pixel_scale_mas,
                              float(pos.y1) / GRID.pixel_scale_mas,
                              float(pos.x2) / GRID.pixel_scale_mas,
                              float(pos.y2) / GRID.pixel_scale_mas,

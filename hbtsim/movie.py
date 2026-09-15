@@ -10,18 +10,22 @@ Panel 3: g2(B) at 400 and 800 nm, sampled every 10 m from 10 to 150 m,
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import partial
 
+import jax
+import jax.numpy as jnp
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FFMpegWriter, FuncAnimation
 
-from . import hbt
+from .hbt import baseline_vectors_along_pa, check_frequency, dft_points, split_frequency
 from .orbit import SkyPositions, sky_positions
-from .params import BinarySystem, GridConfig, MovieConfig
-from .photometry import anchored_mags, apparent_ab_mag, band_flux
-from .render import render_image
+from .params import BinarySystem, GridConfig, MovieConfig, planck
+from .photometry import anchored_mags, apparent_ab_mag
+from .render import check_extent, render_kernel, spectral_weights
+from .spectral import _auto_chunk
 
 DISPLAY_HALF_PX = 128   # display crop half-width after 2x downsampling
 DISPLAY_BIN = 2
@@ -67,7 +71,6 @@ def render_display_rgb(pos, system, grid) -> np.ndarray:
     render is in units of B_lambda(T2), so this restores the absolute
     inter-channel scaling) and divided by the white-reference Planck
     spectrum: a pixel of star s carries B_lambda(T_s)/B_lambda(T_ref)."""
-    from .params import planck
     from .render import render_image
 
     m = 2 * DISPLAY_HALF_PX
@@ -90,46 +93,99 @@ def stretch_rgb(disp: np.ndarray) -> np.ndarray:
     return np.clip(disp * scale[..., None], 0.0, 1.0)
 
 
+@partial(jax.jit, static_argnames=("n", "n_band", "n_disp", "chunk"))
+def _frames_jit(x1, y1, x2, y2, front2,            # (nf,)
+                r1, r2,                            # scalars
+                w1, u1, u2,                        # (n_wl,) all wavelengths
+                fx_hi, fx_lo, fy_hi, fy_lo,        # (nf, n_g2, K)
+                n: int, n_band: int, n_disp: int, chunk: int):
+    """Everything the movie needs, for all frames, in one jitted scan:
+    per frame the binary is rendered at every wavelength (bands, display
+    RGB, g2 channels) by one vmapped kernel call, the band images are
+    summed, the display images cropped and binned, and the g2 channels
+    sampled at the K baseline points by the exact DFT."""
+    half = DISPLAY_HALF_PX * DISPLAY_BIN
+    c = n // 2
+    m = 2 * DISPLAY_HALF_PX
+    render_all = jax.vmap(render_kernel,
+                          in_axes=(None, None, None, None, None, None, None,
+                                   0, None, 0, 0, None))
+
+    def one_frame(fr):
+        fx1, fy1, fx2, fy2, ffront, fxh, fxl, fyh, fyl = fr
+        imgs = render_all(fx1, fy1, fx2, fy2, ffront, r1, r2,
+                          w1, jnp.float32(1.0), u1, u2, n)   # (n_wl, n, n)
+        flux = jnp.sum(imgs[:n_band], axis=(1, 2))
+        crop = imgs[n_band:n_band + n_disp, c - half:c + half, c - half:c + half]
+        disp = crop.reshape(n_disp, m, DISPLAY_BIN, m, DISPLAY_BIN).mean(axis=(2, 4))
+        vis = jax.vmap(dft_points)(imgs[n_band + n_disp:], fxh, fxl, fyh, fyl)
+        return flux, disp, jnp.abs(vis) ** 2
+
+    return jax.lax.map(one_frame,
+                       (x1, y1, x2, y2, front2, fx_hi, fx_lo, fy_hi, fy_lo),
+                       batch_size=chunk)
+
+
 def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
-                      verbose: bool = True) -> FrameData:
+                      verbose: bool = True,
+                      chunk_size: int | None = None) -> FrameData:
     nf = cfg.n_frames
-    psi = 2.0 * np.pi * np.arange(nf) / nf  # psi=0: greatest separation
+    psi = 2.0 * np.pi * np.arange(nf) / nf  # mean anomaly from periastron
     pos_all = sky_positions(psi, system)
+    check_extent(pos_all, system, grid)
 
+    pa_used = (np.asarray(pos_all.pa, dtype=float) if cfg.baseline_pa == "follow"
+               else np.full(nf, np.radians(float(cfg.baseline_pa))))
+    band_nm = [lam for _, lam in cfg.bands]
+    all_nm = [*band_nm, *RGB_DISPLAY_NM, *cfg.wavelengths_nm]
+    u1, u2, w1 = spectral_weights(np.asarray(all_nm), system)
+
+    # baseline points: the fine curve followed by the marked baselines
     fine_b = cfg.fine_baselines_m
-    disp = np.empty((nf, 2 * DISPLAY_HALF_PX, 2 * DISPLAY_HALF_PX, 3),
-                    np.float32)
-    fluxes = {band: np.empty(nf) for band, _ in cfg.bands}
-    g2_fine = np.empty((nf, len(cfg.wavelengths_nm), fine_b.size), np.float32)
-    g2_pts = np.empty((nf, len(cfg.wavelengths_nm), len(cfg.baselines_m)), np.float32)
-    pa_used = np.empty(nf)
+    pts_b = np.asarray(cfg.baselines_m, dtype=float)
+    b_all = np.concatenate([fine_b, pts_b])
+    bvec = np.stack([baseline_vectors_along_pa(b_all, pa) for pa in pa_used])  # (nf, K, 2)
+    lam_m = np.asarray(cfg.wavelengths_nm, dtype=float) * 1e-9
+    f = bvec[:, None, :, :] / lam_m[None, :, None, None] * grid.pixel_scale_rad
+    check_frequency(f, grid.n)
+    fx_hi, fx_lo = split_frequency(f[..., 0])
+    fy_hi, fy_lo = split_frequency(f[..., 1])
+    f32 = lambda a: jnp.asarray(a, dtype=jnp.float32)
 
-    for k in range(nf):
-        pos = SkyPositions(*(np.asarray(v)[k] for v in pos_all))
-        pa = float(pos.pa) if cfg.baseline_pa == "follow" else np.radians(float(cfg.baseline_pa))
-        pa_used[k] = pa
+    chunk = max(1, (_auto_chunk() if chunk_size is None else chunk_size) // 4)
+    chunk = min(chunk, nf)
+    s = grid.pixel_scale_mas
+    if verbose:
+        print(f"  rendering {nf} frames x {len(all_nm)} wavelengths "
+              f"(chunks of {chunk}) ...", flush=True)
+    flux, disp_raw, vis2 = _frames_jit(
+        f32(pos_all.x1 / s), f32(pos_all.y1 / s),
+        f32(pos_all.x2 / s), f32(pos_all.y2 / s), jnp.asarray(pos_all.front2),
+        jnp.float32(system.angular_radius_mas(system.primary) / s),
+        jnp.float32(system.angular_radius_mas(system.secondary) / s),
+        w1, u1, u2, f32(fx_hi), f32(fx_lo), f32(fy_hi), f32(fy_lo),
+        grid.n, len(cfg.bands), len(RGB_DISPLAY_NM), chunk)
+    flux = np.asarray(flux, dtype=float)                 # (nf, n_band)
+    disp_raw = np.asarray(disp_raw, dtype=np.float32)    # (nf, 3, m, m)
+    g2 = 1.0 + np.asarray(vis2, dtype=np.float32)        # (nf, n_g2, K)
+    if verbose:
+        print(f"  frame {nf}/{nf}", flush=True)
 
-        for band, lam_nm in cfg.bands:
-            img = np.asarray(render_image(pos, system, lam_nm, grid))
-            fluxes[band][k] = band_flux(img)
-        disp[k] = render_display_rgb(pos, system, grid)
+    # display RGB: restore the absolute inter-channel Planck scaling and
+    # white-balance (see render_display_rgb)
+    disp = np.transpose(disp_raw, (0, 2, 3, 1)).copy()
+    for ch, lam_nm in enumerate(RGB_DISPLAY_NM):
+        lam = lam_nm * 1e-9
+        disp[..., ch] *= (planck(lam, system.secondary.teff)
+                          / planck(lam, WHITE_REF_TEFF))
 
-        for j, lam_nm in enumerate(cfg.wavelengths_nm):
-            img = render_image(pos, system, lam_nm, grid)
-            v2map = hbt.vis2_map(img, grid.pad)
-            lam_m = lam_nm * 1e-9
-            g2_fine[k, j] = np.asarray(hbt.g2_of_baseline(v2map, fine_b, lam_m, pa, grid))
-            g2_pts[k, j] = np.asarray(hbt.g2_of_baseline(v2map, np.asarray(cfg.baselines_m), lam_m, pa, grid))
-
-        if verbose and (k % 20 == 0 or k == nf - 1):
-            print(f"  frame {k + 1}/{nf}", flush=True)
-
-    mags = {band: anchored_mags(apparent_ab_mag(fluxes[band], lam_nm, system, grid),
+    mags = {band: anchored_mags(apparent_ab_mag(flux[:, j], lam_nm, system, grid),
                                 band, system)
-            for band, lam_nm in cfg.bands}
+            for j, (band, lam_nm) in enumerate(cfg.bands)}
     extent = DISPLAY_HALF_PX * DISPLAY_BIN * grid.pixel_scale_mas
     return FrameData(system, grid, cfg, psi / (2 * np.pi), disp, extent,
-                     mags, g2_fine, g2_pts, pa_used)
+                     mags, g2[:, :, :fine_b.size], g2[:, :, fine_b.size:],
+                     pa_used)
 
 
 def make_movie(fd: FrameData, path: str, verbose: bool = True) -> None:

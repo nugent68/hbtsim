@@ -15,7 +15,7 @@ from hbtsim import hbt
 from hbtsim.limbdark import disk_flux_factor, visibility_ld_disk
 from hbtsim.orbit import SkyPositions, sky_positions
 from hbtsim.params import ALGOL, MAS, GridConfig
-from hbtsim.render import _render_kernel, render_image
+from hbtsim.render import render_image, render_kernel
 from hbtsim.snr import system_ab_mag
 
 GRID = GridConfig()
@@ -32,7 +32,7 @@ def test_per_star_ld_applied():
     """Two well-separated equal disks with u1 = 0.2, u2 = 0.8: each disk's
     flux must carry its OWN (1 - u/3) factor."""
     r = 40.0
-    img = np.asarray(_render_kernel(-200.0, 0.0, 200.0, 0.0, False,
+    img = np.asarray(render_kernel(-200.0, 0.0, 200.0, 0.0, False,
                                     r, r, 1.0, 1.0, 0.2, 0.8, GRID.n))
     half = GRID.n // 2
     flux1 = img[:, :half].sum()
@@ -50,14 +50,13 @@ def test_secondary_visibility_uses_its_own_u():
     th_b = 2 * ALGOL.angular_radius_mas(ALGOL.secondary) * MAS
     r_px = ALGOL.angular_radius_mas(ALGOL.secondary) / GRID.pixel_scale_mas
 
-    img = _render_kernel(300.0, 300.0, 0.0, 0.0, True,
-                         1.0, r_px, 0.0, 1.0, u_a, u_b, GRID.n)
-    v2map = hbt.vis2_map(img, GRID.pad)
+    img = render_kernel(300.0, 300.0, 0.0, 0.0, True,
+                        1.0, r_px, 0.0, 1.0, u_a, u_b, GRID.n)
     B = np.linspace(5.0, 150.0, 100)
-    v2 = np.asarray(hbt.vis2_of_baseline(v2map, B, lam_nm * 1e-9, 0.0, GRID))
+    v2 = np.asarray(hbt.vis2_along_pa(img, B, lam_nm * 1e-9, 0.0, GRID))
     x = np.pi * th_b * B / (lam_nm * 1e-9)
-    assert np.allclose(v2, visibility_ld_disk(x, u_b) ** 2, atol=2e-3)
-    assert not np.allclose(v2, visibility_ld_disk(x, u_a) ** 2, atol=2e-3)
+    assert np.allclose(v2, visibility_ld_disk(x, u_b) ** 2, atol=1e-3)
+    assert not np.allclose(v2, visibility_ld_disk(x, u_a) ** 2, atol=1e-3)
 
 
 # ---------------------------------------------------------------------------
@@ -120,12 +119,11 @@ def test_algol_vis2_matches_analytic_at_quadrature():
     pos = _pos(0.0)
     for lam_nm in (400.0, 800.0):
         img = render_image(pos, ALGOL, lam_nm, GRID)
-        v2map = hbt.vis2_map(img, GRID.pad)
         B = np.arange(0.0, 150.0, 0.5)
-        v2 = np.asarray(hbt.vis2_of_baseline(v2map, B, lam_nm * 1e-9,
-                                             float(pos.pa), GRID))
+        v2 = np.asarray(hbt.vis2_along_pa(img, B, lam_nm * 1e-9,
+                                          float(pos.pa), GRID))
         ana = hbt.binary_vis2_analytic(B, lam_nm, ALGOL, float(pos.rho))
-        assert np.allclose(v2, ana, atol=5e-3)
+        assert np.allclose(v2, ana, atol=1e-3)
 
 
 def test_algol_anchors():

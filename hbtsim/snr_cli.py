@@ -9,11 +9,12 @@ measuring g2 independently; channel SNRs add in quadrature.
     python -m hbtsim.snr_cli --mode narrowband --baseline 15 \
         --wavelengths 400 800 --filter-width 10       # the old filter setup
 
-In spectral mode each channel's |V|^2 comes from the batched FFT pipeline
-(hbtsim.spectral, GPU-accelerated under JAX; ~1 s/channel on CPU) -- pass
---vis2-method analytic for the instant out-of-eclipse approximation.
-Narrowband mode uses the FFT pipeline per filter.  Source brightness is
-the anchored blackbody model of the chosen --system in both modes.
+In spectral mode each channel's |V|^2 comes from the batched render +
+exact-DFT pipeline (hbtsim.spectral, GPU-accelerated under JAX; ~10 ms
+per channel on CPU) -- pass --vis2-method analytic for the instant
+out-of-eclipse approximation.  Narrowband mode renders once per filter.
+Source brightness is the anchored blackbody model of the chosen --system
+in both modes.
 """
 
 from __future__ import annotations
@@ -43,9 +44,8 @@ def narrowband(args, system, grid, tel, det) -> None:
     for lam_nm in args.wavelengths:
         mag = system_ab_mag(system, lam_nm) if args.mag is None else args.mag
         img = render_image(pos, system, lam_nm, grid)
-        v2map = hbt.vis2_map(img, grid.pad)
-        v2 = np.asarray(hbt.vis2_of_baseline(
-            v2map, np.asarray(args.baseline, dtype=float), lam_nm * 1e-9,
+        v2 = np.asarray(hbt.vis2_along_pa(
+            img, np.asarray(args.baseline, dtype=float), lam_nm * 1e-9,
             float(pos.pa), grid))
         for b_m, vis2 in zip(args.baseline, v2):
             obs = Observation(wavelength_nm=lam_nm,
@@ -109,12 +109,13 @@ def main(argv=None) -> None:
                    help="spectral channels (SPAD Lambda: 320)")
     p.add_argument("--lambda-min", type=float, default=400.0)
     p.add_argument("--lambda-max", type=float, default=950.0)
-    p.add_argument("--vis2-method", choices=("fft", "analytic"), default="fft",
-                   help="per-channel |V|^2: batched FFT (valid in eclipses, "
-                        "fast on GPU) or analytic binary (instant, out of "
-                        "eclipse only)")
+    p.add_argument("--vis2-method", choices=("render", "analytic"),
+                   default="render",
+                   help="per-channel |V|^2: rendered image + exact DFT "
+                        "(valid in eclipses) or analytic binary (instant, "
+                        "out of eclipse only)")
     p.add_argument("--chunk", type=int, default=None,
-                   help="FFT channels per GPU/CPU batch (default: auto)")
+                   help="channels per GPU/CPU batch (default: auto)")
     # narrowband mode
     p.add_argument("--wavelengths", type=float, nargs="+", default=[400.0, 800.0])
     p.add_argument("--filter-width", type=float, default=10.0,

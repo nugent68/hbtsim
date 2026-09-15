@@ -4,8 +4,9 @@ Simulation of the Hanbury Brown–Twiss (HBT) effect in optical intensity
 interferometry for bright eclipsing binaries, currently **Beta Aurigae
 (Menkalinan)** and **Algol (β Persei) A–B**. The code renders each binary
 as a pair of limb-darkened stellar disks on a sky grid, computes the
-squared visibility |V|² via zero-padded 2D FFTs (JAX, GPU-batched for
-spectral work), predicts the signal-to-noise of real photon-counting
+complex visibility V(**u**) by an exact discrete Fourier transform of the
+image at the sampled baselines (JAX, GPU-batched for spectral work),
+predicts the signal-to-noise of real photon-counting
 observations, and produces movies:
 
 1. **Orbit movie** (`python -m hbtsim --system {betaaur,algol}`) — three
@@ -82,9 +83,9 @@ where V(B) is the complex degree of coherence, the normalized Fourier
 transform of the sky brightness distribution at spatial frequency
 **u** = **B**/λ (van Cittert–Zernike). Numerically:
 
-    image I(θx, θy)  →  zero-padded 2D real FFT  →  V = Ṽ/Ṽ(0,0)
-                     →  |V|²(u, v)  →  bilinear sample along the baseline
-                     →  g²(B) = 1 + |V(B)|².
+    image I(θx, θy)  →  exact K-point DFT at (u, v) = B/λ (separable
+                        matrix products, float32-exact phase)
+                     →  V(u, v) / V(0, 0)  →  g²(B) = 1 + |V(B)|².
 
 Each star is a linearly limb-darkened disk, I(μ)/I(1) = 1 − u_λ(1 − μ),
 with per-star Claret & Bloemen (2011) coefficients, weighted by the
@@ -103,10 +104,16 @@ the ratio of coherence time to detector resolution (Rai, Basak & Saha
 2021, eq. 6) — that physics lives in the SNR module below.
 
 Numerical layout: 1024² source grid at 0.01 mas/pixel (disk radii
-~45–55 px, limb darkening well resolved), FFT zero-padded to 8192²
-giving ~1 m baseline sampling at 400 nm. The FFT pipeline is validated
-against analytic results (Airy nulls, limb-darkened Bessel series, the
-binary fringe formula, circle-overlap eclipse depths) in the test suite.
+~45–55 px, limb darkening well resolved). The visibility is *not*
+taken from a padded FFT map: the interferometer only ever needs V at a
+few points per channel, and the K-point DFT (`hbtsim/hbt.py`) gives them
+exactly — no interpolation error, no crop limit on the baseline, ~1000×
+fewer operations than the 8192² FFT it replaced (which survives in
+`hbtsim/fftmap.py` for 2-D maps and cross-checks). The pipeline is
+validated against analytic results (Airy nulls, limb-darkened Bessel
+series, the binary fringe formula, circle-overlap eclipse depths) in the
+test suite; the DFT core agrees with a float64 reference to 1e-6 in
+|V|² and 1e-5 rad in phase.
 
 ## Observation SNR (hbtsim.snr)
 
@@ -132,8 +139,8 @@ Two observing modes (`python -m hbtsim.snr_cli --system {betaaur,algol}`):
   Lambda's 320-pixel array: each pixel pair is an independent ~1.7 nm
   channel measuring its own g², and channel SNRs add in quadrature
   (~√320 ≈ 18× multiplexing gain). Per-channel |V|²(B, λ) comes from the
-  batched FFT pipeline (valid through eclipses); `--vis2-method
-  analytic` is the instant out-of-eclipse alternative (agrees to <0.5%).
+  batched render + DFT pipeline (valid through eclipses); `--vis2-method
+  analytic` is the instant out-of-eclipse alternative (agrees to 1e-3).
 - **Narrowband** — single filters (`--mode narrowband --wavelengths 400
   800 --filter-width 10`).
 
@@ -161,8 +168,9 @@ Two-point HBT gives only |V|² — no Fourier phase. With three telescopes
 the triple correlation g³ = 1 + Σ|γᵢⱼ|² + 2|γ₁₂γ₂₃γ₃₁|cos φc carries the
 **closure phase** (the bispectrum phase, immune to per-telescope phase
 and source translation), the entry point to image reconstruction.
-`hbtsim/bispectrum.py` samples complex visibilities from the FFT
-(validated against the analytic binary to <0.15° in phase), defines
+`hbtsim/bispectrum.py` samples complex visibilities from the rendered
+image by the same exact DFT (validated against the analytic binary to
+<0.1° in closure phase, renderer-limited), defines
 telescope triangles (built in: `MAUNAKEA_SUBARU_KECK` — Subaru + Keck I
 + Keck II at 152/85/226 m, from site coordinates), and computes
 closure phases through eclipses via a GPU-batched spectral path.
@@ -191,17 +199,19 @@ backend → **Δcos φc ≤ 0.1 in ~8 minutes**, closure-phase *curves*
 around the 4-day orbit, and a one-night limiting magnitude of g ≈ 2.2
 (southern targets only; Paranal cannot see Algol/β Aur).
 
-## Batched spectral FFT on GPU
+## Batched spectral pipeline (CPU/GPU)
 
-`hbtsim.spectral.spectral_vis2(pos, baselines, wavelengths, system, grid)`
-computes |V|² for every (wavelength, baseline) pair in one jitted JAX
-computation; channels run in chunks via `jax.lax.map(batch_size=...)`
-(one batched cuFFT per chunk, buffers reused, peak ≈ 0.85 GiB × chunk).
-Measured: **3.2 ms/channel on a Perlmutter A100** (320 channels in
-1.02 s steady-state) vs ~460 ms/channel on an Intel iMac Pro — ~140×.
-On a *shared* GPU set `XLA_PYTHON_CLIENT_PREALLOCATE=false` and reduce
-`--chunk`, or XLA's 75% preallocation fights other users and starves
-the cuFFT workspace.
+`hbtsim.spectral.spectral_vis(pos, bvecs, wavelengths, system, grid)`
+(and the `spectral_vis2` wrapper for scalar baselines along a position
+angle) renders the binary and evaluates its DFT at the baseline vectors
+for every channel inside one jitted JAX computation; channels run in
+chunks via `jax.lax.map(batch_size=...)` (renders and matrix products
+batched per chunk, ~30 MB of temporaries per channel; default chunk 64
+on GPU, 8 on CPU). Measured on an Intel iMac Pro (20 cores, CPU JAX):
+**1.2 ms/channel** (320 channels in 0.37 s steady state), ~380× faster
+than the padded-FFT version of this pipeline (460 ms/channel). On a
+*shared* GPU set `XLA_PYTHON_CLIENT_PREALLOCATE=false` (XLA's 75%
+preallocation fights other users).
 
 ```bash
 python scripts/bench_spectral.py                    # benchmark, default device
@@ -268,15 +278,17 @@ movie locally with `--render-only`.
 - `hbtsim/orbit.py` — circular-orbit sky geometry
 - `hbtsim/limbdark.py` — linear LD law + analytic disk visibility
 - `hbtsim/render.py` — JAX rendering of the occulted limb-darkened disks
-- `hbtsim/hbt.py` — FFT → |V|² → g²(B); analytic binary visibility
-- `hbtsim/spectral.py` — batched multi-wavelength |V|²(B, λ) (GPU)
+- `hbtsim/hbt.py` — exact K-point DFT sampling of V(u, v), |V|², g²(B);
+  analytic binary visibility
+- `hbtsim/fftmap.py` — padded-FFT 2-D maps (plots/cross-checks only)
+- `hbtsim/spectral.py` — batched multi-wavelength V(B, λ) (GPU)
 - `hbtsim/photometry.py` — band fluxes, AB magnitudes, anchoring
 - `hbtsim/snr.py`, `hbtsim/snr_cli.py` — photon-budget SNR (telescopes,
   detectors, spectrograph multiplexing)
 - `hbtsim/movie.py`, `hbtsim/cli.py` — the 3-panel orbit movie
 - `hbtsim/g2spec.py` — the g²(λ)-with-error-bars movie
 - `scripts/` — benchmark + Perlmutter setup/sbatch
-- `tests/` — 34 analytic validation tests
+- `tests/` — analytic validation tests (`pytest tests/`, ~20 s)
 
 ## References
 

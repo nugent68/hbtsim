@@ -93,7 +93,7 @@ triangle; apertures are Subaru 8.2 m and 2 × Keck 10 m.
 
 Figures: `output/g3_gammas_{algol,betaaur}.png` (per-pair |γ|(λ) and the
 triple product at quadrature), `output/g3_cosphi_{algol,betaaur}.png`
-(cos φc over wavelength × orbital phase, FFT path, valid through
+(cos φc over wavelength × orbital phase, rendered-image path, valid through
 eclipses).
 
 The Keck I–Keck II 85 m pair retains healthy coherence (|γ| up to 0.66

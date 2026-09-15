@@ -88,11 +88,11 @@ def test_spectral_g3_quadrature_and_methods():
                           vis_method="analytic")
     assert ana.snr_total == pytest.approx(np.sqrt(np.sum(ana.snr**2)),
                                           rel=1e-12)
-    fft = spectral_g3_snr(BETA_AUR, MAUNAKEA_SUBARU_KECK, spectrograph=spec,
-                          vis_method="fft")
-    assert np.allclose(fft.triple_amp, ana.triple_amp, atol=2e-3)
-    assert fft.snr_total == pytest.approx(ana.snr_total, rel=0.05)
-    # in eclipse: analytic refuses, fft works
+    rnd = spectral_g3_snr(BETA_AUR, MAUNAKEA_SUBARU_KECK, spectrograph=spec,
+                          vis_method="render")
+    assert np.allclose(rnd.triple_amp, ana.triple_amp, atol=1e-3)
+    assert rnd.snr_total == pytest.approx(ana.snr_total, rel=0.01)
+    # in eclipse: analytic refuses, render works
     with pytest.raises(ValueError, match="eclipse"):
         spectral_g3_snr(ALGOL, MAUNAKEA_SUBARU_KECK, spectrograph=spec,
                         orbital_phase=0.25, vis_method="analytic")

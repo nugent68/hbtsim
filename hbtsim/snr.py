@@ -260,7 +260,7 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
                     detector2: Detector | None = None,
                     pol_factor: float = 0.5, sky_cps_per_channel: float = 0.0,
                     orbital_phase: float = 0.0,
-                    vis2_method: str = "fft",
+                    vis2_method: str = "render",
                     grid: GridConfig = GridConfig(),
                     chunk_size: int | None = None) -> SpectralSNRResult:
     """Total g2 SNR with the source spectrum dispersed over the array.
@@ -271,13 +271,13 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
     orbital phase.  SNR_total = sqrt(sum SNR_i^2).
 
     vis2_method:
-      "fft"      -- batched FFT pipeline (hbtsim.spectral.spectral_vis2):
-                    valid at all phases including eclipses; fast on GPU,
-                    ~1 s/channel on CPU.
-      "analytic" -- hbt.binary_vis2_analytic: instant, agrees with the FFT
-                    to <0.5%, but only valid OUT of eclipse (raises during
-                    one).
+      "render"   -- batched render + exact DFT (hbtsim.spectral): valid at
+                    all phases including eclipses (~10 ms/channel on CPU).
+      "analytic" -- hbt.binary_vis2_analytic: instant, but only valid OUT
+                    of eclipse (raises during one).
+    ("fft" is accepted as a deprecated alias of "render".)
     """
+    import warnings
     from dataclasses import replace
 
     from .hbt import binary_vis2_analytic
@@ -291,28 +291,21 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
 
     pos = SkyPositions(*(np.asarray(v) for v in
                          sky_positions(2.0 * np.pi * orbital_phase, system)))
-    rho_mas = float(pos.rho)
     nm = spectrograph.channel_centers_nm
 
     if vis2_method == "fft":
+        warnings.warn("vis2_method='fft' is now 'render'", DeprecationWarning,
+                      stacklevel=2)
+        vis2_method = "render"
+    if vis2_method == "render":
         from .spectral import spectral_vis2
         vis2 = np.asarray(spectral_vis2(pos, [baseline_m], nm, system, grid,
                                         chunk_size=chunk_size))[:, 0].astype(float)
     elif vis2_method == "analytic":
-        sum_radii = (system.angular_radius_mas(system.primary)
-                     + system.angular_radius_mas(system.secondary))
-        if rho_mas < 1.05 * sum_radii:
-            raise ValueError(
-                f"orbital phase {orbital_phase} is in (or near) eclipse "
-                f"(rho = {rho_mas:.3f} mas, disks overlap below "
-                f"{1.05 * sum_radii:.3f} mas): the analytic binary visibility "
-                f"is invalid there; use vis2_method='fft'")
-        vis2 = np.array([float(binary_vis2_analytic(baseline_m, lam_nm,
-                                                    system, rho_mas)[0])
-                         for lam_nm in nm])
+        vis2 = binary_vis2_analytic(baseline_m, nm, system, float(pos.rho))[:, 0]
     else:
         raise ValueError(f"unknown vis2_method {vis2_method!r} "
-                         f"(expected 'fft' or 'analytic')")
+                         f"(expected 'render' or 'analytic')")
 
     snr = np.empty(nm.size)
     rate = np.empty(nm.size)

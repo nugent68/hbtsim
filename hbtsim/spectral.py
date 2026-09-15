@@ -1,26 +1,24 @@
-"""Batched multi-wavelength |V|^2(B, lambda) via the FFT pipeline.
+"""Batched multi-wavelength complex visibilities V(B, lambda).
 
 For spectrally multiplexed intensity interferometry every detector pixel
-is its own wavelength channel, so the squared visibility is needed at
-hundreds of wavelengths per epoch.  This module runs the existing chain
+is its own wavelength channel, so the visibility is needed at hundreds
+to thousands of wavelengths per epoch.  This module fuses, per channel,
 
-    render limb-darkened binary (lambda)  ->  zero-padded 2D real FFT
-    ->  |V|^2(u, v)  ->  sample at (B/lambda) along the baseline PA
+    render limb-darkened binary (lambda)  ->  exact K-point DFT at the
+    requested baseline vectors (hbtsim.hbt.dft_points)
 
-for all channels inside a single jitted JAX computation, so it batches
-efficiently on a GPU (and still works, more slowly, on CPU).
+inside one jitted computation: jax.lax.map(..., batch_size=chunk)
+processes `chunk` channels as one vmapped step (batched renders and
+matrix products, which is what makes a GPU efficient) and scans across
+chunks, reusing the chunk buffers.  Per channel the working set is a
+few n^2 float32 temporaries (~30 MB at n = 1024), so the default chunk
+(64 on GPU, 8 on CPU) costs ~2 GB / 0.25 GB; only the small per-channel
+samples accumulate.  The channel list is padded to a multiple of the
+chunk (repeating the last channel) so the map body is traced once.
 
-Memory is the constraint, not compute: each channel's padded FFT touches
-~0.75-1 GiB (8192^2 float32 input + 8192x4097 complex64 spectrum + FFT
-workspace), so all 320 SPAD Lambda channels at once would need ~100 GiB.
-jax.lax.map(..., batch_size=chunk) processes `chunk` channels as one
-vmapped (batched cuFFT) step and scans across chunks, reusing the chunk
-buffers: peak memory is one chunk (~16 GiB at chunk=16), while only the
-small per-channel samples accumulate.  Default chunk: 16 on GPU
-(fits a 40 GiB A100), 4 on CPU.
-
-Everything is forced to float32/complex64, matching GPU behavior even
-when the test suite enables x64.
+Everything is forced to float32/complex64, matching GPU behaviour even
+when the test suite enables x64; the DFT phase is split-precision (see
+hbtsim.hbt) so the 226 m Maunakea arm is still exact to ~1e-6 rad.
 """
 
 from __future__ import annotations
@@ -31,61 +29,84 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from .hbt import CROP_HALF, vis2_map, vis2_of_baseline
+from .hbt import baseline_vectors_along_pa, check_frequency, dft_points, split_frequency
 from .orbit import SkyPositions
 from .params import BinarySystem, GridConfig
-from .render import _render_kernel, spectral_weights
+from .render import kernel_args, render_kernel, spectral_weights
 
 
 def _auto_chunk() -> int:
-    return 16 if jax.default_backend() == "gpu" else 4
+    return 64 if jax.default_backend() == "gpu" else 8
 
 
-@partial(jax.jit, static_argnames=("grid", "chunk", "crop_half"))
-def _spectral_vis2_jit(x1, y1, x2, y2, front2, r1, r2,
-                       u1, u2, w1, lam_m,       # (n_lambda,)
-                       baselines_m, pa_rad,     # (n_B,), scalar
-                       grid: GridConfig, chunk: int, crop_half: int):
+def _pad_to_chunk(n_lambda: int, chunk_size: int | None):
+    chunk = _auto_chunk() if chunk_size is None else int(chunk_size)
+    chunk = max(1, min(chunk, n_lambda))
+    n_pad = -(-n_lambda // chunk) * chunk
+    return chunk, n_pad
+
+
+@partial(jax.jit, static_argnames=("n", "chunk"))
+def _spectral_vis_jit(x1, y1, x2, y2, front2, r1, r2,
+                      u1, u2, w1,                     # (n_pad,)
+                      fx_hi, fx_lo, fy_hi, fy_lo,     # (n_pad, K)
+                      n: int, chunk: int):
     def one_channel(ch):
-        u1_k, u2_k, w1_k, lam_k = ch
-        img = _render_kernel(x1, y1, x2, y2, front2, r1, r2,
-                             w1_k, jnp.float32(1.0), u1_k, u2_k, grid.n)
-        v2map = vis2_map(img, grid.pad, crop_half)
-        samp = vis2_of_baseline(v2map, baselines_m, lam_k, pa_rad, grid,
-                                crop_half)
-        return samp, jnp.sum(img)
+        u1_k, u2_k, w1_k, fxh, fxl, fyh, fyl = ch
+        img = render_kernel(x1, y1, x2, y2, front2, r1, r2,
+                            w1_k, jnp.float32(1.0), u1_k, u2_k, n)
+        return dft_points(img, fxh, fxl, fyh, fyl), jnp.sum(img)
 
-    return jax.lax.map(one_channel, (u1, u2, w1, lam_m), batch_size=chunk)
+    return jax.lax.map(one_channel, (u1, u2, w1, fx_hi, fx_lo, fy_hi, fy_lo),
+                       batch_size=chunk)
+
+
+def spectral_vis(pos: SkyPositions, bvecs_m, wavelengths_nm,
+                 system: BinarySystem, grid: GridConfig, *,
+                 chunk_size: int | None = None,
+                 return_flux: bool = False):
+    """Complex V for every (wavelength, baseline vector) at one epoch.
+
+    pos entries must be scalars (a single epoch); bvecs_m is (K, 2)
+    [m, (East, North)].  Returns complex64 (n_lambda, K); with
+    return_flux=True also the (n_lambda,) total image flux per channel
+    (arbitrary units, eclipse-dimmed -- useful for per-epoch photometry
+    without re-rendering).  Valid at all phases including eclipses.
+    """
+    b = np.atleast_2d(np.asarray(bvecs_m, dtype=float))          # (K, 2)
+    lam = np.atleast_1d(np.asarray(wavelengths_nm, dtype=float))  # (n_l,)
+    n_l = lam.size
+    f = b[None, :, :] / (lam[:, None, None] * 1e-9) * grid.pixel_scale_rad
+    check_frequency(f, grid.n)
+
+    chunk, n_pad = _pad_to_chunk(n_l, chunk_size)
+    pad_idx = np.minimum(np.arange(n_pad), n_l - 1)
+    u1, u2, w1 = spectral_weights(lam[pad_idx], system)
+    fx_hi, fx_lo = split_frequency(f[pad_idx, :, 0])
+    fy_hi, fy_lo = split_frequency(f[pad_idx, :, 1])
+    f32 = lambda a: jnp.asarray(a, dtype=jnp.float32)
+
+    vis, flux = _spectral_vis_jit(
+        *kernel_args(pos, system, grid), u1, u2, w1,
+        f32(fx_hi), f32(fx_lo), f32(fy_hi), f32(fy_lo), grid.n, chunk)
+    vis, flux = vis[:n_l], flux[:n_l]
+    return (vis, flux) if return_flux else vis
 
 
 def spectral_vis2(pos: SkyPositions, baselines_m, wavelengths_nm,
                   system: BinarySystem, grid: GridConfig, *,
                   pa_rad: float | None = None,
                   chunk_size: int | None = None,
-                  crop_half: int = CROP_HALF,
-                  return_flux: bool = False) -> jax.Array:
-    """|V|^2 for every (wavelength, baseline) pair at one epoch.
-
-    pos entries must be scalars (a single epoch).  The baseline position
-    angle defaults to the projected separation axis, matching the movie
-    panel and the analytic binary visibility.  Returns (n_lambda, n_B);
-    with return_flux=True also the (n_lambda,) total image flux per
-    channel (arbitrary units, eclipse-dimmed -- useful for per-epoch
-    photometry without re-rendering).
-    """
-    scale = grid.pixel_scale_mas
-    u1, u2, w1 = spectral_weights(wavelengths_nm, system)
-    lam_m = jnp.asarray(wavelengths_nm, dtype=jnp.float32) * 1e-9
+                  return_flux: bool = False):
+    """|V|^2 for every (wavelength, scalar baseline) pair at one epoch,
+    (n_lambda, n_B) float32.  The baseline position angle defaults to the
+    projected separation axis (matching the movie panel and the analytic
+    binary visibility).  See spectral_vis for return_flux."""
     pa = float(pos.pa) if pa_rad is None else float(pa_rad)
-    chunk = _auto_chunk() if chunk_size is None else int(chunk_size)
-    vis2, flux = _spectral_vis2_jit(
-        jnp.float32(pos.x1 / scale), jnp.float32(pos.y1 / scale),
-        jnp.float32(pos.x2 / scale), jnp.float32(pos.y2 / scale),
-        jnp.bool_(pos.front2),
-        jnp.float32(system.angular_radius_mas(system.primary) / scale),
-        jnp.float32(system.angular_radius_mas(system.secondary) / scale),
-        u1, u2, w1, lam_m,
-        jnp.asarray(np.atleast_1d(baselines_m), dtype=jnp.float32),
-        jnp.float32(pa),
-        grid, chunk, crop_half)
-    return (vis2, flux) if return_flux else vis2
+    out = spectral_vis(pos, baseline_vectors_along_pa(baselines_m, pa),
+                       wavelengths_nm, system, grid, chunk_size=chunk_size,
+                       return_flux=return_flux)
+    if return_flux:
+        vis, flux = out
+        return jnp.abs(vis) ** 2, flux
+    return jnp.abs(out) ** 2
