@@ -1,16 +1,29 @@
-# Three-telescope intensity interferometry: closure phases from Maunakea
+# Three-telescope intensity interferometry: closure phases
 
 **Question.** Two-point HBT measurements give only |V|²(B, λ) — the power
 spectrum of the source, with no Fourier phase. Can a third telescope,
 through the triple intensity correlation, recover the bispectrum (closure
-phase) of our binaries, using Subaru + Keck I + Keck II?
+phase) of our binaries — with Subaru + Keck I + Keck II on Maunakea, or
+with the four VLT Unit Telescopes?
 
-**Answer in one line.** The geometry and the photon statistics make it
-infeasible with the current SPAD Lambda configuration (centuries), but
-R ≈ 5000 spectroscopy brings Maunakea to a heroic-but-conceivable
-~1 month for Δcos φc ≤ 0.3 — and a *compact* (≲ 85 m) triangle of
-10 m-class apertures would make closure phases of bright ~mas binaries
-genuinely measurable in nights. Geometry beats aperture.
+**Answer in one line.** With the SPAD Lambda as delivered, no: its
+time-tag link cannot carry the 10¹⁰–10¹¹ photons/s a bright star sends to
+an 8–10 m telescope, and even with a correlator readout the 320 channels
+need ~150 nights on the best case. A next-generation, R = 5000,
+correlator-readout SPAD array on the four VLT UTs detects Spica's
+closure-phase *signal* (a template amplitude over 4325 channels) in
+36 minutes (7 with a polarizing beamsplitter) and δ Velorum's in
+1.7–5 hours; spectrally resolved closure-phase *curves* at R = 100 take
+nights per epoch, and single 0.1 nm channels are out of reach. On
+Maunakea the same backend needs ~11 nights for Spica, and only because
+the rotating long arms sweep through favourable geometry over the night.
+The critical systematic is the calibration of the pair-correlation
+kernel to ~10⁻³.
+
+All numbers below come from `scripts/feasibility_g3.py` (instrument model
+of `hbtsim.snr`: throughput 0.3 × 0.5 × PDE for dispersed channels,
+aperture averaging, orbits at their true sky orientation, the source at
+transit, unpolarized light unless stated).
 
 ## 1. The triple correlation of thermal light
 
@@ -34,47 +47,81 @@ HBT fundamentally lacks, and the entry point to image reconstruction.
 
 **Polarization.** Unpolarized light is two independent Gaussian modes
 each carrying I/2. The pair interference terms scale as Σ(I/2)² → ½|γ|²
-(the familiar pol factor in `snr.py`); the triple term scales as
-2·Σ(I/2)³ → **pol₃ = ¼**.
+(p₂ = ½ in `snr.py`); the triple term scales as 2·Σ(I/2)³ → **p₃ = ¼**.
+A polarizing beamsplitter feeding two detectors per telescope makes each
+stream fully coherent (p₂ = p₃ = 1 on half the rate); the streams add in
+quadrature for ×√2 in SNR₂ and **×2 in SNR₃**, while halving the
+per-pixel load (`Observation.polarization_mode="pbs"`).
 
 **Signal.** Time-tag triples live on the 2D lag plane (τ₁, τ₂). For a
 rectangular passband of width Δν, the lag-integrated triple excess is
 exactly τ_c² = 1/Δν² (Parseval on the cubed unit-area spectrum — the 2D
 analogue of the pair case's τ_c), so over integration time T:
 
-    N_sig = pol₃ · 2|γ₁₂γ₂₃γ₃₁| cos φc · τ_c² · R₁R₂R₃ · T
+    N_sig = p₃ · 2|⟨γ₁₂γ₂₃γ₃₁⟩| cos φc · τ_c² · R₁R₂R₃ · T
 
-with R_i the detected (dead-time-capped) rates per channel.
+with R_i the detected (dead-time-capped) rates per channel and the
+triple product averaged exactly over the three pupils
+(`hbtsim.aperture.TripleQuadrature`; smearing each γ with its pair
+kernel would apply every pupil twice).
 
 **Noise.** Accidental triples arrive at density b₁b₂b₃ per unit lag²
 (b_i = R_i + dark + sky). The detector jitters (σ_i each) smear the
 signal into a *correlated* 2D Gaussian — telescope 2's jitter enters
 both lags with opposite signs — with covariance
 
-    Σ = [[σ₁²+σ₂², −σ₂²], [−σ₂², σ₂²+σ₃²]],
-    det Σ = σ₁²σ₂² + σ₂²σ₃² + σ₃²σ₁².
+    Σ = [[σ₁²+σ₂², −σ₂²], [−σ₂², σ₂²+σ₃²]] + σ_c² [[1, −½], [−½, 1]],
 
-The matched-filter effective area is A₂D = (∫K)²/∫K² = **4π√(det Σ)**
-(equal jitters: 4π√3 σ² = 5.65×10⁻²⁰ s² for three SPAD Lambdas at
-σ = 51 ps). Hence
+the second term being the coherence broadening (σ_c = 0.376 τ_c, ≲1% at
+0.1 nm channels in the red). The matched-filter effective area is
+A₂D = (∫K)²/∫K² = **4π√(det Σ)** (equal jitters, no broadening:
+4π√3 σ² = 5.65×10⁻²⁰ s² for three SPAD Lambdas at σ = 51 ps). Hence
 
     SNR₃ = N_sig / √(b₁b₂b₃ · T · A₂D)
 
-**Scalings** (verified in `tests/test_snr3.py`): SNR₃ ∝ √(A₁A₂A₃), ∝ √T,
-∝ 1/σ_jitter (the pair SNR scales only as 1/√σ — timing is more
-valuable here), and ∝ Δλ^(−1/2) at fixed source (the pair SNR is
-bandwidth-independent) — so narrow channels with heavy spectral
-multiplexing (× √N_channels) are the levers. These reduce to Nuñez &
-Domiciano de Souza (2015) eq. 8 and Zmija et al. (2025) eq. 12.
+**Scalings** (verified in `tests/test_snr3.py`, including a hand-computed
+first-principles normalization): SNR₃ ∝ √(A₁A₂A₃), ∝ √T, ∝ 1/σ_jitter
+(the pair SNR scales only as 1/√σ — timing is more valuable here), and
+∝ Δλ^(−1/2) at fixed source (the pair SNR is bandwidth-independent) — so
+narrow channels with heavy spectral multiplexing (× √N_channels) are the
+levers. These reduce to Nuñez & Domiciano de Souza (2015) eq. 8 and
+Zmija et al. (2025) eq. 12.
 
-**Criterion.** Estimating cos φc to precision Δcos requires
-SNR₃(cos φc = 1) ≥ 1/Δcos; we quote times for Δcos φc ≤ 0.3 and ≤ 0.1.
+**Pair ridges.** The same lag-plane histogram carries the pair
+correlations as ridges (|γ₁₂|² along τ₁ = 0 for every τ₂, …) whose
+excess inside the triple window exceeds the triple term by
+
+    ridge ratio = Σ_pairs (p₂/2p₃) |γᵢⱼ|² A₂D / (2√π σᵢⱼ τ_c |γ₁₂γ₂₃γ₃₁|)
+
+— 50–800 at R = 5000 (10³–10⁴ at 320 channels). Subtracting them with the
+simultaneously measured g²'s is statistically cheap, but a fractional
+error ε in the modeled kernel shape biases cos φc by ε × ridge ratio:
+the kernel must be calibrated to ~10⁻³ for Δcos φc = 0.1
+(`SpectralSNR3Result.required_kernel_accuracy`).
+
+**Statistics.** With one cos φc per channel, "measuring the closure
+phase" must be defined. `snr3.time_to_precision` inverts three
+statistics: **amplitude** — SNR_amp = √Σ(SNR_ch · cos φc,ch)², one
+global amplitude on the model's per-channel cos φc template (the
+detection statistic; it honours the model's own sign changes across the
+band); **binned** — closure phases binned to R = 100 (median bin);
+**channel** — one 0.1 nm channel (median). They differ by 10²–10⁴ in
+time. Estimating cos φc to precision Δ needs the statistic's SNR at
+cos φc = 1 to reach 1/Δ; we quote Δcos φc ≤ 0.1.
+
+**Hour angle.** The projected baselines rotate; a fringe drifts by
+(B(t₂)−B(t₁))·ρ/λ cycles between epochs — 1/8 cycle in 17 min for Spica
+on the 130 m UT1–UT4 arm at 400 nm, 4 min for δ Vel's 15 m fringes.
+`snr3.track_g3_snr` integrates a night in blocks of that length at the
+projected (u, v) with the orbital phase advanced, applies the sinc loss
+of the residual drift, and combines the blocks as a template fit (never
+coherently).
 
 ## 3. Geometry
 
-Site coordinates (Subaru 19°49′32″ N 155°28′34″ W; Keck I 19.8259465 N
-155.474719 W; Keck II 19.8265606 N 155.474234 W) give local ENU
-positions, relative to Subaru: Keck I (145.8 E, 43.3 N) m, Keck II
+Maunakea site coordinates (Subaru 19°49′32″ N 155°28′34″ W; Keck I
+19.8259465 N 155.474719 W; Keck II 19.8265606 N 155.474234 W) give local
+ENU positions relative to Subaru: Keck I (145.8 E, 43.3 N) m, Keck II
 (196.6 E, 111.3 N) m, i.e. pairwise
 
 | Baseline | Length |
@@ -83,186 +130,165 @@ positions, relative to Subaru: Keck I (145.8 E, 43.3 N) m, Keck II
 | Keck I – Keck II | 84.9 m |
 | Keck II – Subaru | 225.9 m |
 
-confirming the nominal 150 / 85 / 225 m. Summit elevations agree to
-~20 m, so we use a flat layout with the source at zenith (a documented
-simplification; hour-angle projection shortens the effective baselines
-and would only help). `bispectrum.MAUNAKEA_SUBARU_KECK` carries this
-triangle; apertures are Subaru 8.2 m and 2 × Keck 10 m.
+confirming the nominal 150 / 85 / 225 m. The VLT UTs (published station
+coordinates) span 46.6–130.2 m. `Triangle.projected(H, dec)` and
+`Array.projected` rotate the stations into the (u, v) plane for a real
+hour angle (`hbtsim.geometry`; UT1–UT4 is 129.4 m at Spica's transit),
+and every system carries the position angle of its ascending node
+(β Aur 295.15°, Algol 43.43°, Spica 131.6°, δ Vel 65.0°) so that closure
+phases on a fixed ground triangle are computed at the true orientation.
 
-## 4. The triple amplitude is geometry-crushed
+## 4. Aperture averaging and the triple amplitude
 
-Figures: `output/g3_gammas_{algol,betaaur}.png` (per-pair |γ|(λ) and the
-triple product at quadrature), `output/g3_cosphi_{algol,betaaur}.png`
-(cos φc over wavelength × orbital phase, rendered-image path, valid through
-eclipses).
+Figures: `output/g3_gammas_{spica,deltavel}_vlt.png` (per-pair |γ|(λ),
+point and pupil-averaged, and the three-pupil-averaged triple product of
+each triangle at quadrature), `output/g3_cosphi_{spica,deltavel}_vlt.png`
+(cos φc over wavelength × orbital phase on the UT1–UT2–UT4 triangle).
 
-The Keck I–Keck II 85 m pair retains healthy coherence (|γ| up to 0.66
-for Algol around 700 nm), but the two Subaru arms (152 m, 226 m) sit at
-or beyond the disks' first nulls over most of the band (Beta Aur's
-primary null is at 98 m at 400 nm, 207 m at 850 nm; Algol A's at 114 m
-at 400 nm). Since the bispectrum needs all three, the triple amplitude
-|γ₁₂γ₂₃γ₃₁| peaks at only **0.041 (Algol, 950 nm)** and **0.013
-(Beta Aur, 776 nm)** — one to two orders of magnitude below what a
-compact triangle would see.
-
-The closure-phase maps are nonetheless scientifically rich: cos φc
-flips sign at wavelengths set by the disk nulls and the binary fringe,
-the flip pattern sweeps with orbital phase, and it reorganizes sharply
-through the eclipses — exactly the phase information that two-telescope
-HBT can never see, and the dataset an imaging reconstruction would
-consume.
+A binary fringe of period P = λ/ρ sampled by pupils D₁, D₂ keeps
+A(πD₁/P)·A(πD₂/P) of its contrast, A(x) = 2J₁(x)/x: for 8.2 m pupils at
+400 nm that is 0.93 for Spica (ρ = 1.7 mas), 0.89 for Algol, 0.76 for
+β Aur (3.3 mas) and **0.46 for δ Vel at maximum separation** (5.5 mas,
+P = 15 m). On the VLT every Spica baseline lies inside the disks' first
+null at the true orientation, |γ| = 0.1–0.95, and the three-pupil-averaged
+triple amplitudes reach 0.3–0.6 in the red; δ Vel's unresolved disks
+give 0.68–0.86 around the orbit. On Maunakea the two Subaru arms
+(152, 226 m) sit at or beyond the disks' first nulls over most of the
+band, and the triple amplitude at transit peaks at only **0.04 (Spica,
+Algol)** and **0.01 (β Aur)**.
 
 ## 5. Feasibility
 
-Nights (8 h) of integration for the spectrally-multiplexed bispectrum to
-reach Δcos φc ≤ 0.3 / ≤ 0.1, at quadrature, computed by
-`scripts/feasibility_g3.py` with the photon budget of section 2
-(throughput 0.3, SPAD Lambda PDE/jitter/dead time, anchored magnitudes):
+Integration for Δcos φc ≤ 0.1 (8-hour nights), snapshot at quadrature
+(δ Vel: range over orbital phases 0.25–0.9):
 
-| System | Triangle | Channels | SNR₃ (mux) per h | Nights, Δcos ≤ 0.3 | Nights, Δcos ≤ 0.1 |
-|---|---|---|---|---|---|
-| Algol | Subaru+Keck+Keck | 320 × 1.72 nm | 4.3×10⁻³ | 77,000 (**~260 yr**) | 690,000 (**~2,400 yr**) |
-| Algol | Subaru+Keck+Keck | 5500 × 0.10 nm | 0.18 | **42** | 382 |
-| Algol | compact 85 m (3×10 m) | 320 × 1.72 nm | 0.11 | 116 | 1,050 |
-| Algol | compact 85 m (3×10 m) | 5500 × 0.10 nm | 5.5 | **0.05 (≈ 22 min)** | **0.41 (≈ 3.3 h)** |
-| Beta Aur | Subaru+Keck+Keck | 320 × 1.72 nm | 3.2×10⁻³ | 137,000 | 1.2×10⁶ |
-| Beta Aur | Subaru+Keck+Keck | 5500 × 0.10 nm | 0.11 | 109 | 982 |
-| Beta Aur | compact 85 m (3×10 m) | 5500 × 0.10 nm | 6.8 | 0.03 | 0.27 |
-| **Spica** | Subaru+Keck+Keck | 5500 × 0.10 nm | **1.42** | **0.7** | **6.2** |
-| Spica | Subaru+Keck+Keck | 320 × 1.72 nm | 1.4×10⁻² | 6,700 | 60,200 |
+| System | Array | Backend | SNR_amp / √h | amplitude | R = 100 bins | one channel |
+|---|---|---|---|---|---|---|
+| Spica | VLT 4×UT | current SPAD Lambda, 320 ch, time-tag link | 9×10⁻⁵ | — | — | — |
+| Spica | VLT 4×UT | current SPAD Lambda, 320 ch, correlator | 0.29 | 151 nights | 2.6×10⁴ nights | 8×10⁵ nights |
+| **Spica** | **VLT 4×UT** | **next-gen R = 5000, correlator** | **12.9** | **36 min** | **13.6 nights** | 1.2×10⁴ nights |
+| Spica | VLT 4×UT | next-gen R = 5000 + PBS | 28.7 | 7.3 min | 2.8 nights | 2.5×10³ nights |
+| δ Vel | VLT 4×UT | current, 320 ch, correlator | 0.12–0.23 | 230–810 nights | ≥1.7×10⁵ nights | ≥5×10⁶ nights |
+| **δ Vel** | **VLT 4×UT** | **next-gen R = 5000, correlator** | **4.4–7.7** | **1.7–5.1 h** | **280–800 nights** | ≥9×10⁴ nights |
+| δ Vel | VLT 4×UT | next-gen R = 5000 + PBS | 9.1–16.1 | 23–73 min | 66–190 nights | ≥2×10⁴ nights |
+| Spica | Subaru+Keck+Keck | next-gen R = 5000, correlator | 0.17 | 430 nights | 1.5×10⁴ nights | 8×10⁵ nights |
+| Spica | Subaru+Keck+Keck | next-gen R = 5000 + PBS | 0.38 | 88 nights | 3×10³ nights | 1.5×10⁵ nights |
+| Algol | Subaru+Keck+Keck | next-gen R = 5000, correlator | 0.045 | 6.3×10³ nights | 1.9×10⁶ nights | 9×10⁷ nights |
+| β Aur | Subaru+Keck+Keck | next-gen R = 5000, correlator | 0.007 | 2.8×10⁵ nights | 1.4×10⁸ nights | 6×10⁹ nights |
 
-Per-channel detected rates are 1.2–7.5×10⁷ cps (dead-time-saturated
-blueward of ~650 nm at 1.72 nm channels); the photon occupancy is
-R·τ_c ≈ 3×10⁻⁵ per coherence time — the n^{3/2} penalty relative to the
-pair correlation's n is the fundamental difficulty of g³ on thermal
-starlight.
+The current SPAD Lambda's time-tag link (≈10⁸ events/s per detector, an
+estimate from its two USB3 links) is 200–800× below what these stars
+deliver to 8–10 m telescopes; with the rates attenuated to the link the
+time-tag rows are 10⁸–10¹⁵ nights on every target, i.e. no statistic is
+reachable with the detector as delivered. The 320-channel array also
+drives single pixels to dead-time loads R·τ_dead = 1.3–5.5, outside the
+non-paralyzable model; the R = 5000 backend brings them to 0.1–0.3.
+
+Integrated along the uv track (one night, blocks short enough that the
+fringe drifts ≤ 1/8 cycle; blocks combined as a template fit):
+
+| System | Array | Backend | nights to Δcos φc ≤ 0.1 (amplitude) | (R = 100 bins) |
+|---|---|---|---|---|
+| Spica | VLT | next-gen R = 5000 | 0.10 (≈ 47 min of the 8.3 h window) | 11.7 |
+| Spica | VLT | next-gen R = 5000 + PBS | 0.02 | 2.5 |
+| δ Vel | VLT | next-gen R = 5000 (4-min blocks) | 0.58 | 195 |
+| δ Vel | VLT | next-gen R = 5000 + PBS (4-min blocks) | 0.13 | 46 |
+| Spica | Subaru+Keck+Keck | next-gen R = 5000 | **10.8** (snapshot: 430) | 1.3×10³ |
+| Spica | Subaru+Keck+Keck | next-gen R = 5000 + PBS | 2.2 | 260 |
+| Algol | Subaru+Keck+Keck | next-gen R = 5000 | 200 | 3.5×10⁴ |
+
+On Maunakea the track is the measurement: the transit snapshot sits at a
+near-null orientation of the long arms, and the rotating (u, v) points
+sweep through geometry 40× more favourable over the night.
 
 Context (Zmija et al. 2025, Table 2): H.E.S.S. (3×100 m², 5 ns, 10 nm,
-one channel) needs ~1100–2400 yr for the same criterion on m_B ≈ 2
-stars; their CTA-LST projection (4×400 m², 0.1 ns, 0.1 nm, 1000
-channels) reaches ~2–5 months. Our Maunakea-with-R≈5000 numbers are
-consistent with that once the smaller collecting areas and the
-geometry-suppressed |γ₁₂γ₂₃γ₃₁| are accounted for.
+one channel) needs ~1100–2400 yr for the same criterion on m_B ≈ 2 stars
+(reproduced to within an order of magnitude by `tests/test_snr3.py` under
+their stated assumptions); their CTA-LST projection (4×400 m², 0.1 ns,
+0.1 nm, 1000 channels) reaches ~2–5 months.
 
-## 5b. Target selection: Spica makes the real triangle work
+## 5b. Target selection: surface brightness
 
 What the long arms punish is the stellar *disk* size, not the binary
 separation (the separation only sets the fringe period — that is
-signal). The figure of merit at fixed apparent flux is **surface
+signal, until the fringe period approaches the pupil diameter, as for
+δ Vel). The figure of merit at fixed apparent flux is **surface
 brightness**: hotter photospheres pack the same flux into a smaller
-disk, keeping |γ| alive at 150–226 m. The optimal class is therefore
-bright early-B close binaries with disks ≲ 0.5–0.9 mas and separations
-~0.5–2 mas.
-
-**Spica (α Vir)** is the textbook case, now in the package as `SPICA`
-(`--system spica`): V = 0.97, B1 III-IV + B2 V (25,300/20,900 K,
-θ = 0.91/0.45 mas — the primary's diameter was itself measured by the
-Narrabri *intensity interferometer*, Herbison-Evans et al. 1971),
-ρ = 1.71 mas, P = 4.01 d. Its triple amplitude on the Maunakea triangle
-is no better than Algol's (0.036 — bright means near, and the B giant
-still subtends 0.9 mas), but the 3.5× higher photon flux enters as
-R^{3/2} in the unsaturated narrow-channel regime:
-
-**With the R ≈ 5000 backend, Subaru + Keck I + Keck II reaches
-Δcos φc ≤ 0.3 on Spica in ~0.7 night and ≤ 0.1 in ~6 nights** — the
-real triangle becomes genuinely feasible with the right target, no
-compact array required. (The stock 320-channel SPAD Lambda still needs
-~6,700 nights: the spectroscopic backend remains non-negotiable.)
-
-Spica caveats: the true orbit has e = 0.108 with apsidal motion
-(approximated circular here); the primary is a β Cep pulsator and
-tidally distorted (rendered as a static sphere); it is non-eclipsing
-at i = 63°.
+disk, keeping |γ| alive at 50–130 m and even at 150–226 m. Spica
+(V = 0.97, B1 III-IV + B2 V, θ = 0.91/0.45 mas, ρ = 1.71 mas, P = 4.01 d)
+is the textbook case; its 3.5× higher photon flux than Algol enters as
+R^{3/2}. δ Vel (V = 1.95, A2 IV + A4 V, 0.34/0.29 mas) is the other
+extreme: unresolved disks and the largest triple amplitudes, paid for by
+the flux⁻³ scaling and the pupil averaging of its 15 m blue fringes.
 
 ## 5c. Four telescopes: the VLT Unit Telescopes
 
-Putting SPAD Lambdas with R ≈ 5000 backends on the four 8.2 m VLT UTs
-(`bispectrum.VLT_UT`; published station coordinates reproduce the
-pairwise separations 46.6 / 56.5 / 62.4 / 89.3 / 102.4 / 130.2 m to
-≤ 0.2 m) changes the problem qualitatively:
+Putting next-generation SPAD arrays with R = 5000 backends and
+on-detector correlators on the four 8.2 m VLT UTs changes the problem
+qualitatively:
 
 - **All six baselines are short.** 46.6–130.2 m sits inside Spica's
-  first null across the band, so every pair keeps |γ| ≈ 0.4–0.75 and the
-  four triangles reach triple amplitudes 0.19–0.39 — an order of
-  magnitude above the Maunakea triangle.
+  first null across the band.
 - **Four triangles at once.** Of the four closure phases, three are
   independent ((N−1)(N−2)/2), but all four triple-coincidence streams
   carry independent accidental noise and add in quadrature; six |V|²
-  baselines come along simultaneously for free, giving genuine snapshot
-  (u, v) coverage — the minimal configuration for model-independent
-  imaging rather than model fitting.
-- **Result for Spica** (transits at 77° at Paranal): combined bispectrum
-  sensitivity ≈ 28/√h per unit cos φc — **Δcos φc ≤ 0.3 in ~1 minute,
-  ≤ 0.1 in ~8 minutes**. The orbit (P = 4.01 d) can be tiled with
-  closure-phase measurements every few minutes over a night: a
-  closure-phase *curve*, not a single number.
-- **Limiting magnitude.** Time scales as flux⁻³; for similar geometry a
-  one-night Δcos φc ≤ 0.1 measurement works down to **g ≈ 2.2** —
-  several dozen hot southern binaries and rapid rotators qualify
-  (α Cen's neighborhood of bright B stars: β Cen, α Lup, λ Sco,
-  β Cru ...). With the stock 320-channel SPAD Lambda instead of R ≈ 5000
-  the same measurement needs ~90 nights — the spectroscopic backend
-  remains the enabling hardware.
-- **Declination caveat**: Paranal (−24.6°) cannot usefully observe Algol
-  or Beta Aurigae (culminating below ~25°); the VLT numbers are for
-  southern targets, with Spica the natural first light.
-
-Like Maunakea, the UTs already host amplitude interferometry (VLTI);
-the II niches are the same as section 5b — absolute |V|² calibration,
-the blue, no beam combination or delay lines (each UT independently
-time-tags photons), and validation of the technique toward km-baseline
-arrays.
+  baselines come along simultaneously — genuine snapshot (u, v)
+  coverage, the minimal configuration for model-independent imaging.
+- **Result for Spica** (transits at 77° at Paranal): the template
+  detection in 36 min (7 min with a beamsplitter); R = 100 closure-phase
+  curves in 13.6 (2.8) nights per epoch.
+- **Limiting magnitude.** Time scales as flux⁻³; a one-night template
+  detection at Δcos φc ≤ 0.1 works down to **g ≈ 1.7 unpolarized,
+  g ≈ 2.2 with the beamsplitter** — a dozen to several dozen hot
+  southern binaries and rapid rotators (β Cen, λ Sco, β Cru, α Eri …).
+- **Declination caveat**: Paranal (−24.6°) never sees Algol or β Aur
+  above 30°; the VLT numbers are for southern targets.
 
 ## 6. Caveats
 
-- **Aperture smearing**: 8–10 m apertures on 85–226 m baselines average
-  the complex visibility over B ± D/2 — fringe periods λ/ρ are 25–60 m,
-  so this suppresses (and slightly biases) the triple product; not
-  modeled (would reduce feasibility further).
-- **Flat-layout / zenith** baselines; real hour-angle tracks shorten and
-  rotate the projected triangle (generally helpful for these
-  over-resolved disks).
-- **Pair-term ridges**: the |γ_ij|² terms form ridges crossing the
-  (τ₁, τ₂) bump; they bias the triple estimator and must be subtracted
-  using the simultaneously-measured g²'s (the H.E.S.S. analysis does
-  exactly this with 2D Gaussian-tube fits).
-- At 0.1 nm channels τ_c (~10–20 ps) is no longer ≪ σ (51 ps): the
-  matched-filter kernel should be broadened by the coherence envelope
-  (an O(1) correction in the optimistic direction of our quoted times).
+- **Kernel calibration** (the critical systematic): ridge ratios of ~100
+  at R = 5000 require the pair-correlation kernel shape to 10⁻³.
+- **Readout**: the on-detector correlator assumed for the next-generation
+  device is a development item; the 10⁸ cps time-tag ceiling of the
+  current SPAD Lambda is an estimate to be confirmed with Pi Imaging.
+- **SEDs**: blackbody surface fluxes with observed anchors set the flux
+  ratio of the two stars (hence the fringe contrast) only to tens of
+  per cent in the blue for Algol; the model-atmosphere hooks
+  (`hbtsim.sed`, NewEra PHOENIX) remove this once angle-resolved spectra
+  for these parameters are available.
 - **Algol C**: the ~10% incoherent third light dilutes every γ by ~0.9
   and the triple product by ~0.73 unless C is excluded optically.
-- Detector saturation: per-channel rates at 1.72 nm are dead-time-capped
-  blueward of ~650 nm; quoted numbers include the non-paralyzable model.
+- Orbital physics not modeled: Spica's e = 0.108 and apsidal motion, its
+  β Cep pulsations and tidal distortion; δ Vel's rotational oblateness
+  (the signal a campaign would target); the δ Vel ω convention should be
+  checked against the observed eclipse timing before it is used for
+  timing work.
 
 ## 7. Conclusions
 
-1. **Subaru + Keck I + Keck II with the stock SPAD Lambda cannot measure
-   closure phases of these binaries** — the required integrations are
-   measured in centuries. Two independent suppressions stack: photon
-   occupancy (R·τ_c ~ 3×10⁻⁵ per coherence time, and SNR₃ ∝ occupancy^{3/2})
-   and geometry (the 152/226 m Subaru arms resolve the ~1 mas disks past
-   their first nulls, crushing |γ₁₂γ₂₃γ₃₁| to ~10⁻²).
-2. **Spectroscopy is the biggest practical lever**: an R ≈ 5000
-   dispersing backend (0.1 nm channels) shortens the time by ~Δλ
-   (saturated regime) to ~10² — bringing Δcos φc ≤ 0.3 within ~a month
-   of dedicated time. This is the same conclusion CTA-LST studies reach.
-3. **Geometry beats aperture** for resolved ~1 mas disks: a compact
-   ≲ 85 m triangle (e.g. Keck I + Keck II + a third 10 m-class aperture)
-   raises the triple amplitude by 1–2 orders of magnitude and makes
-   bright-binary closure phases measurable in nights with fine spectral
-   channels. If the goal is imaging ~mas-scale bright stars through the
-   bispectrum, the array to build is compact and many-channeled, not
-   long-armed.
-3b. **Target selection rescues the real triangle**: high-surface-
-   brightness early-B binaries keep |γ| alive on the long arms while
-   delivering R^{3/2} photons — Spica reaches Δcos φc ≤ 0.3 in under a
-   night and ≤ 0.1 in ~6 nights on Subaru + Keck I + Keck II with the
-   R ≈ 5000 backend (section 5b).
-4. For image reconstruction proper, one triangle gives one closure phase
-   per (λ, t); the λ-dependence across 320–5500 channels plus the
-   orbital phase dependence is the dataset — Nuñez & Domiciano de Souza
-   (2015) found useful reconstructions need bispectrum SNR ≳ 30 with
-   ~10³ channels, consistent with the times quoted here.
+1. **The SPAD Lambda as delivered cannot measure closure phases of these
+   binaries** on any large telescope: its time-tag link caps the photon
+   rate 200–800× below what the stars deliver, and even with a
+   correlator readout its 320 channels need ~150 nights on the best
+   case (Spica, VLT).
+2. **Spectral resolution plus on-detector correlation is the enabling
+   hardware**: an R = 5000 backend brings the Spica template detection on
+   the VLT to 36 minutes (7 with a polarizing beamsplitter), a factor of
+   ~2000 in time over 320 channels.
+3. **Detection and imaging are different measurements.** The template
+   amplitude comes in minutes; R = 100 closure-phase curves take nights
+   per epoch; single 0.1 nm channels are out of reach. Image
+   reconstruction (Nuñez & Domiciano de Souza 2015: bispectrum SNR ≳ 30
+   in ~10³ channels) needs the multi-night regime.
+4. **Geometry and tracking**: on Maunakea the long Subaru arms resolve
+   ~1 mas disks past their first nulls (triple amplitude ≲ 0.04 at
+   transit), yet the uv track recovers a 40× better night than the
+   snapshot — 11 nights for Spica's template with the next-generation
+   backend. Compact ≲ 130 m arrays of 8–10 m apertures remain the right
+   geometry for milliarcsecond bright stars.
+5. **The systematics budget is set by the pair ridges**: a 10⁻³ kernel
+   calibration, not photon statistics, is the hard requirement for a
+   closure-phase measurement at Δcos φc = 0.1.
 
 ## References
 
