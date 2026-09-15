@@ -43,7 +43,7 @@ from .aperture import TripleQuadrature, triple_quadrature_for
 from .geometry import HOUR, MAUNAKEA, PARANAL, Site, enu_to_uv
 from .hbt import vis_of_baselines
 from .orbit import SkyPositions, sky_positions
-from .params import MAS, BinarySystem, GridConfig, planck, require_out_of_eclipse
+from .params import MAS, BinarySystem, GridConfig, require_out_of_eclipse
 from .snr import KECK, SPAD_LAMBDA, SPAD_LAMBDA_NG, SUBARU, Detector, Telescope
 from .spectral import spectral_vis
 
@@ -59,10 +59,12 @@ def binary_vis_complex_analytic(bvecs_m, wavelength_nm, system: BinarySystem,
         V(u) = [f1 V1 e^{-2 pi i u.theta1} + f2 V2 e^{-2 pi i u.theta2}]
                / (f1 + f2),
 
-    with per-star fluxes f_s = B_lambda(T_s) theta_s^2 (1 - u_s/3) and
-    LD disk visibilities V_s.  wavelength_nm scalar -> (K,); array ->
-    (n_lambda, K).  Raises ValueError in (or near) eclipse."""
-    from .limbdark import visibility_ld_disk
+    with per-star fluxes f_s = F_s(lambda) theta_s^2 (model SED or pi
+    B_lambda(T_s)) and LD disk visibilities V_s (linear-law series or
+    the numeric transform of a tabulated profile).  wavelength_nm scalar
+    -> (K,); array -> (n_lambda, K).  Raises ValueError in (or near)
+    eclipse."""
+    from .limbdark import star_disk_visibility
 
     require_out_of_eclipse(system, float(pos.rho),
                            "the analytic complex visibility",
@@ -81,9 +83,8 @@ def binary_vis_complex_analytic(bvecs_m, wavelength_nm, system: BinarySystem,
     norm = np.zeros((lam.shape[0], 1))
     for s, th_pos in zip(stars, positions):
         theta_d = 2.0 * system.angular_radius_mas(s) * MAS
-        u_s = np.atleast_1d(s.ld_coeff(lam_nm[:, 0]))[:, None]
-        f_s = planck(lam, s.teff) * theta_d**2 * (1.0 - u_s / 3.0)
-        v_s = visibility_ld_disk(np.pi * theta_d * b_len / lam, u_s)
+        f_s = np.atleast_1d(s.surface_flux(lam_nm[:, 0]))[:, None] * theta_d**2
+        v_s = star_disk_visibility(s, np.pi * theta_d * b_len / lam, lam_nm[:, 0])
         phase = np.exp(-2j * np.pi * (u[..., 0] * th_pos[0] + u[..., 1] * th_pos[1]))
         out += f_s * v_s * phase
         norm += f_s

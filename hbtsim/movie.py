@@ -68,20 +68,19 @@ def render_display_rgb(pos, system, grid) -> np.ndarray:
     """(m, m, 3) true-temperature-color sky image at one epoch.
 
     Each channel is the rendered image at RGB_DISPLAY_NM multiplied by
-    the secondary's Planck surface brightness at that wavelength (the
-    render is in units of B_lambda(T2), so this restores the absolute
-    inter-channel scaling) and divided by the white-reference Planck
-    spectrum: a pixel of star s carries B_lambda(T_s)/B_lambda(T_ref)."""
+    the secondary's central intensity at that wavelength (the render is
+    in units of I_2(1), so this restores the absolute inter-channel
+    scaling) and divided by the white-reference Planck spectrum: a pixel
+    of star s carries I_s(1)/B_lambda(T_ref)."""
     from .render import render_image
 
     m = 2 * DISPLAY_HALF_PX
     rgb = np.empty((m, m, 3), np.float32)
     for c, lam_nm in enumerate(RGB_DISPLAY_NM):
         img = np.asarray(render_image(pos, system, lam_nm, grid))
-        lam_m = lam_nm * 1e-9
         rgb[..., c] = (_display_crop(img, grid.n)
-                       * planck(lam_m, system.secondary.teff)
-                       / planck(lam_m, WHITE_REF_TEFF))
+                       * system.secondary.central_intensity(lam_nm)
+                       / planck(lam_nm * 1e-9, WHITE_REF_TEFF))
     return rgb
 
 
@@ -94,12 +93,12 @@ def stretch_rgb(disp: np.ndarray) -> np.ndarray:
     return np.clip(disp * scale[..., None], 0.0, 1.0)
 
 
-@partial(jax.jit, static_argnames=("n", "n_band", "n_disp", "chunk"))
+@partial(jax.jit, static_argnames=("n", "s", "n_band", "n_disp", "chunk"))
 def _frames_jit(x1, y1, x2, y2, front2,            # (nf,)
                 r1, r2,                            # scalars
-                w1, u1, u2,                        # (n_wl,) all wavelengths
+                w1, i1, i2,                        # (n_wl,), (n_wl, n_mu) x 2
                 fx_hi, fx_lo, fy_hi, fy_lo,        # (nf, n_g2, K)
-                n: int, n_band: int, n_disp: int, chunk: int):
+                n: int, s: int, n_band: int, n_disp: int, chunk: int):
     """Everything the movie needs, for all frames, in one jitted scan:
     per frame the binary is rendered at every wavelength (bands, display
     RGB, g2 channels) by one vmapped kernel call, the band images are
@@ -108,18 +107,19 @@ def _frames_jit(x1, y1, x2, y2, front2,            # (nf,)
     half = DISPLAY_HALF_PX * DISPLAY_BIN
     c = n // 2
     m = 2 * DISPLAY_HALF_PX
-    render_all = jax.vmap(render_kernel,
-                          in_axes=(None, None, None, None, None, None, None,
-                                   0, None, 0, 0, None))
+    render_all = jax.vmap(
+        lambda a, b, c_, d, e, f, g, w, ia, ib:
+        render_kernel(a, b, c_, d, e, f, g, w, jnp.float32(1.0), ia, ib, n, s),
+        in_axes=(None, None, None, None, None, None, None, 0, 0, 0))
 
     def one_frame(fr):
         fx1, fy1, fx2, fy2, ffront, fxh, fxl, fyh, fyl = fr
-        imgs = render_all(fx1, fy1, fx2, fy2, ffront, r1, r2,
-                          w1, jnp.float32(1.0), u1, u2, n)   # (n_wl, n, n)
+        imgs = render_all(fx1, fy1, fx2, fy2, ffront, r1, r2, w1, i1, i2)  # (n_wl, n, n)
         flux = jnp.sum(imgs[:n_band], axis=(1, 2))
         crop = imgs[n_band:n_band + n_disp, c - half:c + half, c - half:c + half]
         disp = crop.reshape(n_disp, m, DISPLAY_BIN, m, DISPLAY_BIN).mean(axis=(2, 4))
-        vis = jax.vmap(dft_points)(imgs[n_band + n_disp:], fxh, fxl, fyh, fyl)
+        vis = jax.vmap(lambda im, a, b, c_, d: dft_points(im, a, b, c_, d, s > 1))(
+            imgs[n_band + n_disp:], fxh, fxl, fyh, fyl)
         return flux, disp, jnp.abs(vis) ** 2
 
     return jax.lax.map(one_frame,
@@ -139,7 +139,7 @@ def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
                else np.full(nf, np.radians(float(cfg.baseline_pa))))
     band_nm = [lam for _, lam in cfg.bands]
     all_nm = [*band_nm, *RGB_DISPLAY_NM, *cfg.wavelengths_nm]
-    u1, u2, w1 = spectral_weights(np.asarray(all_nm), system)
+    cw = spectral_weights(np.asarray(all_nm), system, grid)
 
     # baseline points: the fine curve followed by the marked baselines
     fine_b = cfg.fine_baselines_m
@@ -168,8 +168,8 @@ def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
         f32(pos_all.x2 / s), f32(pos_all.y2 / s), jnp.asarray(pos_all.front2),
         jnp.float32(system.angular_radius_mas(system.primary) / s),
         jnp.float32(system.angular_radius_mas(system.secondary) / s),
-        w1, u1, u2, f32(fx_hi), f32(fx_lo), f32(fy_hi), f32(fy_lo),
-        grid.n, len(cfg.bands), len(RGB_DISPLAY_NM), chunk)
+        cw.w1, cw.i1, cw.i2, f32(fx_hi), f32(fx_lo), f32(fy_hi), f32(fy_lo),
+        grid.n, grid.supersample, len(cfg.bands), len(RGB_DISPLAY_NM), chunk)
     flux = np.asarray(flux, dtype=float)                 # (nf, n_band)
     disp_raw = np.asarray(disp_raw, dtype=np.float32)    # (nf, 3, m, m)
     vis2 = np.asarray(vis2, dtype=np.float32)            # (nf, n_g2, K [* M])
@@ -184,9 +184,8 @@ def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
     # white-balance (see render_display_rgb)
     disp = np.transpose(disp_raw, (0, 2, 3, 1)).copy()
     for ch, lam_nm in enumerate(RGB_DISPLAY_NM):
-        lam = lam_nm * 1e-9
-        disp[..., ch] *= (planck(lam, system.secondary.teff)
-                          / planck(lam, WHITE_REF_TEFF))
+        disp[..., ch] *= (system.secondary.central_intensity(lam_nm)
+                          / planck(lam_nm * 1e-9, WHITE_REF_TEFF))
 
     mags = {band: anchored_mags(apparent_ab_mag(flux[:, j], lam_nm, system, grid),
                                 band, system)

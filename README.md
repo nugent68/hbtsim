@@ -87,16 +87,24 @@ transform of the sky brightness distribution at spatial frequency
                         matrix products, float32-exact phase)
                      →  V(u, v) / V(0, 0)  →  g²(B) = 1 + |V(B)|².
 
-Each star is a linearly limb-darkened disk, I(μ)/I(1) = 1 − u_λ(1 − μ),
+Each star is a limb-darkened disk whose centre-to-limb profile is
+tabulated on a μ grid: by default the linear law I(μ)/I(1) = 1 − u_λ(1 − μ)
 with per-star Claret & Bloemen (2011) coefficients, weighted by the
-Planck function at its effective temperature. Eclipses are handled by
-z-ordering the disks on the grid, which also yields the lightcurves by
-direct image summation. Lightcurves are calibrated in two steps:
-synthetic monochromatic AB magnitudes from the physical flux at Earth
-(blackbody photospheres), then a constant per-band shift anchoring
-maximum light to the observed photometry (the blackbody zero point is a
-few tenths of a magnitude off — no line blanketing or H⁻ opacity — but
-eclipse shapes and depths remain purely simulated).
+Planck function at its effective temperature; optionally
+(`Star.ld_profile`, `Star.flux_table`, built by `hbtsim.sed`) the
+angle-resolved intensities I(μ, λ) and surface fluxes of a model
+atmosphere — `scripts/prepare_newera.py` bins a NewEra PHOENIX HSR-RF
+file (Hauschildt et al. 2025) to a small table, which then sets both
+the flux ratio of the two stars (hence the fringe contrast) and their
+limb profiles, line by line. Eclipses are handled by z-ordering the
+disks on the grid, which also yields the lightcurves by direct image
+summation. Lightcurves are calibrated in two steps: synthetic
+monochromatic AB magnitudes from the physical flux at Earth, then a
+constant per-band shift anchoring maximum light to the observed
+photometry (for blackbody photospheres the zero point is a few tenths
+of a magnitude off — no line blanketing or H⁻ opacity; with model SEDs
+the anchors only serve as a check, and eclipse shapes and depths are
+purely simulated in both cases).
 
 The g² = 1 + |V|² normalization is the ideal fully-coherent-detection
 limit; a real intensity interferometer measures a contrast reduced by
@@ -104,7 +112,13 @@ the ratio of coherence time to detector resolution (Rai, Basak & Saha
 2021, eq. 6) — that physics lives in the SNR module below.
 
 Numerical layout: 1024² source grid at 0.01 mas/pixel (disk radii
-~45–55 px, limb darkening well resolved). The visibility is *not*
+~45–55 px, limb darkening well resolved); `GridConfig.for_system()`
+picks a finer scale when a star would fall below 50 px (δ Vel), and
+`GridConfig(supersample=4)` renders each pixel as the mean of 16
+sub-pixel soft-rim renders (with the pixel-window sinc removed from
+the DFT), which takes the renderer's limb bias from ~1e-4 to ~1e-5 in
+|V|² and the rendered-vs-analytic closure phase from 0.15° to 0.02°.
+The visibility is *not*
 taken from a padded FFT map: the interferometer only ever needs V at a
 few points per channel, and the K-point DFT (`hbtsim/hbt.py`) gives them
 exactly — no interpolation error, no crop limit on the baseline, ~1000×
@@ -326,7 +340,10 @@ movie locally with `--render-only`.
 - `hbtsim/aperture.py` — finite-aperture (pupil) averaging of |V|² and
   of the three-pupil bispectrum
 - `hbtsim/geometry.py` — sites, hour angle, uv projection, fringe drift
-- `hbtsim/limbdark.py` — linear LD law + analytic disk visibility
+- `hbtsim/limbdark.py` — linear LD law, analytic and numeric (tabulated
+  profile) disk visibilities
+- `hbtsim/sed.py`, `scripts/prepare_newera.py` — model-atmosphere flux
+  and I(μ, λ) tables (NewEra PHOENIX HSR-RF reader)
 - `hbtsim/render.py` — JAX rendering of the occulted limb-darkened disks
 - `hbtsim/hbt.py` — exact K-point DFT sampling of V(u, v), |V|², g²(B);
   analytic binary visibility

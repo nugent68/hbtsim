@@ -11,9 +11,9 @@ inside one jitted computation: jax.lax.map(..., batch_size=chunk)
 processes `chunk` channels as one vmapped step (batched renders and
 matrix products, which is what makes a GPU efficient) and scans across
 chunks, reusing the chunk buffers.  Per channel the working set is a
-few n^2 float32 temporaries (~30 MB at n = 1024), so the default chunk
-(64 on GPU, 8 on CPU) costs ~2 GB / 0.25 GB; only the small per-channel
-samples accumulate.  The channel list is padded to a multiple of the
+few n^2 float32 temporaries (~30 MB at n = 1024, independent of the
+supersampling factor), so the default chunk (64 on GPU, 8 on CPU) costs
+~2 GB / 0.25 GB; only the small per-channel samples accumulate.  The channel list is padded to a multiple of the
 chunk (repeating the last channel) so the map body is traced once.
 
 Everything is forced to float32/complex64, matching GPU behaviour even
@@ -47,18 +47,18 @@ def _pad_to_chunk(n_lambda: int, chunk_size: int | None):
     return chunk, n_pad
 
 
-@partial(jax.jit, static_argnames=("n", "chunk"))
+@partial(jax.jit, static_argnames=("n", "s", "chunk"))
 def _spectral_vis_jit(x1, y1, x2, y2, front2, r1, r2,
-                      u1, u2, w1,                     # (n_pad,)
+                      w1, i1, i2,                     # (n_pad,), (n_pad, n_mu) x 2
                       fx_hi, fx_lo, fy_hi, fy_lo,     # (n_pad, K)
-                      n: int, chunk: int):
+                      n: int, s: int, chunk: int):
     def one_channel(ch):
-        u1_k, u2_k, w1_k, fxh, fxl, fyh, fyl = ch
+        w1_k, i1_k, i2_k, fxh, fxl, fyh, fyl = ch
         img = render_kernel(x1, y1, x2, y2, front2, r1, r2,
-                            w1_k, jnp.float32(1.0), u1_k, u2_k, n)
-        return dft_points(img, fxh, fxl, fyh, fyl), jnp.sum(img)
+                            w1_k, jnp.float32(1.0), i1_k, i2_k, n, s)
+        return dft_points(img, fxh, fxl, fyh, fyl, s > 1), jnp.sum(img)
 
-    return jax.lax.map(one_channel, (u1, u2, w1, fx_hi, fx_lo, fy_hi, fy_lo),
+    return jax.lax.map(one_channel, (w1, i1, i2, fx_hi, fx_lo, fy_hi, fy_lo),
                        batch_size=chunk)
 
 
@@ -82,14 +82,15 @@ def spectral_vis(pos: SkyPositions, bvecs_m, wavelengths_nm,
 
     chunk, n_pad = _pad_to_chunk(n_l, chunk_size)
     pad_idx = np.minimum(np.arange(n_pad), n_l - 1)
-    u1, u2, w1 = spectral_weights(lam[pad_idx], system)
+    cw = spectral_weights(lam[pad_idx], system, grid)
     fx_hi, fx_lo = split_frequency(f[pad_idx, :, 0])
     fy_hi, fy_lo = split_frequency(f[pad_idx, :, 1])
     f32 = lambda a: jnp.asarray(a, dtype=jnp.float32)
 
     vis, flux = _spectral_vis_jit(
-        *kernel_args(pos, system, grid), u1, u2, w1,
-        f32(fx_hi), f32(fx_lo), f32(fy_hi), f32(fy_lo), grid.n, chunk)
+        *kernel_args(pos, system, grid), cw.w1, cw.i1, cw.i2,
+        f32(fx_hi), f32(fx_lo), f32(fy_hi), f32(fy_lo), grid.n,
+        grid.supersample, chunk)
     vis, flux = vis[:n_l], flux[:n_l]
     return (vis, flux) if return_flux else vis
 

@@ -48,7 +48,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from .params import MAS, GridConfig, planck, require_out_of_eclipse
+from .params import MAS, GridConfig, require_out_of_eclipse
 
 _SPLIT = 2.0 ** 14          # f_hi granularity (cycles / pixel)
 _MAX_CYCLES_PER_PIXEL = 0.25  # guard: well below Nyquist (0.5)
@@ -93,11 +93,17 @@ def _phasor(f_hi, f_lo, k):
     return jnp.cos(ang), jnp.sin(ang)
 
 
-def dft_points(img, fx_hi, fx_lo, fy_hi, fy_lo):
+def dft_points(img, fx_hi, fx_lo, fy_hi, fy_lo, pixel_window: bool = False):
     """V at K frequency points (cycles per pixel along x = axis 1 and
     y = axis 0) of an (n, n) image, phase origin at the grid centre,
     normalized to V(0, 0) = 1.  Traceable: used directly inside the
-    batched spectral kernels; vis_points() is the jitted host entry."""
+    batched spectral kernels; vis_points() is the jitted host entry.
+
+    pixel_window=True divides by sinc(pi fx) sinc(pi fy): a supersampled
+    (pixel-INTEGRATED) image is the continuous source convolved with the
+    pixel box, whose transform is that sinc (1 - 1.5e-3 at 0.03
+    cycles/pixel); a plain midpoint-sampled render (GridConfig.
+    supersample = 1) carries no such factor."""
     n = img.shape[-1]
     k = jnp.arange(n, dtype=img.dtype) - (n - 1) / 2.0
     # _phasor returns cos and sin of the SIGNED angle -2 pi f (k - c), so
@@ -111,10 +117,13 @@ def dft_points(img, fx_hi, fx_lo, fy_hi, fy_lo):
     # column pass: sum_y (cy + i sy)(rr + i ri)
     vr = jnp.sum(cy * rr.T - sy * ri.T, axis=1)
     vi = jnp.sum(cy * ri.T + sy * rr.T, axis=1)
-    return jax.lax.complex(vr, vi) / jnp.sum(img)
+    out = jax.lax.complex(vr, vi) / jnp.sum(img)
+    if pixel_window:
+        out = out / (jnp.sinc(fx_hi + fx_lo) * jnp.sinc(fy_hi + fy_lo))
+    return out
 
 
-_dft_points_jit = jax.jit(dft_points)
+_dft_points_jit = jax.jit(dft_points, static_argnames=("pixel_window",))
 
 
 # ---------------------------------------------------------------------------
@@ -136,7 +145,7 @@ def vis_points(img, u, v, grid: GridConfig, origin_rad=None) -> jax.Array:
     dt = img.dtype
     args = [jnp.asarray(a, dtype=dt)
             for a in (*split_frequency(fx), *split_frequency(fy))]
-    out = _dft_points_jit(img, *args)
+    out = _dft_points_jit(img, *args, pixel_window=grid.supersample > 1)
     if origin_rad is not None:
         x0, y0 = origin_rad
         out = out * jnp.exp(-2j * jnp.pi * jnp.asarray(
@@ -183,7 +192,8 @@ def g2_along_pa(img, baselines_m, wavelength_m: float, pa_rad: float,
 # float64 numpy reference (tests)
 # ---------------------------------------------------------------------------
 def vis_points_np(img, u, v, grid: GridConfig) -> np.ndarray:
-    """Direct float64 evaluation of vis_points (same conventions), the
+    """Direct float64 evaluation of vis_points (same conventions,
+    including the pixel-window correction for supersampled grids), the
     reference the JAX kernel is tested against."""
     img = np.asarray(img, dtype=np.float64)
     n = img.shape[-1]
@@ -192,7 +202,10 @@ def vis_points_np(img, u, v, grid: GridConfig) -> np.ndarray:
     v = np.atleast_1d(np.asarray(v, dtype=float)).ravel()
     px = np.exp(-2j * np.pi * np.outer(u, coord))  # (K, n)
     py = np.exp(-2j * np.pi * np.outer(v, coord))
-    return np.einsum("ky,yx,kx->k", py, img, px) / img.sum()
+    out = np.einsum("ky,yx,kx->k", py, img, px) / img.sum()
+    if grid.supersample > 1:
+        out = out / (np.sinc(u * grid.pixel_scale_rad) * np.sinc(v * grid.pixel_scale_rad))
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -209,7 +222,7 @@ def binary_vis2_analytic(baselines_m, wavelength_nm, system,
     wavelength_nm may be a scalar (returns (n_B,)) or an array (returns
     (n_lambda, n_B)).  Raises ValueError in (or near) eclipse, where the
     disks overlap and the formula is invalid."""
-    from .limbdark import visibility_ld_disk
+    from .limbdark import star_disk_visibility
 
     require_out_of_eclipse(system, rho_mas)
     scalar_lam = np.ndim(wavelength_nm) == 0
@@ -220,13 +233,12 @@ def binary_vis2_analytic(baselines_m, wavelength_nm, system,
 
     stars = (system.primary, system.secondary)
     th = [2.0 * system.angular_radius_mas(s) * MAS for s in stars]
-    us = [np.atleast_1d(s.ld_coeff(lam_nm[:, 0]))[:, None] for s in stars]
-    # per-star flux weights: with different u's the (1 - u/3) disk factors
-    # no longer cancel in the normalization
-    f = [planck(lam, s.teff) * t**2 * (1.0 - u_s / 3.0)
-         for s, t, u_s in zip(stars, th, us)]
-    v = [visibility_ld_disk(np.pi * t * b / lam, u_s)
-         for t, u_s in zip(th, us)]
+    # per-star flux weights F_s theta_s^2 (model SED or pi B_lambda): the
+    # disk factors 2 int I mu dmu do not cancel between different stars
+    f = [np.atleast_1d(s.surface_flux(lam_nm[:, 0]))[:, None] * t**2
+         for s, t in zip(stars, th)]
+    v = [star_disk_visibility(s, np.pi * t * b / lam, lam_nm[:, 0])
+         for s, t in zip(stars, th)]
     fringe = np.cos(2.0 * np.pi * b * rho_rad / lam)
     out = (f[0]**2 * v[0]**2 + f[1]**2 * v[1]**2
            + 2.0 * f[0] * f[1] * v[0] * v[1] * fringe) / (f[0] + f[1])**2

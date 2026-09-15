@@ -548,18 +548,26 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
 BAND_LAMBDA_NM = {"g": 477.0, "i": 763.0}
 
 
-def _blackbody_ab_mag(system: BinarySystem, wavelength_nm):
-    """Synthetic AB magnitude of the uneclipsed binary: blackbody disks
-    f_nu = sum_s B_lambda(T_s) pi theta_s^2 (1 - u_s/3) lambda^2/c."""
+def model_ab_mag(system: BinarySystem, wavelength_nm):
+    """Synthetic AB magnitude of the uneclipsed binary from the stars'
+    surface fluxes (model SED tables, or pi B_lambda(T_eff) blackbodies):
+    f_nu = sum_s F_s(lambda) theta_s^2 lambda^2 / c, theta_s = R_s/d."""
     lam_nm = np.asarray(wavelength_nm, dtype=float)
     lam = lam_nm * 1e-9
     f_nu = 0.0
     for star in (system.primary, system.secondary):
         theta_r = system.angular_radius_mas(star) * MAS
-        f_nu = f_nu + (planck(lam, star.teff) * np.pi * theta_r**2
-                       * (1.0 - np.asarray(star.ld_coeff(lam_nm)) / 3.0)
-                       * lam**2 / C_LIGHT)
-    return -2.5 * np.log10(f_nu / AB_ZERO_FNU)
+        f_nu = f_nu + star.surface_flux(lam_nm) * theta_r**2 * lam**2 / C_LIGHT
+    out = -2.5 * np.log10(f_nu / AB_ZERO_FNU)
+    return float(out) if np.ndim(out) == 0 else out
+
+
+_blackbody_ab_mag = model_ab_mag   # backward-compatible name
+
+
+def _has_sed_tables(system: BinarySystem) -> bool:
+    return (system.primary.flux_table is not None
+            and system.secondary.flux_table is not None)
 
 
 @lru_cache(maxsize=None)
@@ -569,21 +577,35 @@ def _anchor_offsets(system: BinarySystem):
     for band, m_obs in system.mag_anchors:
         lam_b = BAND_LAMBDA_NM[band]
         lams.append(np.log10(lam_b))
-        offs.append(m_obs - float(_blackbody_ab_mag(system, lam_b)))
+        offs.append(m_obs - float(model_ab_mag(system, lam_b)))
     order = np.argsort(lams)
     return np.asarray(lams)[order], np.asarray(offs)[order]
 
 
+ANCHOR_CHECK_MAG = 0.2   # tolerated |model - observed| with SED tables
+
+
 def system_ab_mag(system: BinarySystem, wavelength_nm):
     """Apparent AB magnitude of the (uneclipsed) binary at one wavelength
-    or an array: the anchored blackbody model -- the synthetic blackbody
-    magnitude corrected by the observed anchor offsets
-    (params.BinarySystem.mag_anchors) interpolated, and extrapolated,
-    linearly in log lambda.  Outside the anchor bands (477-763 nm) the
-    offset is an extrapolation and a warning is issued (once per call
-    site); real SEDs (hbtsim.sed) replace this."""
+    or an array.
+
+    With model-atmosphere flux tables on both stars (hbtsim.sed) the
+    magnitude is the model's own, F_s(lambda) (R_s/d)^2, and the
+    observed anchors (params.BinarySystem.mag_anchors) only serve as a
+    check (a warning if the model misses one by more than 0.2 mag).
+    Otherwise it is the anchored blackbody: the synthetic blackbody
+    magnitude corrected by the anchor offsets interpolated, and
+    extrapolated, linearly in log lambda; outside the anchor bands
+    (477-763 nm) that is an extrapolation and a warning says so."""
     lam_nm = np.asarray(wavelength_nm, dtype=float)
     loglam, offs = _anchor_offsets(system)
+    if _has_sed_tables(system):
+        worst = float(np.max(np.abs(offs)))
+        if worst > ANCHOR_CHECK_MAG:
+            warnings.warn(f"{system.name}: the SED tables miss the observed "
+                          f"anchor magnitudes by up to {worst:.2f} mag "
+                          f"(radii, distance or third light?)", stacklevel=2)
+        return model_ab_mag(system, lam_nm)
     x = np.log10(lam_nm)
     if offs.size >= 2:
         slope = (offs[-1] - offs[0]) / (loglam[-1] - loglam[0])
@@ -597,5 +619,5 @@ def system_ab_mag(system: BinarySystem, wavelength_nm):
                       f"extrapolated outside the anchor bands "
                       f"({10**loglam[0]:.0f}-{10**loglam[-1]:.0f} nm); "
                       f"attach an SED table for accurate rates", stacklevel=2)
-    out = _blackbody_ab_mag(system, lam_nm) + offset
+    out = model_ab_mag(system, lam_nm) + offset
     return float(out) if np.ndim(out) == 0 else out

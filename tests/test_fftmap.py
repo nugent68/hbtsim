@@ -9,7 +9,7 @@ import pytest
 from hbtsim import fftmap, hbt
 from hbtsim.orbit import SkyPositions, sky_positions
 from hbtsim.params import BETA_AUR, GridConfig, MovieConfig
-from hbtsim.render import render_image, render_kernel
+from hbtsim.render import linear_rows_jnp, render_image, render_kernel
 
 GRID = GridConfig()
 
@@ -60,7 +60,8 @@ def test_crop_limit_returns_zero():
     """Beyond the crop the FFT sampler silently returns |V|^2 = 0, while
     the DFT is unaffected: the reason the maps are not used for science."""
     img = render_kernel(0.0, 0.0, 300.0, 300.0, False, 3.0, 1.0,
-                        1.0, 0.0, 0.0, 0.0, GRID.n)  # near-point source
+                        1.0, 0.0, linear_rows_jnp(0.0, GRID.n_mu),
+                        linear_rows_jnp(0.0, GRID.n_mu), GRID.n)  # near-point source
     v2map = fftmap.vis2_map(img, GRID.pad)
     b_far = GRID.baseline_step_m(400e-9) * (fftmap.CROP_HALF + 20)
     v2_fft = float(fftmap.vis2_of_baseline(v2map, np.array([b_far]), 400e-9,

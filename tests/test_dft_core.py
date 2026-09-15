@@ -17,7 +17,7 @@ import pytest
 from hbtsim import hbt
 from hbtsim.orbit import SkyPositions, sky_positions
 from hbtsim.params import ALGOL, BETA_AUR, MAS, GridConfig, MovieConfig
-from hbtsim.render import render_image, render_kernel
+from hbtsim.render import linear_rows_jnp, render_image, render_kernel
 
 GRID = GridConfig()
 LONGEST_ARM_M = 225.9
@@ -109,7 +109,8 @@ def test_origin_shift():
 
 def test_frequency_guard():
     img = _f32(render_kernel(0.0, 0.0, 300.0, 300.0, False, 20.0, 1.0,
-                             1.0, 0.0, 0.3, 0.0, GRID.n))
+                             1.0, 0.0, linear_rows_jnp(0.3, GRID.n_mu),
+                             linear_rows_jnp(0.0, GRID.n_mu), GRID.n))
     # 0.03 cycles/px is the physical maximum; 0.4 aliases
     with pytest.raises(ValueError, match="cycles/pixel"):
         hbt.vis_points(img, [0.4 / GRID.pixel_scale_rad], [0.0], GRID)

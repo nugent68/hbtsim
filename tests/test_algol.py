@@ -15,7 +15,7 @@ from hbtsim import hbt
 from hbtsim.limbdark import disk_flux_factor, visibility_ld_disk
 from hbtsim.orbit import SkyPositions, sky_positions
 from hbtsim.params import ALGOL, MAS, GridConfig
-from hbtsim.render import render_image, render_kernel
+from hbtsim.render import linear_rows_jnp, render_image, render_kernel
 from hbtsim.snr import system_ab_mag
 
 GRID = GridConfig()
@@ -33,7 +33,8 @@ def test_per_star_ld_applied():
     flux must carry its OWN (1 - u/3) factor."""
     r = 40.0
     img = np.asarray(render_kernel(-200.0, 0.0, 200.0, 0.0, False,
-                                    r, r, 1.0, 1.0, 0.2, 0.8, GRID.n))
+                                   r, r, 1.0, 1.0, linear_rows_jnp(0.2, GRID.n_mu),
+                                   linear_rows_jnp(0.8, GRID.n_mu), GRID.n))
     half = GRID.n // 2
     flux1 = img[:, :half].sum()
     flux2 = img[:, half:].sum()
@@ -51,7 +52,8 @@ def test_secondary_visibility_uses_its_own_u():
     r_px = ALGOL.angular_radius_mas(ALGOL.secondary) / GRID.pixel_scale_mas
 
     img = render_kernel(300.0, 300.0, 0.0, 0.0, True,
-                        1.0, r_px, 0.0, 1.0, u_a, u_b, GRID.n)
+                        1.0, r_px, 0.0, 1.0, linear_rows_jnp(u_a, GRID.n_mu),
+                        linear_rows_jnp(u_b, GRID.n_mu), GRID.n)
     B = np.linspace(5.0, 150.0, 100)
     v2 = np.asarray(hbt.vis2_along_pa(img, B, lam_nm * 1e-9, 0.0, GRID))
     x = np.pi * th_b * B / (lam_nm * 1e-9)

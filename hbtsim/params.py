@@ -94,6 +94,70 @@ LD_SPICA = ((400.0, 0.32), (477.0, 0.29), (551.0, 0.26), (623.0, 0.24),
 # ---------------------------------------------------------------------------
 # System description
 # ---------------------------------------------------------------------------
+@dataclass(frozen=True, eq=False)
+class FluxTable:
+    """Surface flux F_lambda(lambda) of a model atmosphere [W m^-2 m^-1,
+    per unit area of the stellar surface] on a wavelength grid [nm];
+    F = pi B_lambda for a blackbody.  Compared by identity (hashable)."""
+    wavelength_nm: np.ndarray
+    flux: np.ndarray
+    source: str = ""
+
+    def __call__(self, wavelength_nm):
+        out = np.interp(wavelength_nm, self.wavelength_nm, self.flux)
+        return float(out) if np.ndim(out) == 0 else out
+
+    @property
+    def lambda_range_nm(self) -> tuple:
+        return (float(self.wavelength_nm[0]), float(self.wavelength_nm[-1]))
+
+
+@dataclass(frozen=True, eq=False)
+class LDProfile:
+    """Centre-to-limb intensity I(mu, lambda)/I(1, lambda) on a mu grid
+    (increasing, mu = 0 at the limb) and a wavelength grid [nm]:
+    intensity has shape (n_lambda, n_mu).  Compared by identity."""
+    mu: np.ndarray
+    wavelength_nm: np.ndarray
+    intensity: np.ndarray
+    source: str = ""
+
+    def rows(self, wavelength_nm) -> np.ndarray:
+        """I(mu)/I(1) interpolated in wavelength: (..., n_mu)."""
+        lam = np.atleast_1d(np.asarray(wavelength_nm, dtype=float))
+        k = np.clip(np.searchsorted(self.wavelength_nm, lam) - 1, 0,
+                    self.wavelength_nm.size - 2)
+        w = np.clip((lam - self.wavelength_nm[k])
+                    / (self.wavelength_nm[k + 1] - self.wavelength_nm[k]), 0.0, 1.0)
+        return ((1.0 - w)[:, None] * self.intensity[k]
+                + w[:, None] * self.intensity[k + 1])
+
+    def on_grid(self, mu_grid, wavelength_nm) -> np.ndarray:
+        """rows() resampled onto another mu grid (linear), (..., n_grid)."""
+        r = self.rows(wavelength_nm)
+        return np.stack([np.interp(mu_grid, self.mu, row) for row in r])
+
+
+def integrate_profile_times_mu(mu, rows) -> np.ndarray:
+    """int f(mu) mu dmu over the node range for rows (..., n_mu) taken
+    as piecewise linear in mu (n_mu,); exact for a linear law."""
+    mu = np.asarray(mu, dtype=float)
+    f = np.asarray(rows, dtype=float)
+    m0, m1 = mu[:-1], mu[1:]
+    f0, f1 = f[..., :-1], f[..., 1:]
+    h = m1 - m0
+    seg = (f0 * (m1**2 - m0**2) / 2.0
+           + (f1 - f0) / h * ((m1**3 - m0**3) / 3.0 - m0 * (m1**2 - m0**2) / 2.0))
+    return seg.sum(axis=-1)
+
+
+def linear_ld_rows(u, mu_grid) -> np.ndarray:
+    """1 - u (1 - mu) for u (...,) on mu_grid (n_mu,): (..., n_mu)
+    (a scalar u gives one row of shape (n_mu,))."""
+    u = np.asarray(u, dtype=float)[..., None]
+    return 1.0 - u * (1.0 - np.asarray(mu_grid, dtype=float))
+
+
 @dataclass(frozen=True)
 class Star:
     name: str
@@ -102,6 +166,10 @@ class Star:
     teff: float  # K
     # per-star linear limb-darkening u(lambda) table, ((nm, u), ...) [C11]
     ld_table_nm: tuple = LD_BETA_AUR
+    # optional model-atmosphere hooks (hbtsim.sed): when present they
+    # replace the blackbody SED and/or the linear limb-darkening law
+    flux_table: FluxTable | None = None
+    ld_profile: LDProfile | None = None
 
     def ld_coeff(self, wavelength_nm):
         """Linear LD coefficient at one wavelength (float) or an array of
@@ -109,6 +177,39 @@ class Star:
         lam, u = zip(*self.ld_table_nm)
         out = np.interp(wavelength_nm, lam, u)
         return float(out) if np.ndim(out) == 0 else out
+
+    @property
+    def ld_mode(self) -> str:
+        return "table" if self.ld_profile is not None else "linear"
+
+    def ld_rows(self, wavelength_nm, mu_grid) -> np.ndarray:
+        """I(mu)/I(1) on mu_grid for each wavelength: (n_lambda, n_mu)."""
+        if self.ld_profile is not None:
+            return self.ld_profile.on_grid(mu_grid, wavelength_nm)
+        return linear_ld_rows(self.ld_coeff(np.atleast_1d(wavelength_nm)), mu_grid)
+
+    def disk_flux_factor(self, wavelength_nm):
+        """F / (pi I(1)) = 2 int I(mu)/I(1) mu dmu: 1 - u/3 for the linear
+        law; for a tabulated profile the exact integral of its
+        piecewise-linear interpolant (what the renderer draws), so a
+        tabulated linear law reproduces 1 - u/3 on any mu grid."""
+        if self.ld_profile is None:
+            out = 1.0 - np.asarray(self.ld_coeff(wavelength_nm)) / 3.0
+        else:
+            out = 2.0 * integrate_profile_times_mu(
+                self.ld_profile.mu, self.ld_profile.rows(wavelength_nm))
+        return float(out) if np.ndim(out) == 0 else out
+
+    def surface_flux(self, wavelength_nm):
+        """F_lambda at the surface [W m^-2 m^-1]: the model table or pi
+        B_lambda(T_eff)."""
+        if self.flux_table is not None:
+            return self.flux_table(wavelength_nm)
+        return np.pi * planck(np.asarray(wavelength_nm, dtype=float) * 1e-9, self.teff)
+
+    def central_intensity(self, wavelength_nm):
+        """I(mu = 1) = F / (pi x disk_flux_factor) [W m^-2 m^-1 sr^-1]."""
+        return self.surface_flux(wavelength_nm) / (np.pi * self.disk_flux_factor(wavelength_nm))
 
 
 @dataclass(frozen=True)
@@ -294,10 +395,43 @@ class GridConfig:
         """Largest |x| or |y| (mas) a pixel centre can have on the grid."""
         return (self.n - 1) / 2.0 * self.pixel_scale_mas
 
+    # renderer accuracy: each pixel is the mean of supersample^2 sub-pixel
+    # soft-rim renders (1 = the plain kernel); the limb-darkening profile
+    # is tabulated on n_mu points uniform in mu
+    supersample: int = 1
+    n_mu: int = 128
+
+    @property
+    def mu_grid(self) -> np.ndarray:
+        return np.linspace(0.0, 1.0, self.n_mu)
+
     def baseline_step_m(self, wavelength_m: float) -> float:
         """Baseline sampling of the padded FFT map (hbtsim.fftmap only):
         dB = lambda / (pad * dtheta)."""
         return wavelength_m / (self.pad * self.pixel_scale_rad)
+
+    def for_system(self, system: "BinarySystem", min_radius_px: float = 50.0,
+                   n_max: int = 4096, margin: float = 1.1) -> "GridConfig":
+        """A grid whose pixel scale resolves the smaller star with at
+        least min_radius_px pixels (never coarser than this one) and
+        whose extent holds the whole orbit with a margin, n a power of
+        two <= n_max (raises if the orbit does not fit)."""
+        from .orbit import sky_positions
+
+        r_min = min(system.angular_radius_mas(system.primary),
+                    system.angular_radius_mas(system.secondary))
+        scale = min(self.pixel_scale_mas, r_min / min_radius_px)
+        pos = sky_positions(np.linspace(0.0, 2.0 * np.pi, 4001), system)
+        reach = max(float(np.max(np.abs(np.asarray(v)))) for v in
+                    (pos.x1, pos.y1, pos.x2, pos.y2)) + r_min
+        need = 2.0 * margin * reach / scale + 2.0
+        n = int(2 ** np.ceil(np.log2(max(need, self.n))))
+        if n > n_max:
+            raise ValueError(f"{system.name} needs a {n}-pixel grid at "
+                             f"{scale:.4f} mas/px (> n_max = {n_max}); relax "
+                             f"min_radius_px or raise n_max")
+        return GridConfig(n=n, pixel_scale_mas=scale, pad=self.pad,
+                          supersample=self.supersample, n_mu=self.n_mu)
 
 
 @dataclass(frozen=True)

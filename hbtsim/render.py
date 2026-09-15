@@ -2,15 +2,28 @@
 
 The image is built in the center-of-mass frame with one pixel = pixel_scale
 mas, axis 0 = y (North) and axis 1 = x (East), the grid centre at pixel
-(n-1)/2.  Each star is a linearly limb-darkened disk whose rim is
-softened over one pixel (a coverage factor).  Occultation is handled by
-z-ordering: where the front disk covers a pixel, the back disk is hidden
-in proportion to the coverage, which reproduces the exact partial-eclipse
-geometry on the grid.
+(n-1)/2.  Each star is a limb-darkened disk -- its centre-to-limb
+profile I(mu)/I(1) is a table on a uniform mu grid (GridConfig.n_mu),
+which holds the linear law 1 - u(1 - mu) exactly and any model
+atmosphere profile (Star.ld_profile) to interpolation accuracy -- whose
+rim is softened over one (sub-)pixel by a coverage factor.  Occultation
+is handled by z-ordering: where the front disk covers a pixel, the back
+disk is hidden in proportion to the coverage, which reproduces the
+exact partial-eclipse geometry on the grid.
+
+Accuracy.  Sampling the sqrt(1 - r^2) limb at pixel centres biases a
+disk's flux and its apparent diameter at the 1e-4 level for a 50-pixel
+radius (up to 3e-3 at 15 pixels).  GridConfig.supersample = s renders
+each pixel as the mean of s x s sub-pixel-shifted soft-rim renders
+(scan-accumulated, so memory does not grow), which reduces the bias
+roughly as s^-2; GridConfig.for_system() chooses a pixel scale that
+resolves the smaller star with >= 50 pixels.  Images are in units of
+the secondary's central intensity (w2 = 1).
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from functools import partial
 
 import jax
@@ -19,31 +32,46 @@ import jax.numpy as jnp
 import numpy as np
 
 from .orbit import SkyPositions
-from .params import C_LIGHT, H_PLANCK, K_BOLTZ, BinarySystem, GridConfig, planck
+from .params import BinarySystem, GridConfig, linear_ld_rows
 
 
-@partial(jax.jit, static_argnames=("n",))
-def render_kernel(x1, y1, x2, y2, front2, r1, r2, w1, w2, u1, u2, n):
-    """All positions/radii in pixels relative to the grid center; w1, w2 are
-    the central surface brightnesses (Planck weights) and u1, u2 the linear
-    limb-darkening coefficients of each star."""
+@partial(jax.jit, static_argnames=("n", "s"))
+def render_kernel(x1, y1, x2, y2, front2, r1, r2, w1, w2, i1, i2, n, s=1):
+    """All positions/radii in pixels relative to the grid center; w1, w2
+    are the central surface brightnesses of each star and i1, i2 their
+    limb-darkening profiles I(mu)/I(1) tabulated on n_mu points uniform
+    in mu (n_mu = i1.shape[-1]); s = supersampling factor."""
     c = (n - 1) / 2.0
     coord = jnp.arange(n, dtype=jnp.float32) - c
-    xx = coord[None, :]
-    yy = coord[:, None]
+    mu_grid = jnp.linspace(0.0, 1.0, i1.shape[-1], dtype=jnp.float32)
+    inv_s = 1.0 / s
 
-    def disk(xc, yc, rad, u):
-        r = jnp.hypot(xx - xc, yy - yc)
-        mu = jnp.sqrt(jnp.clip(1.0 - (r / rad) ** 2, 0.0, 1.0))
-        cover = jnp.clip(rad - r + 0.5, 0.0, 1.0)  # 1-px soft rim
-        return (1.0 - u * (1.0 - mu)) * cover, cover
+    def sub_render(dx, dy):
+        xx = coord[None, :] + dx
+        yy = coord[:, None] + dy
 
-    d1, cover1 = disk(x1, y1, r1, u1)
-    d2, cover2 = disk(x2, y2, r2, u2)
+        def disk(xc, yc, rad, irow):
+            r = jnp.hypot(xx - xc, yy - yc)
+            mu = jnp.sqrt(jnp.clip(1.0 - (r / rad) ** 2, 0.0, 1.0))
+            cover = jnp.clip((rad - r) * s + 0.5, 0.0, 1.0)  # 1-sub-px soft rim
+            return jnp.interp(mu, mu_grid, irow) * cover, cover
 
-    img_2front = w2 * d2 + w1 * d1 * (1.0 - cover2)
-    img_1front = w1 * d1 + w2 * d2 * (1.0 - cover1)
-    return jnp.where(front2, img_2front, img_1front)
+        d1, cover1 = disk(x1, y1, r1, i1)
+        d2, cover2 = disk(x2, y2, r2, i2)
+        img_2front = w2 * d2 + w1 * d1 * (1.0 - cover2)
+        img_1front = w1 * d1 + w2 * d2 * (1.0 - cover1)
+        return jnp.where(front2, img_2front, img_1front)
+
+    if s == 1:
+        return sub_render(0.0, 0.0)
+    offs = (jnp.arange(s, dtype=jnp.float32) + 0.5) * inv_s - 0.5
+    dxy = jnp.stack(jnp.meshgrid(offs, offs, indexing="ij"), axis=-1).reshape(-1, 2)
+
+    def body(acc, o):
+        return acc + sub_render(o[0], o[1]), None
+
+    acc, _ = jax.lax.scan(body, jnp.zeros((n, n), jnp.float32), dxy)
+    return acc * (inv_s * inv_s)
 
 
 _render_kernel = render_kernel  # backward-compatible private name
@@ -83,40 +111,42 @@ def kernel_args(pos: SkyPositions, system: BinarySystem, grid: GridConfig):
             jnp.float32(system.angular_radius_mas(system.secondary) / s))
 
 
-def _planck_jnp(wavelength_m: jax.Array, teff: float) -> jax.Array:
-    """JAX twin of params.planck, traceable in wavelength."""
-    x = H_PLANCK * C_LIGHT / (wavelength_m * K_BOLTZ * teff)
-    return 2.0 * H_PLANCK * C_LIGHT**2 / wavelength_m**5 / jnp.expm1(x)
+@dataclass(frozen=True)
+class ChannelWeights:
+    """Per-channel render inputs: the primary/secondary central-intensity
+    ratio w1 (n_lambda,) and the limb-darkening rows i1, i2
+    (n_lambda, n_mu) on GridConfig.mu_grid, as float32 JAX arrays."""
+    w1: jax.Array
+    i1: jax.Array
+    i2: jax.Array
 
 
-def spectral_weights(wavelengths_nm, system: BinarySystem):
-    """Per-channel per-star limb-darkening coefficients and the
-    primary/secondary Planck surface-brightness ratio, (u1, u2, w1), as
-    traceable float32 arrays — the JAX equivalent of what render_image
-    computes per call in Python."""
-    lam_nm = jnp.asarray(wavelengths_nm, dtype=jnp.float32)
-
-    def interp_u(star):
-        ld = np.asarray(star.ld_table_nm, dtype=np.float32)
-        return jnp.interp(lam_nm, jnp.asarray(ld[:, 0]), jnp.asarray(ld[:, 1]))
-
-    lam_m = lam_nm * 1e-9
-    w1 = (_planck_jnp(lam_m, system.primary.teff)
-          / _planck_jnp(lam_m, system.secondary.teff))
-    return (interp_u(system.primary), interp_u(system.secondary),
-            jnp.asarray(w1, dtype=jnp.float32))
+def spectral_weights(wavelengths_nm, system: BinarySystem,
+                     grid: GridConfig = GridConfig()) -> ChannelWeights:
+    """Render inputs for every channel: central-intensity ratio (model
+    SED or Planck) and tabulated limb-darkening rows (model profile or
+    linear law)."""
+    lam = np.atleast_1d(np.asarray(wavelengths_nm, dtype=float))
+    w1 = (system.primary.central_intensity(lam)
+          / system.secondary.central_intensity(lam))
+    mu = grid.mu_grid
+    return ChannelWeights(
+        w1=jnp.asarray(w1, dtype=jnp.float32),
+        i1=jnp.asarray(system.primary.ld_rows(lam, mu), dtype=jnp.float32),
+        i2=jnp.asarray(system.secondary.ld_rows(lam, mu), dtype=jnp.float32))
 
 
 def render_image(pos: SkyPositions, system: BinarySystem, wavelength_nm: float,
                  grid: GridConfig) -> jax.Array:
     """Render the binary at a single epoch (scalar entries in `pos`), in
-    units of the secondary's central surface brightness (w2 = 1)."""
-    lam_m = wavelength_nm * 1e-9
-    return render_kernel(
-        *kernel_args(pos, system, grid),
-        jnp.float32(planck(lam_m, system.primary.teff) / planck(lam_m, system.secondary.teff)),
-        jnp.float32(1.0),
-        jnp.float32(system.primary.ld_coeff(wavelength_nm)),
-        jnp.float32(system.secondary.ld_coeff(wavelength_nm)),
-        grid.n,
-    )
+    units of the secondary's central intensity (w2 = 1)."""
+    cw = spectral_weights([wavelength_nm], system, grid)
+    return render_kernel(*kernel_args(pos, system, grid), cw.w1[0],
+                         jnp.float32(1.0), cw.i1[0], cw.i2[0], grid.n,
+                         grid.supersample)
+
+
+def linear_rows_jnp(u, n_mu: int) -> jax.Array:
+    """Convenience for tests: the linear law on the kernel's mu grid."""
+    return jnp.asarray(linear_ld_rows(u, np.linspace(0.0, 1.0, n_mu)),
+                       dtype=jnp.float32)

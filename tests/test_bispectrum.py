@@ -14,7 +14,7 @@ from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, BispectrumResult,
                                equilateral_triangle, spectral_bispectrum)
 from hbtsim.orbit import SkyPositions, sky_positions
 from hbtsim.params import ALGOL, BETA_AUR, GridConfig
-from hbtsim.render import render_image, render_kernel
+from hbtsim.render import linear_rows_jnp, render_image, render_kernel
 from hbtsim.snr import KECK
 
 GRID = GridConfig()
@@ -98,8 +98,9 @@ def test_point_source_and_single_disk():
     centered LD disk has a REAL bispectrum (phases 0 or pi)."""
     bv = TRI.baseline_vectors()
     # tiny disk = effectively unresolved point source
+    rows = (linear_rows_jnp(0.3, GRID.n_mu), linear_rows_jnp(0.0, GRID.n_mu))
     img = render_kernel(0.0, 0.0, 300.0, 300.0, False,
-                        3.0, 1.0, 1.0, 0.0, 0.3, 0.0, GRID.n)
+                        3.0, 1.0, 1.0, 0.0, *rows, GRID.n)
     g = np.asarray(hbt.vis_of_baselines(img, bv, 500e-9, GRID))
     # a 3 px (0.03 mas radius) disk on the 226 m arm already has
     # |V| = 1 - x^2/8 ~ 0.979 -- "unresolved" is approximate
@@ -108,7 +109,7 @@ def test_point_source_and_single_disk():
 
     # resolved centered disk: bispectrum real (sign from the lobes)
     img = render_kernel(0.0, 0.0, 300.0, 300.0, False,
-                        50.0, 1.0, 1.0, 0.0, 0.3, 0.0, GRID.n)
+                        50.0, 1.0, 1.0, 0.0, *rows, GRID.n)
     g = np.asarray(hbt.vis_of_baselines(img, bv, 500e-9, GRID))
     assert abs(np.sin(np.angle(g.prod()))) < 1e-4
 

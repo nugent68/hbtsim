@@ -40,3 +40,40 @@ def visibility_ld_disk(x: np.ndarray, u: float) -> np.ndarray:
     norm = (1.0 - u) / 2.0 + u / 3.0
     v = (term_ud + term_ld) / norm
     return np.where(x == 0.0, 1.0, v)
+
+
+def visibility_profile(x, mu, intensity, n_r: int = 2000):
+    """Numeric visibility of a circularly symmetric disk with a tabulated
+    centre-to-limb profile I(mu)/I(1) (n_mu,) at x = pi theta_d B/lambda
+    (any shape): V(x) = int I(r) J0(x r) r dr / int I(r) r dr with
+    r = sqrt(1 - mu^2) the fractional radius.  Reference for the
+    tabulated-LD renderer."""
+    from scipy.special import j0
+
+    x = np.asarray(x, dtype=float)
+    r = np.linspace(0.0, 1.0, n_r)
+    mu_r = np.sqrt(np.clip(1.0 - r**2, 0.0, 1.0))
+    prof = np.interp(mu_r, np.asarray(mu), np.asarray(intensity)) * r
+    norm = np.trapezoid(prof, r)
+    v = np.trapezoid(prof * j0(x[..., None] * r), r, axis=-1)
+    return v / norm
+
+
+def star_disk_visibility(star, x, wavelength_nm):
+    """V(x) of one star's disk at x = pi theta_d B/lambda, shaped
+    (n_lambda, K) for wavelength_nm (n_lambda,) and x (n_lambda, K):
+    the analytic linear-law series, or the numeric Hankel transform of
+    the star's tabulated profile (chunked over wavelength)."""
+    x = np.asarray(x, dtype=float)
+    lam = np.atleast_1d(np.asarray(wavelength_nm, dtype=float))
+    if star.ld_profile is None:
+        u = np.atleast_1d(star.ld_coeff(lam))[:, None]
+        return visibility_ld_disk(x, u)
+    out = np.empty(x.shape)
+    mu = star.ld_profile.mu
+    step = 64
+    for k in range(0, lam.size, step):
+        rows = star.ld_profile.rows(lam[k:k + step])
+        for j, row in enumerate(rows):
+            out[k + j] = visibility_profile(x[k + j], mu, row)
+    return out

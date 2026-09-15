@@ -14,7 +14,7 @@ from hbtsim import hbt
 from hbtsim.limbdark import disk_flux_factor, visibility_ld_disk
 from hbtsim.orbit import SkyPositions, sky_positions
 from hbtsim.params import BETA_AUR, MAS, GridConfig
-from hbtsim.render import render_image, render_kernel
+from hbtsim.render import linear_rows_jnp, render_image, render_kernel
 
 SYSTEM = BETA_AUR
 GRID = GridConfig()
@@ -25,7 +25,8 @@ def single_star_image(radius_mas: float, u: float) -> jnp.ndarray:
     """One star at the grid center, the other switched off (w2 = 0)."""
     r_px = radius_mas / GRID.pixel_scale_mas
     return render_kernel(0.0, 0.0, 300.0, 300.0, False,
-                          r_px, 1.0, 1.0, 0.0, u, 0.0, GRID.n)
+                         r_px, 1.0, 1.0, 0.0, linear_rows_jnp(u, GRID.n_mu),
+                         linear_rows_jnp(0.0, GRID.n_mu), GRID.n)
 
 
 # ---------------------------------------------------------------------------
@@ -178,8 +179,9 @@ def test_uniform_disk_eclipse_depth_matches_circle_overlap():
                              float(pos.y1) / GRID.pixel_scale_mas,
                              float(pos.x2) / GRID.pixel_scale_mas,
                              float(pos.y2) / GRID.pixel_scale_mas,
-                             bool(pos.front2), r1, r2, 1.0, 1.0, 0.0, 0.0,
-                             GRID.n)
+                             bool(pos.front2), r1, r2, 1.0, 1.0,
+                             linear_rows_jnp(0.0, GRID.n_mu),
+                             linear_rows_jnp(0.0, GRID.n_mu), GRID.n)
     full = np.pi * (r1**2 + r2**2)
 
     # analytic lens area
