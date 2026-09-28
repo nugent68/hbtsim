@@ -35,6 +35,13 @@ greatest projected separation (quadrature) and the eclipses occur at
 psi = 90 deg (the secondary transiting the primary -> primary minimum)
 and 270 deg.  For eccentric systems psi = 0 is periastron passage and
 the eclipse phases depend on omega.
+
+Radial velocities (vr1_kms, vr2_kms; positive = receding, no systemic
+velocity): from dz/dt of the relative orbit, K_rel = 2 pi a sin i /
+(P sqrt(1 - e^2)), split by the mass ratio (K_1 = m_2/(m_1 + m_2) K_rel).
+At the ascending node the secondary recedes.  They feed the optional
+Doppler shift of model-atmosphere tables (sed.prepare_system with
+BinarySystem.doppler).
 """
 
 from __future__ import annotations
@@ -43,7 +50,7 @@ from typing import NamedTuple
 
 import numpy as np
 
-from .params import BinarySystem
+from .params import AU, DAY, BinarySystem
 
 
 class SkyPositions(NamedTuple):
@@ -55,6 +62,10 @@ class SkyPositions(NamedTuple):
     front2: np.ndarray  # True where the secondary is in front of the primary
     rho: np.ndarray     # projected separation
     pa: np.ndarray      # math angle of the separation vector, atan2(dy, dx)
+    # orbital radial velocities [km/s], positive = receding, relative to
+    # the centre of mass (no systemic velocity); None for legacy tuples
+    vr1_kms: np.ndarray = None
+    vr2_kms: np.ndarray = None
 
     @property
     def position_angle_deg(self):
@@ -118,12 +129,20 @@ def sky_positions(psi: np.ndarray, system: BinarySystem) -> SkyPositions:
     f1 = m2 / (m1 + m2)
     f2 = m1 / (m1 + m2)
 
+    # radial velocity of the relative orbit: dz/dt = K_rel [cos u + e cos w]
+    # with K_rel = 2 pi a sin i / (P sqrt(1 - e^2)) is the velocity TOWARD
+    # the observer (dz > 0 = in front), so receding is the negative
+    k_rel = (2.0 * np.pi * system.semimajor_au * AU * np.sin(inc)
+             / (system.period_days * DAY * np.sqrt(1.0 - e**2))) / 1e3   # km/s
+    v_rel_recede = -k_rel * (np.cos(u) + e * np.cos(w))
     return SkyPositions(
         x1=-f1 * dx, y1=-f1 * dy,
         x2=f2 * dx, y2=f2 * dy,
         front2=dz > 0,
         rho=np.hypot(dx, dy),
         pa=np.arctan2(dy, dx),
+        vr1_kms=-f1 * v_rel_recede,
+        vr2_kms=f2 * v_rel_recede,
     )
 
 

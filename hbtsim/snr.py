@@ -241,6 +241,10 @@ class Spectrograph:
     resolving_power: float | None = None
     throughput: float = DISPERSED_BACKEND.throughput
     name: str = ""
+    # wavelength frame of the channel grid: model tables are in vacuum
+    # (NewEra); an "air" grid is converted before channel averaging
+    # (sed.prepare_system; 0.14 nm at 500 nm, ~1.4 channels at R = 5000)
+    frame: str = "vacuum"
 
     @classmethod
     def from_resolving_power(cls, R: float, lambda_min_nm: float = 400.0,
@@ -575,6 +579,9 @@ def model_ab_mag(system: BinarySystem, wavelength_nm):
         theta_r = system.drawn_radius_mas(star) * MAS
         f_nu = f_nu + star.surface_flux(lam_nm) * theta_r**2 * lam**2 / C_LIGHT
     out = -2.5 * np.log10(f_nu / AB_ZERO_FNU)
+    if getattr(system, "a_v", 0.0):
+        from .sed import cardelli_extinction
+        out = out + cardelli_extinction(lam_nm, system.a_v)
     return float(out) if np.ndim(out) == 0 else out
 
 

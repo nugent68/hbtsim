@@ -369,6 +369,28 @@ def doppler_shift(star, v_kms: float):
     return with_tables(star, ft, ld)
 
 
+def cardelli_extinction(lam_nm, a_v: float, r_v: float = 3.1):
+    """A_lambda [mag] from Cardelli, Clayton & Mathis 1989 for A_V and
+    R_V, over the IR (0.3 <= x < 1.1 um^-1) and optical/NUV
+    (1.1 <= x <= 3.3) branches; x = 1/lambda[um]."""
+    lam_um = np.asarray(lam_nm, dtype=float) * 1e-3
+    x = 1.0 / lam_um
+    if np.any(x < 0.3) or np.any(x > 3.3):
+        raise ValueError("cardelli_extinction: wavelengths must lie in 303-3333 nm")
+    a = np.where(x < 1.1, 0.574 * x**1.61, 0.0)
+    b = np.where(x < 1.1, -0.527 * x**1.61, 0.0)
+    y = x - 1.82
+    opt = x >= 1.1
+    a_opt = (1.0 + 0.17699 * y - 0.50447 * y**2 - 0.02427 * y**3 + 0.72085 * y**4
+             + 0.01979 * y**5 - 0.77530 * y**6 + 0.32999 * y**7)
+    b_opt = (1.41338 * y + 2.28305 * y**2 + 1.07233 * y**3 - 5.38434 * y**4
+             - 0.62251 * y**5 + 5.30260 * y**6 - 2.09002 * y**7)
+    a = np.where(opt, a_opt, a)
+    b = np.where(opt, b_opt, b)
+    out = a_v * (a + b / r_v)
+    return float(out) if np.ndim(out) == 0 else out
+
+
 def air_to_vacuum(lam_nm):
     """Air -> vacuum wavelengths [nm] (Morton 1991 / IAU standard)."""
     lam = np.asarray(lam_nm, dtype=float)

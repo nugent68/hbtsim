@@ -205,6 +205,11 @@ class Star:
     metallicity: float = 0.0
     vsini_kms: float | None = None
     radius_ref: str = "tau1"
+    # TODO (gravity darkening): delta Vel's components rotate at ~145 km/s
+    # (v/v_crit ~ 0.45), beta Aur at ~34, Algol A at ~50 km/s; oblateness
+    # and the von Zeipel T_eff / log g gradient over the surface are not
+    # modeled (spherical disks).  sed.NewEraGrid.interpolate(teff, logg) is
+    # the per-tile lookup a Roche-surface renderer would call.
 
     @property
     def log_g(self) -> float:
@@ -303,6 +308,11 @@ class BinarySystem:
     node_pa_deg: float | None = None
     dec_deg: float | None = None     # ICRS declination (for uv projection)
     ra_hours: float | None = None    # ICRS right ascension
+    # physics hooks (defaults off): shift each star's model tables by its
+    # orbital radial velocity per epoch (sed.prepare_system), and redden
+    # the model SED by A_V (Cardelli et al. 1989, R_V = 3.1; snr.model_ab_mag)
+    doppler: bool = False
+    a_v: float = 0.0
 
     # ---- derived angular quantities (sky plane) ----
     @property
