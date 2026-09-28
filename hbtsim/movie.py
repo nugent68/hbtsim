@@ -114,7 +114,7 @@ def _frames_jit(x1, y1, x2, y2, front2,            # (nf,)
         flux = jnp.sum(imgs[:n_band], axis=(1, 2))
         crop = imgs[n_band:n_band + n_disp, c - half:c + half, c - half:c + half]
         disp = crop.reshape(n_disp, m, DISPLAY_BIN, m, DISPLAY_BIN).mean(axis=(2, 4))
-        vis = jax.vmap(lambda im, a, b, c_, d: dft_points(im, a, b, c_, d, s > 1))(
+        vis = jax.vmap(lambda im, a, b, c_, d: dft_points(im, a, b, c_, d, s))(
             imgs[n_band + n_disp:], fxh, fxl, fyh, fyl)
         return flux, disp, jnp.abs(vis) ** 2
 

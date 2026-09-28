@@ -37,7 +37,7 @@ from .params import BETA_AUR, BinarySystem, GridConfig
 from .snr import (C2PU, SPAD_LAMBDA, SPAD_LAMBDA_NG, Detector, Observation,
                   Spectrograph, Telescope, incident_rate, polarization_streams,
                   readout_scale, system_ab_mag, vis2_noise)
-from .spectral import spectral_vis2
+from .spectral import eclipse_dimming, spectral_vis2
 
 
 def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
@@ -83,7 +83,7 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
     # per-epoch, per-channel magnitude: out-of-eclipse anchored value plus
     # the eclipse dimming from the rendered flux
     mag0 = np.asarray(system_ab_mag(system, nm))
-    dmag = -2.5 * np.log10(flux / flux.max(axis=0, keepdims=True))
+    dmag = -2.5 * np.log10(eclipse_dimming(flux, system, nm, grid))
     mags = mag0[None, :] + dmag
 
     obs = Observation(wavelength_nm=nm[None, :], filter_width_nm=widths[None, :],

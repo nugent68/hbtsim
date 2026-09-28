@@ -69,8 +69,8 @@ from functools import lru_cache
 
 import numpy as np
 
-from .params import (AB_ZERO_FNU, C_LIGHT, H_PLANCK, MAS, BinarySystem,
-                     GridConfig, planck)
+from .params import (AB_ZERO_FNU, ANCHOR_CHECK_MAG, C_LIGHT, H_PLANCK, MAS,
+                     BinarySystem, GridConfig, planck)
 
 FWHM_TO_SIGMA = 1.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
 # Gaussian of the same FWHM as sinc^2(pi dnu tau): FWHM = 0.886 tau_c
@@ -359,14 +359,17 @@ def g2_snr(vis2, mag_ab, obs: Observation,
     array-capable over channels when obs carries arrays."""
     telescope2 = telescope1 if telescope2 is None else telescope2
     detector2 = detector1 if detector2 is None else detector2
-    n_streams, _, p2, _ = polarization_streams(obs.polarization_mode)
+    n_streams, frac, p2, _ = polarization_streams(obs.polarization_mode)
 
     inc1 = incident_rate(mag_ab, telescope1, detector1, obs)
     inc2 = incident_rate(mag_ab, telescope2, detector2, obs)
     r1 = detector1.detected_rate(inc1)
     r2 = detector2.detected_rate(inc2)
-    b1 = r1 + detector1.dark_cps + obs.sky_cps / n_streams
-    b2 = r2 + detector2.dark_cps + obs.sky_cps / n_streams
+    # the (unpolarized) sky reaches each stream with the same flux
+    # fraction as the star: half of it per pbs stream, half through a
+    # single polarizer
+    b1 = r1 + detector1.dark_cps + obs.sky_cps * frac
+    b2 = r2 + detector2.dark_cps + obs.sky_cps * frac
 
     tau_c = coherence_time_s(obs.wavelength_nm, obs.filter_width_nm)
     sigma_pair = pair_sigma_s(detector1, detector2, obs)
@@ -430,6 +433,7 @@ class SpectralSNRResult:
     dead_time_load_max: float = 0.0
     polarization_mode: str = "unpolarized"
     smeared: bool = False
+    dimming: np.ndarray = None       # rendered eclipse dimming per channel (1 = none)
 
 
 def spectral_g2_snr(system: BinarySystem, baseline_m: float,
@@ -497,11 +501,14 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
     from .aperture import fringe_period_m
     period = fringe_period_m(float(pos.rho), nm)
     quad = resolve_pupils(pupils, (telescope1.diameter_m, telescope2.diameter_m), period)
+    dimming = np.ones(nm.size)
     if vis2_method == "render":
-        from .spectral import spectral_vis2
-        vis2 = np.asarray(spectral_vis2(pos, [baseline_m], nm, system, grid,
-                                        chunk_size=chunk_size,
-                                        pupils=quad, fringe_period_m=period))[:, 0].astype(float)
+        from .spectral import eclipse_dimming, spectral_vis2
+        v2, flux = spectral_vis2(pos, [baseline_m], nm, system, grid,
+                                 chunk_size=chunk_size, pupils=quad,
+                                 fringe_period_m=period, return_flux=True)
+        vis2 = np.asarray(v2)[:, 0].astype(float)
+        dimming = eclipse_dimming(flux, system, nm, grid)
     elif vis2_method == "analytic":
         if quad is None:
             vis2 = binary_vis2_analytic(baseline_m, nm, system, float(pos.rho))[:, 0]
@@ -514,7 +521,8 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
         raise ValueError(f"unknown vis2_method {vis2_method!r} "
                          f"(expected 'render' or 'analytic')")
 
-    mag = system_ab_mag(system, nm)
+    # out-of-eclipse model magnitude, dimmed by the rendered eclipse
+    mag = np.asarray(system_ab_mag(system, nm)) - 2.5 * np.log10(dimming)
     obs = Observation(wavelength_nm=nm, filter_width_nm=widths, t_int_s=t_int_s,
                       sky_cps=sky_cps_per_channel,
                       polarization_mode=polarization_mode,
@@ -542,7 +550,8 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
         mag_ab=mag, vis2_method=vis2_method, channel_widths_nm=widths,
         total_rate_cps=total, readout_limited=scale < 1.0, readout_scale=scale,
         dead_time_load_max=float(np.max(res.dead_time_load)),
-        polarization_mode=polarization_mode, smeared=quad is not None)
+        polarization_mode=polarization_mode, smeared=quad is not None,
+        dimming=dimming)
 
 
 # ---------------------------------------------------------------------------
@@ -569,8 +578,7 @@ _blackbody_ab_mag = model_ab_mag   # backward-compatible name
 
 
 def _has_sed_tables(system: BinarySystem) -> bool:
-    return (system.primary.flux_table is not None
-            and system.secondary.flux_table is not None)
+    return system.has_sed_tables
 
 
 @lru_cache(maxsize=None)
@@ -585,7 +593,6 @@ def _anchor_offsets(system: BinarySystem):
     return np.asarray(lams)[order], np.asarray(offs)[order]
 
 
-ANCHOR_CHECK_MAG = 0.2   # tolerated |model - observed| with SED tables
 
 
 def system_ab_mag(system: BinarySystem, wavelength_nm):

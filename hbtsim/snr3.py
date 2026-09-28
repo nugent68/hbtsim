@@ -88,7 +88,13 @@ POL_FACTOR_TRIPLE = 0.25  # p3 for unpolarized light (see POLARIZATION_MODES)
 def triple_window_s2(det1, det2, det3, obs: Observation | None = None):
     """Matched-filter effective area on the (tau1, tau2) lag plane,
     4 pi sqrt(det Sigma) [s^2], including the coherence broadening when
-    obs is given with coherence_broadening=True (array-capable)."""
+    obs is given with coherence_broadening=True (array-capable).
+
+    The coherence term uses the Gaussian-equivalent covariance
+    c2 [[1, -1/2], [-1/2, 1]]; the exact sinc^2 lag-plane covariance of
+    a rectangular passband has a cross term 4/3 larger.  With
+    sigma_c << sigma_jitter (0.1 nm channels: sigma_c ~ 0.3 ps against
+    50 ps) the difference is < 1 % in the window."""
     s1, s2, s3 = (d.jitter_sigma_s for d in (det1, det2, det3))
     c2 = 0.0
     if obs is not None and obs.coherence_broadening:
@@ -124,11 +130,11 @@ def g3_snr(triple_amp, mag_ab, obs: Observation, triangle: Triangle, *,
     stream.  pair_vis2 (..., 3) = |g12|^2, |g23|^2, |g31|^2 enables the
     ridge_ratio."""
     dets = [replace(s.detector, n_pixels=1) for s in triangle.stations]
-    n_streams, _, p2, p3 = polarization_streams(obs.polarization_mode)
+    n_streams, frac, p2, p3 = polarization_streams(obs.polarization_mode)
     inc = [incident_rate(mag_ab, s.telescope, d, obs)
            for s, d in zip(triangle.stations, dets)]
     rates = tuple(d.detected_rate(i) for d, i in zip(dets, inc))
-    bg = [r + d.dark_cps + obs.sky_cps / n_streams for r, d in zip(rates, dets)]
+    bg = [r + d.dark_cps + obs.sky_cps * frac for r, d in zip(rates, dets)]
 
     tau_c = coherence_time_s(obs.wavelength_nm, obs.filter_width_nm)
     window = triple_window_s2(*dets, obs)
@@ -182,6 +188,7 @@ class SpectralSNR3Result:
     readout_scale: float = 1.0
     dead_time_load_max: float = 0.0
     polarization_mode: str = "unpolarized"
+    dimming: np.ndarray = None       # rendered eclipse dimming per channel (1 = none)
 
     def required_kernel_accuracy(self, target_dcos: float = 0.1) -> np.ndarray:
         """Fractional accuracy of the pair-kernel model needed per
@@ -222,7 +229,11 @@ def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
     triple_amp = ts.triple_amp
     cosphi = ts.cos_phi_c
 
-    mags = system_ab_mag(system, nm)
+    dimming = np.ones(nm.size)
+    if ts.flux is not None:
+        from .spectral import eclipse_dimming
+        dimming = eclipse_dimming(ts.flux, system, nm, grid)
+    mags = np.asarray(system_ab_mag(system, nm)) - 2.5 * np.log10(dimming)
     obs = Observation(wavelength_nm=nm, filter_width_nm=widths, t_int_s=t_int_s,
                       sky_cps=sky_cps_per_channel,
                       polarization_mode=polarization_mode,
@@ -255,7 +266,7 @@ def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
                              for k in range(3)),
         readout_limited=scale < 1.0, readout_scale=scale,
         dead_time_load_max=float(np.max(r.dead_time_load)),
-        polarization_mode=polarization_mode)
+        polarization_mode=polarization_mode, dimming=dimming)
 
 
 def binned_closure_phase_snr(res: SpectralSNR3Result, R_bin: float = 100.0):
@@ -285,8 +296,9 @@ def _statistic_snr(results, statistic: str, R_bin: float, aggregate: str) -> flo
         return float(np.sqrt(sum(r.snr_total**2 for r in results)))
     if statistic == "binned":
         per = [binned_closure_phase_snr(r, R_bin)[1] for r in results]
-        return float(agg(np.sqrt(np.sum(np.stack(per), axis=0)**2 / len(per)))) \
-            if len(per) > 1 else float(agg(per[0]))
+        # the triangles are independent measurements of the same
+        # closure-phase bins: quadrature sum per bin, then the aggregate
+        return float(agg(np.sqrt(np.sum(np.stack(per)**2, axis=0))))
     if statistic == "channel":
         per = np.stack([r.snr for r in results])
         # a closure phase per channel per triangle: the typical one

@@ -56,7 +56,7 @@ def _spectral_vis_jit(x1, y1, x2, y2, front2, r1, r2,
         w1_k, i1_k, i2_k, fxh, fxl, fyh, fyl = ch
         img = render_kernel(x1, y1, x2, y2, front2, r1, r2,
                             w1_k, jnp.float32(1.0), i1_k, i2_k, n, s)
-        return dft_points(img, fxh, fxl, fyh, fyl, s > 1), jnp.sum(img)
+        return dft_points(img, fxh, fxl, fyh, fyl, s), jnp.sum(img)
 
     return jax.lax.map(one_channel, (w1, i1, i2, fx_hi, fx_lo, fy_hi, fy_lo),
                        batch_size=chunk)
@@ -93,6 +93,27 @@ def spectral_vis(pos: SkyPositions, bvecs_m, wavelengths_nm,
         grid.supersample, chunk)
     vis, flux = vis[:n_l], flux[:n_l]
     return (vis, flux) if return_flux else vis
+
+
+def reference_flux(system: BinarySystem, wavelengths_nm, grid: GridConfig) -> np.ndarray:
+    """Out-of-eclipse image flux per channel in the renderer's units
+    (secondary central intensity = 1): pi sum_s r_s[px]^2 w_s dff_s, the
+    analytic value the rendered sum approaches out of eclipse."""
+    lam = np.atleast_1d(np.asarray(wavelengths_nm, dtype=float))
+    cw = spectral_weights(lam, system, grid)
+    r1 = system.angular_radius_mas(system.primary) / grid.pixel_scale_mas
+    r2 = system.angular_radius_mas(system.secondary) / grid.pixel_scale_mas
+    dff1 = np.asarray(system.primary.disk_flux_factor(lam), dtype=float)
+    dff2 = np.asarray(system.secondary.disk_flux_factor(lam), dtype=float)
+    return np.pi * (r1**2 * np.asarray(cw.w1, dtype=float) * dff1 + r2**2 * dff2)
+
+
+def eclipse_dimming(flux, system: BinarySystem, wavelengths_nm,
+                    grid: GridConfig) -> np.ndarray:
+    """Rendered image flux (..., n_lambda) over the out-of-eclipse
+    reference: 1 out of eclipse (to the render accuracy, ~1e-3), the
+    eclipse dimming factor inside one."""
+    return np.asarray(flux, dtype=float) / reference_flux(system, wavelengths_nm, grid)
 
 
 def spectral_vis2(pos: SkyPositions, baselines_m, wavelengths_nm,

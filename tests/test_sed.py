@@ -213,3 +213,25 @@ def test_newera_table_sanity():
     bb = planck_flux_table(6000.0, ft.wavelength_nm)
     ratio = ft.flux / bb.flux
     assert 0.3 < np.median(ratio) < 2.0
+
+
+def test_anchoring_disabled_with_sed_tables():
+    """With flux tables on both stars the synthetic lightcurve keeps its
+    own zero point (as snr.system_ab_mag does); the anchor only warns
+    when missed by more than ANCHOR_CHECK_MAG."""
+    import warnings
+    from hbtsim.photometry import anchored_mags
+    sys_t = _tabled(ALGOL)
+    assert sys_t.has_sed_tables and not ALGOL.has_sed_tables
+    m = np.array([2.10, 2.30, 2.05])
+    g = dict(ALGOL.mag_anchors)["g"]
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        out = anchored_mags(m, "g", sys_t, reference_mag=g + 0.05)
+    assert np.array_equal(out, m)
+    with pytest.warns(UserWarning, match="not anchoring"):
+        out = anchored_mags(m, "g", sys_t, reference_mag=g + 0.5)
+    assert np.array_equal(out, m)
+    # the blackbody system is still anchored
+    anc = anchored_mags(m, "g", ALGOL, reference_mag=2.05)
+    assert anc[2] == pytest.approx(g)

@@ -114,3 +114,28 @@ def test_spectral_snr_eclipse_dispatch():
     res = spectral_g2_snr(BETA_AUR, 50.0, spectrograph=spec,
                           orbital_phase=0.25, vis2_method="render")
     assert np.isfinite(res.snr_total) and res.snr_total > 0.0
+
+
+def test_spectral_snr_applies_eclipse_dimming():
+    """Inside an Algol eclipse the rendered flux dims the photon rates;
+    out of eclipse the dimming factor is 1 to the render accuracy."""
+    from hbtsim.params import ALGOL
+    from hbtsim.snr import Spectrograph, spectral_g2_snr
+    spec = Spectrograph(lambda_min_nm=470.0, lambda_max_nm=484.0, n_channels=2)
+    out = spectral_g2_snr(ALGOL, 60.0, spectrograph=spec, orbital_phase=0.0,
+                          vis2_method="render")
+    assert np.allclose(out.dimming, 1.0, atol=3e-3)
+    ecl = [spectral_g2_snr(ALGOL, 60.0, spectrograph=spec, orbital_phase=ph,
+                           vis2_method="render") for ph in (0.25, 0.75)]
+    depths = [-2.5 * np.log10(float(e.dimming[0])) for e in ecl]
+    deep = max(depths)
+    assert 1.0 < deep < 1.8            # Algol primary minimum at 477 nm
+    assert min(depths) > 0.01          # the secondary eclipse is shallow (0.018 mag) but real
+    # the dimmed magnitude feeds the rates: fewer photons, lower SNR
+    k = int(np.argmax(depths))
+    assert ecl[k].rate_cps[0] < 0.5 * out.rate_cps[0]
+    assert ecl[k].mag_ab[0] > out.mag_ab[0] + 1.0
+    # analytic path reports no dimming
+    an = spectral_g2_snr(ALGOL, 60.0, spectrograph=spec, orbital_phase=0.0,
+                         vis2_method="analytic")
+    assert np.all(an.dimming == 1.0)

@@ -14,16 +14,20 @@ star carries a model-atmosphere flux table), so
     f_nu     = f_lambda * lambda^2 / c                 [W m^-2 Hz^-1]
     m_AB     = -2.5 log10(f_nu / 3631 Jy).
 
-Stars are treated as blackbodies, which for these A-type photospheres
-makes the synthetic magnitudes too faint and too red: Balmer/Paschen
-line blanketing and H- opacity are not modeled, giving offsets of
-~0.46 mag in g and ~0.18 mag in i relative to the observed photometry
-(g ~ 1.80, i ~ 2.10 from V = 1.90, B-V = 0.03 via Jester et al. 2005).
-The lightcurves are therefore anchored: anchored_mags() shifts each
-band's synthetic curve by a constant so its maximum light matches the
-observed magnitude stored in BinarySystem.mag_anchors.  The eclipse
-shapes and depths come entirely from the simulation; only the zero
-point per band is set by observation.
+Without model atmospheres the stars are blackbodies, which for these
+A-type photospheres makes the synthetic magnitudes too faint and too
+red (Balmer/Paschen line blanketing and H- opacity are not modeled; a
+few tenths of a magnitude for Beta Aur).  The lightcurves are therefore
+anchored: anchored_mags() shifts each band's synthetic curve by a
+constant so its maximum light matches the observed magnitude stored in
+BinarySystem.mag_anchors.  The eclipse shapes and depths come entirely
+from the simulation; only the zero point per band is set by observation.
+
+When both stars carry model-atmosphere flux tables
+(BinarySystem.has_sed_tables) the synthetic magnitudes are used as they
+are -- the same convention as snr.system_ab_mag -- and the anchors only
+raise a warning when the model misses them by more than
+params.ANCHOR_CHECK_MAG.
 """
 
 from __future__ import annotations
@@ -31,7 +35,10 @@ from __future__ import annotations
 import jax.numpy as jnp
 import numpy as np
 
-from .params import AB_ZERO_FNU, C_LIGHT, BinarySystem, GridConfig, planck
+import warnings
+
+from .params import (AB_ZERO_FNU, ANCHOR_CHECK_MAG, C_LIGHT, BinarySystem,
+                     GridConfig, planck)
 
 
 def band_flux(img) -> float:
@@ -79,4 +86,12 @@ def anchored_mags(synth_mags: np.ndarray, band: str, system: BinarySystem,
     anchors = dict(system.mag_anchors)
     m = np.asarray(synth_mags)
     ref = float(m.min()) if reference_mag is None else float(reference_mag)
+    if system.has_sed_tables:
+        if band in anchors and abs(ref - anchors[band]) > ANCHOR_CHECK_MAG:
+            warnings.warn(f"{system.name}: the model-atmosphere {band}-band "
+                          f"magnitude at maximum light ({ref:.2f}) misses the "
+                          f"observed anchor ({anchors[band]:.2f}) by more than "
+                          f"{ANCHOR_CHECK_MAG} mag (radii, distance or third "
+                          f"light?); not anchoring", stacklevel=2)
+        return m
     return m - ref + anchors[band]

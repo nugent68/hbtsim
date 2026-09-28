@@ -241,3 +241,21 @@ def test_readout_and_polarization_in_spectral_g3():
         m0 = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, spectrograph=spec,
                              enforce_readout=False)
     assert m.readout_limited and m.snr_total < 0.1 * m0.snr_total
+
+
+def test_binned_statistic_is_quadrature_over_triangles():
+    """Two triangles of unequal sensitivity measure the same closure-phase
+    bins: the combined binned SNR is the quadrature sum per bin (the old
+    code summed linearly and divided by sqrt(N))."""
+    from hbtsim.snr3 import _statistic_snr
+    spec = Spectrograph(lambda_min_nm=450.0, lambda_max_nm=900.0, n_channels=16)
+    kw = dict(spectrograph=spec, enforce_readout=False)
+    r1 = spectral_g3_snr(SPICA, _tri(diam=1.0), **kw)
+    r2 = spectral_g3_snr(SPICA, _tri(diam=2.0), **kw)
+    b1 = binned_closure_phase_snr(r1, 50.0)[1]
+    b2 = binned_closure_phase_snr(r2, 50.0)[1]
+    assert not np.allclose(b1, b2)
+    got = _statistic_snr([r1, r2], "binned", 50.0, "median")
+    assert got == pytest.approx(float(np.median(np.sqrt(b1**2 + b2**2))), rel=1e-12)
+    old = float(np.median((b1 + b2) / np.sqrt(2.0)))
+    assert got > old

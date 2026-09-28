@@ -336,6 +336,7 @@ class TripleSamples:
     bispectrum: np.ndarray   # (n_lambda,) complex, pupil-averaged if smeared
     vis2_pairs: np.ndarray   # (n_lambda, 3) pair-smeared |gamma_ij|^2
     smeared: bool
+    flux: np.ndarray = None  # (n_lambda,) rendered image flux (render method only)
 
     @property
     def triple_amp(self) -> np.ndarray:
@@ -362,13 +363,15 @@ def spectral_triple(pos: SkyPositions, triangle: Triangle, wavelengths_nm,
                                  fringe_period_m(float(pos.rho), nm))
     bvecs = triangle.baseline_vectors()
     pts = bvecs if quad is None else np.vstack([bvecs, quad.flat_points(bvecs)])
+    flux = None
     if method == "analytic":
         gam = binary_vis_complex_analytic(pts, nm, system, pos)
     else:
-        gam = np.asarray(spectral_vis(pos, pts, nm, system, grid,
-                                      chunk_size=chunk_size))
+        gam, flux = spectral_vis(pos, pts, nm, system, grid,
+                                 chunk_size=chunk_size, return_flux=True)
+        gam, flux = np.asarray(gam), np.asarray(flux, dtype=float)
     bis, v2 = reduce_triple(gam[:, 3:] if quad is not None else gam, quad)
     return TripleSamples(gammas=np.asarray(gam[:, :3]),
                          bispectrum=np.asarray(bis),
                          vis2_pairs=np.asarray(v2, dtype=float),
-                         smeared=quad is not None)
+                         smeared=quad is not None, flux=flux)

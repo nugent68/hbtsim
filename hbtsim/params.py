@@ -72,6 +72,7 @@ DAY = 86400.0               # s
 MAS = np.pi / (180.0 * 3600.0 * 1000.0)  # 1 milliarcsecond in radians
 
 AB_ZERO_FNU = 3.631e-23     # AB zero point, 3631 Jy in W m^-2 Hz^-1
+ANCHOR_CHECK_MAG = 0.2      # tolerated |model - observed| anchor miss with SED tables
 
 
 def planck(wavelength_m: float, teff: float) -> float:
@@ -245,6 +246,13 @@ class BinarySystem:
     ra_hours: float | None = None    # ICRS right ascension
 
     # ---- derived angular quantities (sky plane) ----
+    @property
+    def has_sed_tables(self) -> bool:
+        """Both stars carry a model-atmosphere flux table: magnitudes come
+        from the model and the observed anchors are only a check."""
+        return (self.primary.flux_table is not None
+                and self.secondary.flux_table is not None)
+
     @property
     def angular_semimajor_mas(self) -> float:
         return (self.semimajor_au * AU) / (self.distance_pc * PARSEC) / MAS

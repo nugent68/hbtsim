@@ -93,17 +93,27 @@ def _phasor(f_hi, f_lo, k):
     return jnp.cos(ang), jnp.sin(ang)
 
 
-def dft_points(img, fx_hi, fx_lo, fy_hi, fy_lo, pixel_window: bool = False):
+def _pixel_window(f, s: int):
+    """Transfer function of an s x s midpoint sub-sample average of a
+    pixel: the Dirichlet kernel sin(pi f) / (s sin(pi f / s)), which
+    tends to sinc(f) as s -> infinity and to 1 at f = 0."""
+    small = jnp.abs(f) < 1e-9
+    fs = jnp.where(small, 0.5, f)
+    d = jnp.sin(jnp.pi * fs) / (s * jnp.sin(jnp.pi * fs / s))
+    return jnp.where(small, 1.0, d)
+
+
+def dft_points(img, fx_hi, fx_lo, fy_hi, fy_lo, pixel_window: int = 0):
     """V at K frequency points (cycles per pixel along x = axis 1 and
     y = axis 0) of an (n, n) image, phase origin at the grid centre,
     normalized to V(0, 0) = 1.  Traceable: used directly inside the
     batched spectral kernels; vis_points() is the jitted host entry.
 
-    pixel_window=True divides by sinc(pi fx) sinc(pi fy): a supersampled
-    (pixel-INTEGRATED) image is the continuous source convolved with the
-    pixel box, whose transform is that sinc (1 - 1.5e-3 at 0.03
-    cycles/pixel); a plain midpoint-sampled render (GridConfig.
-    supersample = 1) carries no such factor."""
+    pixel_window = s > 1 divides by the exact transfer function of the
+    s x s sub-sample average (_pixel_window; sinc(f) in the limit of a
+    pixel-integrated image, 1 - 1.5e-3 at 0.03 cycles/pixel); a plain
+    midpoint-sampled render (GridConfig.supersample = 1, pixel_window
+    0 or 1) carries no such factor."""
     n = img.shape[-1]
     k = jnp.arange(n, dtype=img.dtype) - (n - 1) / 2.0
     # _phasor returns cos and sin of the SIGNED angle -2 pi f (k - c), so
@@ -118,8 +128,9 @@ def dft_points(img, fx_hi, fx_lo, fy_hi, fy_lo, pixel_window: bool = False):
     vr = jnp.sum(cy * rr.T - sy * ri.T, axis=1)
     vi = jnp.sum(cy * ri.T + sy * rr.T, axis=1)
     out = jax.lax.complex(vr, vi) / jnp.sum(img)
-    if pixel_window:
-        out = out / (jnp.sinc(fx_hi + fx_lo) * jnp.sinc(fy_hi + fy_lo))
+    if pixel_window > 1:
+        out = out / (_pixel_window(fx_hi + fx_lo, pixel_window)
+                     * _pixel_window(fy_hi + fy_lo, pixel_window))
     return out
 
 
@@ -145,7 +156,7 @@ def vis_points(img, u, v, grid: GridConfig, origin_rad=None) -> jax.Array:
     dt = img.dtype
     args = [jnp.asarray(a, dtype=dt)
             for a in (*split_frequency(fx), *split_frequency(fy))]
-    out = _dft_points_jit(img, *args, pixel_window=grid.supersample > 1)
+    out = _dft_points_jit(img, *args, pixel_window=int(grid.supersample))
     if origin_rad is not None:
         x0, y0 = origin_rad
         out = out * jnp.exp(-2j * jnp.pi * jnp.asarray(
@@ -204,7 +215,12 @@ def vis_points_np(img, u, v, grid: GridConfig) -> np.ndarray:
     py = np.exp(-2j * np.pi * np.outer(v, coord))
     out = np.einsum("ky,yx,kx->k", py, img, px) / img.sum()
     if grid.supersample > 1:
-        out = out / (np.sinc(u * grid.pixel_scale_rad) * np.sinc(v * grid.pixel_scale_rad))
+        s = grid.supersample
+        def win(f):
+            f = np.where(np.abs(f) < 1e-9, 0.5, f)
+            d = np.sin(np.pi * f) / (s * np.sin(np.pi * f / s))
+            return np.where(np.abs(f) < 1e-9, 1.0, d)
+        out = out / (win(u * grid.pixel_scale_rad) * win(v * grid.pixel_scale_rad))
     return out
 
 

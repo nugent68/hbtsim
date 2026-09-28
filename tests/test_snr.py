@@ -285,3 +285,15 @@ def test_dark_counts_only_add_noise():
     noisy = g2_snr(0.5, 2.0, OBS, telescope1=Telescope(1.0), detector1=dark)
     assert noisy.n_signal == pytest.approx(clean.n_signal, rel=1e-12)
     assert noisy.snr < clean.snr
+
+
+def test_single_polarizer_halves_the_sky():
+    """A single polarizer passes half of an unpolarized sky as well as
+    half of the star: the accidental background scales as 1/4."""
+    from hbtsim.snr import Observation, g2_snr, SPAD_LAMBDA
+    from dataclasses import replace
+    det = replace(SPAD_LAMBDA, dark_cps_per_pixel=0.0, dead_time_ns=0.0)
+    kw = dict(wavelength_nm=500.0, filter_width_nm=1.0, t_int_s=100.0, sky_cps=2e6)
+    u = g2_snr(0.5, 2.0, Observation(**kw, polarization_mode="unpolarized"), detector1=det)
+    s = g2_snr(0.5, 2.0, Observation(**kw, polarization_mode="single_pol"), detector1=det)
+    assert s.n_background == pytest.approx(u.n_background / 4.0, rel=1e-9)
