@@ -126,7 +126,7 @@ def fig_cosphi_map(system, tri, out, n_phase=51):
         try:
             ts = spectral_triple(pos, tri, nm, system, pupils=True)
         except ValueError:
-            ts = spectral_triple(pos, tri, nm, system, GridConfig(), method="render",
+            ts = spectral_triple(pos, tri, nm, system, GridConfig().fit_orbit(system), method="render",
                                  pupils=True)
         cosmap[k] = ts.cos_phi_c
     fig, ax = plt.subplots(figsize=(8, 4.5))

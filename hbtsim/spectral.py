@@ -29,7 +29,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from .aperture import resolve_pupils
+from .aperture import fringe_period_m as fringe_period, resolve_pupils
 from .hbt import baseline_vectors_along_pa, check_frequency, dft_points, split_frequency
 from .orbit import SkyPositions
 from .params import BinarySystem, GridConfig
@@ -100,17 +100,21 @@ def spectral_vis2(pos: SkyPositions, baselines_m, wavelengths_nm,
                   pa_rad: float | None = None,
                   chunk_size: int | None = None,
                   return_flux: bool = False,
-                  pupils=None):
+                  pupils=None, fringe_period_m: float | None = None):
     """|V|^2 for every (wavelength, scalar baseline) pair at one epoch,
     (n_lambda, n_B).  The baseline position angle defaults to the
     projected separation axis (matching the movie panel and the analytic
     binary visibility).  pupils = (d1, d2) [m] or an aperture.
     PupilQuadrature averages |V|^2 over the two telescope apertures
-    (what a correlator measures); None samples at a point.  See
+    (what a correlator measures); None samples at a point.  When
+    fringe_period_m is omitted it is taken from pos.rho at the shortest
+    wavelength (the pupil quadrature order scales with D/P).  See
     spectral_vis for return_flux."""
     pa = float(pos.pa) if pa_rad is None else float(pa_rad)
     bvecs = baseline_vectors_along_pa(baselines_m, pa)
-    quad = resolve_pupils(pupils, None)
+    if fringe_period_m is None:
+        fringe_period_m = fringe_period(float(pos.rho), wavelengths_nm)
+    quad = resolve_pupils(pupils, None, fringe_period_m)
     pts = bvecs if quad is None else quad.points(bvecs).reshape(-1, 2)
     out = spectral_vis(pos, pts, wavelengths_nm, system, grid,
                        chunk_size=chunk_size, return_flux=return_flux)

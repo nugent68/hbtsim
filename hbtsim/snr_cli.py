@@ -158,7 +158,8 @@ def main(argv=None) -> None:
                    help="override source AB magnitude (narrowband mode)")
     args = p.parse_args(argv)
 
-    system, grid = SYSTEMS[args.system], GridConfig()
+    system = SYSTEMS[args.system]
+    grid = GridConfig().fit_orbit(system)
     tel = Telescope(diameter_m=args.diameter, throughput=args.throughput)
     base = SPAD_LAMBDA if args.readout == "timetag" else SPAD_LAMBDA_NG
     det = replace(base, n_pixels=args.n_pixels)

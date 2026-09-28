@@ -25,7 +25,7 @@ def main(argv=None) -> None:
     out = args.out or f"output/{args.system}_hbt.mp4"
     pa = args.baseline_pa if args.baseline_pa == "follow" else float(args.baseline_pa)
     cfg = replace(MovieConfig(), n_frames=args.frames, fps=args.fps, baseline_pa=pa)
-    grid = GridConfig()
+    grid = GridConfig().fit_orbit(system)
 
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     print(f"Precomputing {cfg.n_frames} frames for {system.name} ...")

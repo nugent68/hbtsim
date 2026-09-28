@@ -37,11 +37,18 @@ Pupil points: Gauss-Legendre in (r/R)^2 (uniform in area) times
 equally spaced angles, rings staggered.  Accuracy against the closed
 forms above is checked in tests/test_aperture.py: the pair rule (60
 points) is good to 3e-4 and the three-pupil rule (14 points per pupil)
-to 1e-5 out to D/P = 0.7-0.8, beyond any configuration in this package
-(VLT on delta Vel at maximum separation: D/P ~ 0.55).
+to 1e-5 out to D/P = 0.7-0.8.  Beyond that the node counts are scaled
+up in proportion to D/P (quadrature_order, pupil_pair_quadrature_for,
+TripleQuadrature.for_fringe), with a warning, and refused above
+D/P = 3 where the fringe is unmeasurable anyway.  delta Vel at its
+correct distance (25.1 pc, Merand et al. 2011) is the case that needs
+this: fringe period 4.7 m at 400 nm against the 8.2 m VLT pupils,
+D/P = 1.74, contrast retained ~0.02.
 """
 
 from __future__ import annotations
+
+import warnings
 
 from dataclasses import dataclass
 
@@ -132,6 +139,45 @@ def pupil_pair_quadrature(d1_m: float, d2_m: float, n_r: int = 5,
                            diameters_m=(d1_m, d2_m))
 
 
+VALIDATED_PAIR_D_OVER_P = 0.8     # test_pair_quadrature_vs_airy coverage
+VALIDATED_TRIPLE_D_OVER_P = 0.7   # test_triple_quadrature_vs_closed_form
+MAX_D_OVER_P = 3.0                # refuse beyond: fringe contrast < 1e-3
+
+
+def quadrature_order(d_over_p: float, base=(5, 12),
+                     validated: float = VALIDATED_PAIR_D_OVER_P) -> tuple:
+    """(n_r, n_theta) for a pupil-averaging rule at pupil-to-fringe-period
+    ratio D/P: the base rule up to the validated ratio, then both node
+    counts scaled in proportion (the integrand oscillates ~D/P times
+    across the pupil).  Raises for D/P > MAX_D_OVER_P."""
+    d_over_p = float(d_over_p)
+    if not np.isfinite(d_over_p) or d_over_p < 0:
+        raise ValueError(f"D/P must be finite and >= 0, got {d_over_p}")
+    if d_over_p > MAX_D_OVER_P:
+        raise ValueError(f"pupil/fringe-period ratio D/P = {d_over_p:.2f} > "
+                         f"{MAX_D_OVER_P}: the fringe is smeared below 1e-3 and "
+                         f"the pupil quadrature is untested there")
+    f = max(1.0, d_over_p / validated)
+    return int(np.ceil(base[0] * f)), int(np.ceil(base[1] * f))
+
+
+def pupil_pair_quadrature_for(d1_m: float, d2_m: float,
+                              fringe_period_m: float | None) -> PupilQuadrature:
+    """pupil_pair_quadrature with the node counts chosen for the fringe
+    period P = lambda/rho the pupils will be averaging over (the base rule
+    when P is None).  Warns when D/P exceeds the validated range."""
+    if fringe_period_m is None or not np.isfinite(fringe_period_m) or fringe_period_m <= 0:
+        return pupil_pair_quadrature(d1_m, d2_m)
+    d_over_p = max(d1_m, d2_m) / float(fringe_period_m)
+    n_r, n_theta = quadrature_order(d_over_p)
+    if d_over_p > VALIDATED_PAIR_D_OVER_P:
+        warnings.warn(f"pupil/fringe-period ratio D/P = {d_over_p:.2f} exceeds the "
+                      f"validated {VALIDATED_PAIR_D_OVER_P}; pair quadrature order "
+                      f"raised to ({n_r}, {n_theta}); fringe contrast retained "
+                      f"~{airy_amplitude(np.pi * d_over_p)**2:.3f}", stacklevel=3)
+    return pupil_pair_quadrature(d1_m, d2_m, n_r, n_theta)
+
+
 def point_quadrature() -> PupilQuadrature:
     """The no-smearing limit: one offset of zero (point apertures)."""
     return PupilQuadrature(offsets_m=np.zeros((1, 2)), weights=np.ones(1),
@@ -171,6 +217,24 @@ class TripleQuadrature:
         return cls(points_m=tuple(p for p, _ in pw),
                    weights=tuple(w for _, w in pw),
                    diameters_m=(d1_m, d2_m, d3_m))
+
+    @classmethod
+    def for_fringe(cls, d1_m: float, d2_m: float, d3_m: float,
+                   fringe_period_m: float | None) -> "TripleQuadrature":
+        """from_diameters with the per-pupil node counts scaled for the
+        fringe period (base rule when P is None); warns beyond the
+        validated D/P."""
+        if fringe_period_m is None or not np.isfinite(fringe_period_m) or fringe_period_m <= 0:
+            return cls.from_diameters(d1_m, d2_m, d3_m)
+        d_over_p = max(d1_m, d2_m, d3_m) / float(fringe_period_m)
+        n_r, n_theta = quadrature_order(d_over_p, base=(2, 7),
+                                        validated=VALIDATED_TRIPLE_D_OVER_P)
+        if d_over_p > VALIDATED_TRIPLE_D_OVER_P:
+            warnings.warn(f"pupil/fringe-period ratio D/P = {d_over_p:.2f} exceeds the "
+                          f"validated {VALIDATED_TRIPLE_D_OVER_P}; triple quadrature "
+                          f"order raised to ({n_r}, {n_theta}) per pupil "
+                          f"({3 * (n_r * n_theta)**2} samples per channel)", stacklevel=3)
+        return cls.from_diameters(d1_m, d2_m, d3_m, n_r, n_theta)
 
     @property
     def shape(self) -> tuple:
@@ -215,21 +279,37 @@ class TripleQuadrature:
         return bis, v2
 
 
-def triple_quadrature_for(triangle, n_r: int = 2, n_theta: int = 7) -> TripleQuadrature:
-    """TripleQuadrature from a bispectrum.Triangle's telescope diameters."""
-    return TripleQuadrature.from_diameters(
-        *(s.telescope.diameter_m for s in triangle.stations), n_r, n_theta)
+def triple_quadrature_for(triangle, n_r: int = 2, n_theta: int = 7,
+                          fringe_period_m: float | None = None) -> TripleQuadrature:
+    """TripleQuadrature from a bispectrum.Triangle's telescope diameters
+    (order scaled for the fringe period when one is given)."""
+    d = tuple(s.telescope.diameter_m for s in triangle.stations)
+    if fringe_period_m is not None:
+        return TripleQuadrature.for_fringe(*d, fringe_period_m)
+    return TripleQuadrature.from_diameters(*d, n_r, n_theta)
 
 
-def resolve_pupils(pupils, diameters):
+def fringe_period_m(rho_mas, wavelength_nm) -> float:
+    """P = lambda/rho [m] of the binary fringe: the shortest period over
+    the given wavelengths (use the blue end of a spectrograph)."""
+    from .params import MAS
+    rho = float(np.max(np.atleast_1d(rho_mas))) * MAS
+    lam = float(np.min(np.atleast_1d(wavelength_nm))) * 1e-9
+    return np.inf if rho <= 0 else lam / rho
+
+
+def resolve_pupils(pupils, diameters, fringe_period_m=None):
     """Normalize the `pupils` argument of the sampling functions:
     None/False -> point sampling; True -> the given diameters; a
-    (d1, d2) pair; or a ready PupilQuadrature."""
+    (d1, d2) pair; or a ready PupilQuadrature.  With fringe_period_m the
+    quadrature order is chosen for that fringe (pupil_pair_quadrature_for)."""
     if pupils is None or pupils is False:
         return None
     if isinstance(pupils, PupilQuadrature):
         return pupils
     if pupils is True:
+        if diameters is None:
+            raise ValueError("pupils=True needs the telescope diameters")
         pupils = diameters
     d1, d2 = pupils
-    return pupil_pair_quadrature(float(d1), float(d2))
+    return pupil_pair_quadrature_for(float(d1), float(d2), fringe_period_m)

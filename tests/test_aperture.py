@@ -6,8 +6,10 @@ import pytest
 
 from hbtsim.aperture import (PupilQuadrature, TripleQuadrature, airy_amplitude,
                              circle_overlap_area, disk_quadrature,
-                             fringe_smearing_factor, point_quadrature,
-                             pupil_pair_quadrature, resolve_pupils)
+                             fringe_period_m, fringe_smearing_factor,
+                             point_quadrature, pupil_pair_quadrature,
+                             pupil_pair_quadrature_for, quadrature_order,
+                             resolve_pupils)
 from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, VLT_UT, closure_phase,
                                spectral_triple)
 from hbtsim.orbit import SkyPositions, sky_positions
@@ -31,14 +33,22 @@ def test_circle_overlap_limits():
     assert circle_overlap_area(1.0, 1.0, 1.0) == pytest.approx(1.2283697, rel=1e-6)
 
 
-@pytest.mark.parametrize("d1,d2", [(10.0, 10.0), (8.2, 10.0), (1.0, 1.0)])
-@pytest.mark.parametrize("d_over_p", [0.1, 0.3, 0.5, 0.6, 0.8])
+@pytest.mark.parametrize("d1,d2", [(10.0, 10.0), (8.2, 10.0), (1.0, 1.0),
+                                   (4.0, 4.0), (3.4, 4.0)])
+@pytest.mark.parametrize("d_over_p", [0.1, 0.3, 0.5, 0.6, 0.8, 1.2, 1.74, 2.5])
 def test_pair_quadrature_vs_airy(d1, d2, d_over_p):
     """A pure fringe of period P smeared by pupils D1, D2 keeps the
-    contrast A(pi D1/P) A(pi D2/P)."""
-    P = d1 / d_over_p
+    contrast A(pi D1/P) A(pi D2/P).  Beyond the validated D/P = 0.8 the
+    fringe-aware rule raises its order (and warns)."""
+    P = max(d1, d2) / d_over_p
     rho = LAM / P
-    q = pupil_pair_quadrature(d1, d2)
+    if d_over_p > 0.8:
+        with pytest.warns(UserWarning, match="D/P"):
+            q = pupil_pair_quadrature_for(d1, d2, P)
+        assert q.n_points > 60
+    else:
+        q = pupil_pair_quadrature_for(d1, d2, P)
+        assert q.n_points == 60
     assert q.weights.sum() == pytest.approx(1.0)
     B = np.array([[37.0, 11.0]])
     pts = q.points(B)[0]
@@ -46,6 +56,54 @@ def test_pair_quadrature_vs_airy(d1, d2, d_over_p):
     exact = 0.5 * (1.0 + np.cos(2 * np.pi * B[0, 0] * rho / LAM)
                    * fringe_smearing_factor(d1, d2, rho, LAM))
     assert abs(q.reduce(v2) - exact) < 3e-4
+
+
+def test_quadrature_order_and_refusal():
+    assert quadrature_order(0.5) == (5, 12)
+    assert quadrature_order(0.8) == (5, 12)
+    assert quadrature_order(1.6) == (10, 24)
+    assert quadrature_order(1.74, base=(2, 7), validated=0.7) == (5, 18)
+    with pytest.raises(ValueError, match="D/P"):
+        quadrature_order(4.0)
+    with pytest.raises(ValueError, match="D/P"):
+        pupil_pair_quadrature_for(8.2, 8.2, 2.0)
+    # no period -> base rule, no warning
+    assert pupil_pair_quadrature_for(8.2, 8.2, None).n_points == 60
+    assert resolve_pupils(True, (8.2, 8.2), None).n_points == 60
+    # fringe period helper: shortest period over the band
+    assert fringe_period_m(1.0, [400.0, 800.0]) == pytest.approx(400e-9 / MAS)
+    assert np.isinf(fringe_period_m(0.0, 400.0))
+
+
+@pytest.mark.parametrize("d_over_p", [0.5, 1.0, 1.5])
+def test_triple_quadrature_scaled_vs_closed_form(d_over_p):
+    """Two point sources on 4 m pupils: the fringe-aware triple rule
+    matches the closed form beyond the base validation range."""
+    d = (4.0, 4.0, 4.0)
+    B = np.array([[30.0, 0.0], [-15.0, 26.0], [-15.0, -26.0]])
+    P = 4.0 / d_over_p
+    rho = LAM / P
+    th = [np.array([0.3, 0.1]) * rho, np.array([-0.6, -0.2]) * rho]
+    f = [1.0, 0.4]
+    if d_over_p > 0.7:
+        with pytest.warns(UserWarning, match="D/P"):
+            tq = TripleQuadrature.for_fringe(*d, P / np.linalg.norm(th[0] - th[1]) * rho)
+    else:
+        tq = TripleQuadrature.for_fringe(*d, P / np.linalg.norm(th[0] - th[1]) * rho)
+    pts = tq.flat_points(B)
+    gam = sum(fs * np.exp(-2j * np.pi * (pts @ ts) / LAM)
+              for fs, ts in zip(f, th)) / sum(f)
+    bis, v2 = tq.reduce(gam)
+    A = lambda D, dth: airy_amplitude(np.pi * D * np.linalg.norm(dth) / LAM)
+    tot = 0.0
+    for s_ in range(2):
+        for t in range(2):
+            for u in range(2):
+                ph = np.exp(-2j * np.pi * (B[0] @ th[s_] + B[1] @ th[t] + B[2] @ th[u]) / LAM)
+                tot += (f[s_] * f[t] * f[u] * ph * A(d[0], th[u] - th[s_])
+                        * A(d[1], th[s_] - th[t]) * A(d[2], th[t] - th[u]))
+    tot /= sum(f) ** 3
+    assert abs(bis - tot) < 1e-4
 
 
 def test_pair_quadrature_constant_and_point():
@@ -175,19 +233,33 @@ def test_closure_phase_smeared_fields():
 
 
 def test_vlt_delta_vel_smearing_is_large():
-    """delta Vel near maximum separation on the VLT: 8.2 m pupils on a
-    fringe period of ~12-16 m halve the bispectrum amplitude (the
-    largest single correction found in the review)."""
+    """delta Vel near maximum separation on the VLT at its correct
+    distance (25.1 pc): 8.2 m pupils on a fringe period of ~4.7 m at
+    400 nm (D/P ~ 1.7) wipe the fringe out (contrast < 5 %), and the
+    three-pupil bispectrum collapses -- the largest single correction
+    found in the review.  The fringe-aware quadrature warns."""
     psi = np.linspace(0, 2 * np.pi, 721)
     rho = sky_positions(psi, DELTA_VEL).rho
     phase = psi[np.argmax(rho)] / (2 * np.pi)
-    # pair fringe: contrast factor A^2 ~ 0.45 at D/P ~ 0.55
     factor = fringe_smearing_factor(8.2, 8.2, rho.max() * MAS, LAM)
-    assert 0.4 < factor < 0.5
-    # the three-pupil bispectrum on the UT1-UT2-UT3 triangle loses > 20%
-    # (on triangles whose point bispectrum sits near a null the average
-    # can even rise -- the triple is not a simple product of fringes)
+    assert factor < 0.05
+    # pair fringe contrast over 40-60 m (ten periods) through the pupils
+    from hbtsim.bispectrum import binary_vis_complex_analytic
+    from hbtsim.hbt import baseline_vectors_along_pa, binary_vis2_analytic
+    from hbtsim.orbit import positions_at
+    pos = positions_at(DELTA_VEL, phase)
+    b = np.linspace(40.0, 60.0, 201)
+    point = np.squeeze(binary_vis2_analytic(b, 400.0, DELTA_VEL, float(pos.rho)))
+    with pytest.warns(UserWarning, match="D/P"):
+        q = pupil_pair_quadrature_for(8.2, 8.2, LAM / (rho.max() * MAS))
+    pts = q.points(baseline_vectors_along_pa(b, float(pos.pa)))
+    v = binary_vis_complex_analytic(pts.reshape(-1, 2), 400.0, DELTA_VEL, pos)
+    smear = q.reduce(np.abs(v).reshape(1, b.size, -1) ** 2)[0]
+    # fringe amplitude = rms residual about the smooth disk envelope
+    fringe = lambda x: np.std(x - np.polyval(np.polyfit(b, x, 3), b))
+    assert fringe(smear) < 0.1 * fringe(point)
+    # the three-pupil path warns and is finite
     tri = VLT_UT.triangles()[0]
-    a = closure_phase(DELTA_VEL, tri, 400.0, phase)
-    s = closure_phase(DELTA_VEL, tri, 400.0, phase, pupils=True)
-    assert s.triple_amp < 0.8 * a.triple_amp
+    with pytest.warns(UserWarning, match="D/P"):
+        s = closure_phase(DELTA_VEL, tri, 400.0, phase, pupils=True)
+    assert np.isfinite(s.triple_amp)

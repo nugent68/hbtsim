@@ -45,7 +45,7 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
                t_int_s: float = 3600.0,
                telescope: Telescope = C2PU,
                detector: Detector = SPAD_LAMBDA,
-               grid: GridConfig = GridConfig(),
+               grid: GridConfig | None = None,
                chunk_size: int | None = None,
                polarization_mode: str = "unpolarized",
                cadence_hours: float = 1.0,
@@ -53,7 +53,10 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
     """Per-hour |V|^2(lambda) (averaged over the two telescope apertures,
     as the correlator measures it), 1-sigma errors and one noisy
     realization over one orbital period.  Returns a dict of arrays
-    (np.savez-able)."""
+    (np.savez-able).  grid defaults to GridConfig().for_system(system)
+    (a grid that holds the whole orbit)."""
+    if grid is None:
+        grid = GridConfig().for_system(system)
     period_h = system.period_days * 24.0
     hours = np.arange(0.0, period_h - 1e-9, cadence_hours)  # 0..95 for Beta Aur
     phases = hours / period_h

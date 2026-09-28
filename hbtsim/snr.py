@@ -443,7 +443,7 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
                     sky_cps_per_channel: float = 0.0,
                     orbital_phase: float = 0.0,
                     vis2_method: str = "render",
-                    grid: GridConfig = GridConfig(),
+                    grid: GridConfig | None = None,
                     chunk_size: int | None = None,
                     pupils=True,
                     n_pixels_per_channel: int = 1,
@@ -487,17 +487,21 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
     pos = positions_at(system, orbital_phase)
     nm = spectrograph.channel_centers_nm
     widths = spectrograph.channel_widths_nm
+    if grid is None:
+        grid = GridConfig().fit_orbit(system)
 
     if vis2_method == "fft":
         warnings.warn("vis2_method='fft' is now 'render'", DeprecationWarning,
                       stacklevel=2)
         vis2_method = "render"
-    quad = resolve_pupils(pupils, (telescope1.diameter_m, telescope2.diameter_m))
+    from .aperture import fringe_period_m
+    period = fringe_period_m(float(pos.rho), nm)
+    quad = resolve_pupils(pupils, (telescope1.diameter_m, telescope2.diameter_m), period)
     if vis2_method == "render":
         from .spectral import spectral_vis2
         vis2 = np.asarray(spectral_vis2(pos, [baseline_m], nm, system, grid,
                                         chunk_size=chunk_size,
-                                        pupils=quad))[:, 0].astype(float)
+                                        pupils=quad, fringe_period_m=period))[:, 0].astype(float)
     elif vis2_method == "analytic":
         if quad is None:
             vis2 = binary_vis2_analytic(baseline_m, nm, system, float(pos.rho))[:, 0]

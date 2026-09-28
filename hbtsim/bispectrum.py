@@ -39,7 +39,7 @@ from dataclasses import dataclass, replace
 
 import numpy as np
 
-from .aperture import TripleQuadrature, triple_quadrature_for
+from .aperture import TripleQuadrature, fringe_period_m, triple_quadrature_for
 from .geometry import HOUR, MAUNAKEA, PARANAL, Site, enu_to_uv
 from .hbt import vis_of_baselines
 from .orbit import SkyPositions, positions_at
@@ -242,13 +242,14 @@ class BispectrumResult:
     smeared: bool = False
 
 
-def resolve_triple_pupils(pupils, triangle) -> TripleQuadrature | None:
+def resolve_triple_pupils(pupils, triangle,
+                          fringe_period_m: float | None = None) -> TripleQuadrature | None:
     """None/False -> point sampling; True -> the triangle's telescope
     diameters; or a ready TripleQuadrature."""
     if pupils is None or pupils is False:
         return None
     if pupils is True:
-        return triple_quadrature_for(triangle)
+        return triple_quadrature_for(triangle, fringe_period_m=fringe_period_m)
     if isinstance(pupils, TripleQuadrature):
         return pupils
     raise TypeError("pupils must be None, True or a TripleQuadrature")
@@ -277,7 +278,7 @@ def _resolve_method(method: str) -> str:
 def closure_phase(system: BinarySystem, triangle: Triangle,
                   wavelength_nm: float, orbital_phase: float = 0.0,
                   method: str = "analytic",
-                  grid: GridConfig = GridConfig(), *,
+                  grid: GridConfig | None = None, *,
                   pupils=None) -> BispectrumResult:
     """Model gammas and closure phase on the triangle at one epoch.
 
@@ -287,8 +288,11 @@ def closure_phase(system: BinarySystem, triangle: Triangle,
     exact three-pupil averages for the triangle's telescope diameters
     (gammas stay the point values)."""
     method = _resolve_method(method)
-    quad = resolve_triple_pupils(pupils, triangle)
     pos = positions_at(system, orbital_phase)
+    if grid is None:
+        grid = GridConfig().fit_orbit(system)
+    quad = resolve_triple_pupils(pupils, triangle,
+                                 fringe_period_m(float(pos.rho), wavelength_nm))
     bvecs = triangle.baseline_vectors()
     pts = bvecs if quad is None else np.vstack([bvecs, quad.flat_points(bvecs)])
 
@@ -343,7 +347,7 @@ class TripleSamples:
 
 
 def spectral_triple(pos: SkyPositions, triangle: Triangle, wavelengths_nm,
-                    system: BinarySystem, grid: GridConfig = GridConfig(), *,
+                    system: BinarySystem, grid: GridConfig | None = None, *,
                     method: str = "analytic", pupils=True,
                     chunk_size: int | None = None) -> TripleSamples:
     """The triple-correlation model for every channel at one epoch: the
@@ -351,10 +355,13 @@ def spectral_triple(pos: SkyPositions, triangle: Triangle, wavelengths_nm,
     |gamma_ij|^2, by the analytic two-disk model (out of eclipse) or the
     batched render + DFT pipeline (any phase)."""
     method = _resolve_method(method)
-    quad = resolve_triple_pupils(pupils, triangle)
+    nm = np.atleast_1d(np.asarray(wavelengths_nm, dtype=float))
+    if grid is None:
+        grid = GridConfig().fit_orbit(system)
+    quad = resolve_triple_pupils(pupils, triangle,
+                                 fringe_period_m(float(pos.rho), nm))
     bvecs = triangle.baseline_vectors()
     pts = bvecs if quad is None else np.vstack([bvecs, quad.flat_points(bvecs)])
-    nm = np.atleast_1d(np.asarray(wavelengths_nm, dtype=float))
     if method == "analytic":
         gam = binary_vis_complex_analytic(pts, nm, system, pos)
     else:

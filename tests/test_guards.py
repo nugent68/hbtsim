@@ -58,12 +58,17 @@ def test_deprecated_fft_method_alias():
 
 
 def test_extent_guard():
-    """delta Vel at apoapsis fits the default grid (5.1 mas half-width);
-    the same epoch on a 256-pixel grid does not, and every entry point
+    """delta Vel at apoapsis (16.6 mas orbit at 25.1 pc) fits the grid
+    for_system builds (2048 px) but not the default 1024-pixel grid
+    (5.1 mas half-width) nor a 256-pixel one, and every entry point
     must refuse rather than clip the disk."""
     psi = np.linspace(0, 2 * np.pi, 2001)
     pos_all = sky_positions(psi, DELTA_VEL)
-    check_extent(pos_all, DELTA_VEL, GridConfig())
+    fit = GridConfig().for_system(DELTA_VEL)
+    assert fit.n >= 2048
+    check_extent(pos_all, DELTA_VEL, fit)
+    with pytest.raises(ValueError, match="grid"):
+        check_extent(pos_all, DELTA_VEL, GridConfig())
     k = int(np.argmax(np.abs(pos_all.x2)))
     pos = SkyPositions(*(np.asarray(v)[k] for v in pos_all))
     small = GridConfig(n=256)
@@ -73,8 +78,8 @@ def test_extent_guard():
         render_image(pos, DELTA_VEL, 500.0, small)
     with pytest.raises(ValueError, match="grid"):
         spectral_vis2(pos, [50.0], [500.0], DELTA_VEL, small)
-    # and renders fine on the default grid
-    img = render_image(pos, DELTA_VEL, 500.0, GridConfig())
+    # and renders fine on the fitted grid
+    img = render_image(pos, DELTA_VEL, 500.0, fit)
     assert float(img.sum()) > 0.0
 
 

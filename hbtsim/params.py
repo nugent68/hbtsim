@@ -35,7 +35,10 @@ orbit, unresolved disks, both components rapid rotators):
   [M11] Merand et al. 2011, A&A 532, A50 (VLTI/AMBER + spectroscopy
         with Pribulla et al. 2011): P = 45.1503 d, e = 0.290,
         omega = 109.7 deg, i = 89.0 deg, masses, radii, Teffs, orbital
-        parallax 80.6 pc.  The B component (F dwarf, ~0.6 arcsec away,
+        parallax 39.8 +/- 0.4 mas = 25.1 pc (a purely geometric distance;
+        Hipparcos gives 40.5 mas).  An earlier revision of this file
+        carried 80.6 pc, which put the blackbody photometry 2.5 mag off
+        the anchors and shrank every delta Vel angular scale threefold.  The B component (F dwarf, ~0.6 arcsec away,
         ~4% third light) is excluded; its dilution is folded into the
         photometric anchors.  The components' rapid rotation
         (v sin i ~ 145 km/s; oblate, gravity-darkened) is NOT modeled
@@ -364,7 +367,7 @@ DELTA_VEL = BinarySystem(
                    teff=9830.0, ld_table_nm=LD_BETA_AUR),  # [M11]
     period_days=45.1503,        # [M11]
     inclination_deg=89.0,       # [M11]; grazing eclipses
-    distance_pc=80.6,           # [M11] orbital parallax
+    distance_pc=25.13,          # [M11] orbital parallax 39.8 +/- 0.4 mas
     semimajor_au=0.4156,        # Kepler's third law with [M11] masses
     eccentricity=0.290,         # [M11]
     # omega = 109.7 deg [M11], which agrees to 0.1 deg with the ROCHE
@@ -428,6 +431,28 @@ class GridConfig:
         """Baseline sampling of the padded FFT map (hbtsim.fftmap only):
         dB = lambda / (pad * dtheta)."""
         return wavelength_m / (self.pad * self.pixel_scale_rad)
+
+    def fit_orbit(self, system: "BinarySystem", n_max: int = 4096,
+                  margin: float = 1.1) -> "GridConfig":
+        """This grid, with n grown (power of two <= n_max) until the whole
+        orbit fits with a margin; the pixel scale is kept.  Cheap enough
+        to be the default for every renderer entry point."""
+        from .orbit import sky_positions
+
+        r_max = max(system.angular_radius_mas(system.primary),
+                    system.angular_radius_mas(system.secondary))
+        pos = sky_positions(np.linspace(0.0, 2.0 * np.pi, 4001), system)
+        reach = max(float(np.max(np.abs(np.asarray(v)))) for v in
+                    (pos.x1, pos.y1, pos.x2, pos.y2)) + r_max
+        need = 2.0 * margin * reach / self.pixel_scale_mas + 2.0
+        if need <= self.n:
+            return self
+        n = int(2 ** np.ceil(np.log2(need)))
+        if n > n_max:
+            raise ValueError(f"{system.name} needs a {n}-pixel grid at "
+                             f"{self.pixel_scale_mas:.4f} mas/px (> n_max = {n_max})")
+        return GridConfig(n=n, pixel_scale_mas=self.pixel_scale_mas, pad=self.pad,
+                          supersample=self.supersample, n_mu=self.n_mu)
 
     def for_system(self, system: "BinarySystem", min_radius_px: float = 50.0,
                    n_max: int = 4096, margin: float = 1.1) -> "GridConfig":

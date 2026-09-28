@@ -194,7 +194,7 @@ def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
                     spectrograph: Spectrograph = Spectrograph(),
                     t_int_s: float = 3600.0, orbital_phase: float = 0.0,
                     vis_method: str = "analytic",
-                    grid: GridConfig = GridConfig(),
+                    grid: GridConfig | None = None,
                     chunk_size: int | None = None,
                     polarization_mode: str = "unpolarized",
                     sky_cps_per_channel: float = 0.0,
@@ -215,6 +215,8 @@ def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
     nm = spectrograph.channel_centers_nm
     widths = spectrograph.channel_widths_nm
     pos = positions_at(system, orbital_phase)
+    if grid is None:
+        grid = GridConfig().fit_orbit(system)
     ts = spectral_triple(pos, triangle, nm, system, grid, method=vis_method,
                          pupils=pupils, chunk_size=chunk_size)
     triple_amp = ts.triple_amp
