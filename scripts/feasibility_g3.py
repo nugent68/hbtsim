@@ -38,8 +38,10 @@ from hbtsim.geometry import hour_angle_window
 from hbtsim.orbit import max_separation_phase, positions_at, sky_positions
 from hbtsim.params import MAS, SYSTEMS, GridConfig
 from hbtsim.sed import attach_from_cli
-from hbtsim.snr import (C2PU, KECK, SPAD_LAMBDA, SPAD_LAMBDA_NG, Observation,
-                        Spectrograph, g2_snr, spectral_g2_snr, system_ab_mag)
+from hbtsim.snr import (C2PU, EON_SII_TELESCOPE, EONSII_MCP_PMT, EONSII_SPAD,
+                        EONSII_SPECTROGRAPH, EONSII_SPECTROGRAPH_R7500, KECK,
+                        SPAD_LAMBDA, SPAD_LAMBDA_NG, Observation, Spectrograph,
+                        g2_snr, spectral_g2_snr, system_ab_mag)
 from hbtsim.snr3 import (array_g3_snr, nights_to_precision, spectral_g3_snr,
                          time_to_precision, track_g3_snr)
 
@@ -254,6 +256,73 @@ def g2_numbers():
                   f"dead-time load {r.dead_time_load_max:.2f}")
 
 
+# two-telescope instruments: telescope, [(label, spectrograph, detector, polarization)]
+G2_INSTRUMENTS = {
+    "c2pu": (C2PU, [
+        ("320 ch, time-tag", SPEC_320, SPAD_LAMBDA, "unpolarized"),
+        ("320 ch, correlator", SPEC_320, SPAD_LAMBDA_NG, "unpolarized"),
+        ("R = 5000, correlator", SPEC_R5000, SPAD_LAMBDA_NG, "unpolarized"),
+        ("R = 5000, correlator + PBS", SPEC_R5000, SPAD_LAMBDA_NG, "pbs")]),
+    "keck": (KECK, [
+        ("320 ch, time-tag", SPEC_320, SPAD_LAMBDA, "unpolarized"),
+        ("320 ch, correlator", SPEC_320, SPAD_LAMBDA_NG, "unpolarized"),
+        ("R = 5000, correlator", SPEC_R5000, SPAD_LAMBDA_NG, "unpolarized")]),
+    "eonsii": (EON_SII_TELESCOPE, [
+        ("1000 ch, MCP-PMT", EONSII_SPECTROGRAPH, EONSII_MCP_PMT, "unpolarized"),
+        ("1000 ch, MCP-PMT + PBS", EONSII_SPECTROGRAPH, EONSII_MCP_PMT, "pbs"),
+        ("1000 ch, QUASAR SPAD", EONSII_SPECTROGRAPH, EONSII_SPAD, "unpolarized"),
+        ("1000 ch, QUASAR SPAD + PBS", EONSII_SPECTROGRAPH, EONSII_SPAD, "pbs"),
+        ("R = 7500 (2388 ch), QUASAR SPAD", EONSII_SPECTROGRAPH_R7500, EONSII_SPAD, "unpolarized")]),
+}
+
+
+def g2_table(instrument: str, newera_dir=None, allow_extrapolation=False,
+             baselines=None, latex=False):
+    """Two-telescope g2 sensitivity of every system on one instrument: the
+    baseline (along the separation, scanned) that maximizes the total SNR
+    of the instrument's first backend at quadrature, then SNR/h for each
+    backend at that baseline, the total rate per telescope and the pupil
+    smearing D/P."""
+    tel, backends = G2_INSTRUMENTS[instrument]
+    b_scan = np.arange(10.0, 301.0, 5.0) if baselines is None else np.asarray(baselines, float)
+    print(f"\n=== Two-telescope g2: {instrument} (2 x {tel.diameter_m:g} m, "
+          f"{tel.area_m2:.1f} m^2 each, throughput {tel.throughput:.2f}) ===")
+    rows = []
+    for key in ("betaaur", "algol", "deltavel", "spica"):
+        system = attach_from_cli(SYSTEMS[key], newera_dir, allow_extrapolation, verbose=False)
+        phase = max_separation_phase(system)
+        pos = positions_at(system, phase)
+        label0, spec0, det0, pol0 = backends[0]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tot = [spectral_g2_snr(system, b, spectrograph=spec0, telescope1=tel, detector1=det0,
+                                   polarization_mode=pol0, orbital_phase=phase,
+                                   vis2_method="analytic").snr_total for b in b_scan]
+        b_best = float(b_scan[int(np.argmax(tot))])
+        d_over_p = tel.diameter_m * float(pos.rho) * MAS / (spec0.lambda_min_nm * 1e-9)
+        tabled = "NewEra" if system.has_sed_tables else ("NewEra(A)" if system.primary.flux_table is not None else "blackbody")
+        print(f"\n  {system.name} [{tabled}]: rho = {float(pos.rho):.2f} mas at phase {phase:.3f}; "
+              f"best baseline {b_best:.0f} m (first backend), D/P = {d_over_p:.2f} at "
+              f"{spec0.lambda_min_nm:.0f} nm, fringe contrast retained "
+              f"{fringe_smearing_factor(tel.diameter_m, tel.diameter_m, float(pos.rho) * MAS, spec0.lambda_min_nm * 1e-9):.2f}")
+        for label, spec, det, pol in backends:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                r = spectral_g2_snr(system, b_best, spectrograph=spec, telescope1=tel,
+                                    detector1=det, polarization_mode=pol, orbital_phase=phase,
+                                    vis2_method="analytic")
+            print(f"    {label:34s} SNR2/h = {r.snr_total:8.1f}; rate {r.total_rate_cps[0]:.2e} cps/tel"
+                  f"{' READOUT-LIMITED x%.2f' % r.readout_scale if r.readout_limited else ''}, "
+                  f"dead-time load {r.dead_time_load_max:.2f}, |V|^2 median {np.median(r.vis2):.3f}")
+            rows.append((system.name.split()[0], instrument, label, b_best, r.snr_total,
+                         r.total_rate_cps[0], r.readout_limited))
+    if latex:
+        print("\n  LaTeX rows (target & instrument & backend & B & SNR2/sqrt(h)):")
+        for r in rows:
+            print(f"  {r[0]} & {r[1]} & {r[2]} & {r[3]:.0f} m & {r[4]:.1f} \\\\")
+    return rows
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -266,6 +335,8 @@ def main():
     p.add_argument("--no-track", action="store_true")
     p.add_argument("--block-minutes", type=float, default=15.0)
     p.add_argument("--g2", action="store_true", help="only the g2 numbers")
+    p.add_argument("--instrument", choices=sorted(G2_INSTRUMENTS), default="c2pu",
+                   help="two-telescope instrument for the --g2 table")
     p.add_argument("--newera-dir", default=os.environ.get("HBTSIM_NEWERA_DIR") or
                    ("data/newera" if os.path.isdir("data/newera") else None),
                    help="directory of binned NewEra tables to attach to every star "
@@ -280,7 +351,9 @@ def main():
     warnings.filterwarnings("ignore", message=".*dead-time.*")
 
     if args.g2:
-        g2_numbers()
+        if args.instrument == "c2pu":
+            g2_numbers()
+        g2_table(args.instrument, args.newera_dir, args.allow_extrapolation, latex=args.table)
         return
 
     system, arr = SYSTEMS[args.system], ARRAYS[args.array]

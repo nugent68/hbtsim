@@ -154,6 +154,12 @@ def main(argv=None) -> None:
                    help="rectangular filter full width in nm")
     p.add_argument("--n-pixels", type=int, default=1,
                    help="pixels the light is spread over per channel")
+    p.add_argument("--instrument", choices=("custom", "c2pu", "keck", "eonsii"), default="custom",
+                   help="preset telescope/detector/spectrograph (eonsii: 2 x 4 m, 400-550 nm, "
+                        "1000 channels, --detector picks MCP-PMT or SPAD); custom uses the "
+                        "--diameter/--throughput/--channels/... options")
+    p.add_argument("--detector", choices=("spad", "mcp"), default="spad",
+                   help="EON-SII detector case (QUASAR SPAD array or Photonis MCP-PMT)")
     p.add_argument("--newera-dir", default=None,
                    help="directory of binned NewEra tables to attach to the stars")
     p.add_argument("--allow-extrapolation", action="store_true")
@@ -166,6 +172,21 @@ def main(argv=None) -> None:
     grid = GridConfig().fit_orbit(system)
     tel = Telescope(diameter_m=args.diameter, throughput=args.throughput)
     base = SPAD_LAMBDA if args.readout == "timetag" else SPAD_LAMBDA_NG
+    if args.instrument == "eonsii":
+        from .snr import EON_SII_TELESCOPE, EONSII_MCP_PMT, EONSII_SPAD, EONSII_SPECTROGRAPH
+        tel = EON_SII_TELESCOPE
+        base = EONSII_SPAD if args.detector == "spad" else EONSII_MCP_PMT
+        args.channels = EONSII_SPECTROGRAPH.n_channels
+        args.lambda_min, args.lambda_max = EONSII_SPECTROGRAPH.lambda_min_nm, EONSII_SPECTROGRAPH.lambda_max_nm
+        args.backend_throughput = EONSII_SPECTROGRAPH.throughput
+        args.resolving_power = None
+        print("Instrument: EON-SII pair (arXiv:2608.17444) -- 2 x 4 m (9 m^2), 400-550 nm, "
+              "1000 effective channels, 1 GHz time-tag link")
+    elif args.instrument == "keck":
+        from .snr import KECK
+        tel = KECK
+    elif args.instrument == "c2pu":
+        tel = C2PU
     det = replace(base, n_pixels=args.n_pixels)
 
     pos = sky_positions(2.0 * np.pi * args.phase, system)

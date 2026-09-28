@@ -214,6 +214,24 @@ VLT_UT = Array(tuple(
                          ("UT4", (103.306, 43.999)))), site=PARANAL)
 
 
+def eonsii_pair(baseline_m: float, detector: Detector | None = None,
+                pa_deg: float = 0.0, third: Station | None = None) -> Array:
+    """The EON-SII pair (two 4 m transportable telescopes, snr.EON_SII_TELESCOPE)
+    at the given baseline and position angle (E of N) on Teide, as an Array
+    (two stations: g2 only, no triangles) -- with an optional third station
+    for closure-phase studies."""
+    from .geometry import TEIDE
+    from .snr import EON_SII_TELESCOPE, EONSII_MCP_PMT
+    det = EONSII_MCP_PMT if detector is None else detector
+    pa = np.radians(pa_deg)
+    stations = [Station("EON-1", 0.0, 0.0, EON_SII_TELESCOPE, det),
+                Station("EON-2", baseline_m * np.sin(pa), baseline_m * np.cos(pa),
+                        EON_SII_TELESCOPE, det)]
+    if third is not None:
+        stations.append(third)
+    return Array(tuple(stations), site=TEIDE)
+
+
 def equilateral_triangle(side_m: float, telescope: Telescope = KECK,
                          detector: Detector = SPAD_LAMBDA) -> Triangle:
     """Hypothetical compact comparison array: three identical telescopes

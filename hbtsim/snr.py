@@ -99,12 +99,17 @@ def polarization_streams(mode: str) -> tuple:
 class Telescope:
     """A light collector; throughput covers atmosphere, telescope optics
     and coupling losses up to the backend entrance (not the backend
-    itself, nor the detector PDE)."""
+    itself, nor the detector PDE).  diameter_m is the pupil that smears
+    the fringe (hbtsim.aperture); collecting_area_m2, when given, is the
+    photon-collecting area (segmented or obstructed mirrors)."""
     diameter_m: float
     throughput: float = 0.3
+    collecting_area_m2: float | None = None
 
     @property
     def area_m2(self) -> float:
+        if self.collecting_area_m2 is not None:
+            return float(self.collecting_area_m2)
         return np.pi * (self.diameter_m / 2.0) ** 2
 
 
@@ -198,6 +203,33 @@ SPAD_LAMBDA_NG = replace(SPAD_LAMBDA, name="next-gen SPAD Lambda (correlator rea
 
 C2PU = Telescope(diameter_m=1.0, throughput=0.3)
 
+# EON-SII (arXiv:2608.17444): two road-transportable 4 m telescopes (18-panel
+# primaries, ~9 m^2 geometric area each, 80 % reflectivity in the paper's
+# performance model), a fibre-free R ~ 7000-8000 spectrograph over 400-550
+# nm with > 60 % downstream throughput and "~1000 effective channels",
+# picosecond time tags (CERN picoTDC, 3.125 ps bins) over optical links to
+# a central correlator (up to ~1 GHz per telescope), reconfigurable
+# baselines (nominally 1.5-3 km for its compact-star targets; any length
+# here).  Throughput 0.64 = 0.80 mirror x 0.80 ASSUMED blue atmosphere
+# at 2400 m.  Two detector cases: the Photonis FT18 MCP-PMT (32.4 ps FWHM
+# transit-time spread, measured HBT pair width sigma = 27.4 +/- 1.1 ps,
+# which is what jitter_fwhm_ps reproduces pairwise; ASSUMED bialkali QE)
+# and the QUASAR 32x32 SPAD array (12-30 ps target jitter, "higher QE";
+# the SPAD Lambda PDE curve is ASSUMED).  Flagged assumptions are to be
+# replaced by the instrument team's numbers.
+EON_SII_TELESCOPE = Telescope(diameter_m=4.0, throughput=0.64, collecting_area_m2=9.0)
+EONSII_MCP_PMT = Detector(
+    name="EON-SII Photonis FT18 MCP-PMT (assumed bialkali QE)",
+    pde_table_nm=((400.0, 0.22), (450.0, 0.24), (500.0, 0.20), (550.0, 0.15)),
+    jitter_fwhm_ps=27.4 / np.sqrt(2.0) / FWHM_TO_SIGMA,   # per detector, so the pair sigma is 27.4 ps
+    dead_time_ns=1.0, dark_cps_per_pixel=1.0, n_pixels=1,
+    readout="timetag", max_total_cps=1e9)
+EONSII_SPAD = Detector(
+    name="EON-SII QUASAR SPAD array (assumed SPAD Lambda PDE, 20 ps)",
+    pde_table_nm=((400.0, 0.22), (450.0, 0.40), (500.0, 0.49), (520.0, 0.50), (550.0, 0.48)),
+    jitter_fwhm_ps=20.0, dead_time_ns=10.0, dark_cps_per_pixel=250.0, n_pixels=1,
+    readout="timetag", max_total_cps=1e9)
+
 # The two 10 m Keck telescopes on Maunakea, ~85 m apart.  At this scale
 # the photon rate per channel drives a single SPAD pixel deep into
 # dead-time saturation (spread the light over more pixels), the total
@@ -290,6 +322,17 @@ class Spectrograph:
     @property
     def is_uniform(self) -> bool:
         return self.resolving_power is None
+
+
+# EON-SII spectrograph: the paper's "~1000 effective channels after
+# spillover" over 400-550 nm (0.15 nm each; the statistically independent
+# count) is the default; the optical resolution R ~ 7500 (2388 channels of
+# lambda/7500) is the alternative preset.
+EONSII_SPECTROGRAPH = Spectrograph(lambda_min_nm=400.0, lambda_max_nm=550.0,
+                                   n_channels=1000, throughput=0.6,
+                                   name="EON-SII fibre-free, 1000 effective channels")
+EONSII_SPECTROGRAPH_R7500 = Spectrograph.from_resolving_power(
+    7500.0, 400.0, 550.0, throughput=0.6, name="EON-SII R = 7500 (2388 channels)")
 
 
 # ---------------------------------------------------------------------------
