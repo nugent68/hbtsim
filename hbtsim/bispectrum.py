@@ -82,7 +82,7 @@ def binary_vis_complex_analytic(bvecs_m, wavelength_nm, system: BinarySystem,
     out = np.zeros((lam.shape[0], b.shape[0]), dtype=complex)
     norm = np.zeros((lam.shape[0], 1))
     for s, th_pos in zip(stars, positions):
-        theta_d = 2.0 * system.angular_radius_mas(s) * MAS
+        theta_d = 2.0 * system.drawn_radius_mas(s) * MAS
         f_s = np.atleast_1d(s.surface_flux(lam_nm[:, 0]))[:, None] * theta_d**2
         v_s = star_disk_visibility(s, np.pi * theta_d * b_len / lam, lam_nm[:, 0])
         phase = np.exp(-2j * np.pi * (u[..., 0] * th_pos[0] + u[..., 1] * th_pos[1]))

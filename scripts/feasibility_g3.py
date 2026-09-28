@@ -26,6 +26,7 @@ next-generation detector has a correlator readout.
 from __future__ import annotations
 
 import argparse
+import os
 import warnings
 
 import numpy as np
@@ -36,6 +37,7 @@ from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, VLT_UT, Array, Triangle,
 from hbtsim.geometry import hour_angle_window
 from hbtsim.orbit import max_separation_phase, positions_at, sky_positions
 from hbtsim.params import MAS, SYSTEMS, GridConfig
+from hbtsim.sed import attach_from_cli
 from hbtsim.snr import (C2PU, KECK, SPAD_LAMBDA, SPAD_LAMBDA_NG, Observation,
                         Spectrograph, g2_snr, spectral_g2_snr, system_ab_mag)
 from hbtsim.snr3 import (array_g3_snr, nights_to_precision, spectral_g3_snr,
@@ -264,7 +266,16 @@ def main():
     p.add_argument("--no-track", action="store_true")
     p.add_argument("--block-minutes", type=float, default=15.0)
     p.add_argument("--g2", action="store_true", help="only the g2 numbers")
+    p.add_argument("--newera-dir", default=os.environ.get("HBTSIM_NEWERA_DIR") or
+                   ("data/newera" if os.path.isdir("data/newera") else None),
+                   help="directory of binned NewEra tables to attach to every star "
+                        "the grid covers (default: $HBTSIM_NEWERA_DIR or data/newera)")
+    p.add_argument("--no-newera", action="store_true", help="blackbody + Claret only")
+    p.add_argument("--allow-extrapolation", action="store_true",
+                   help="clamp stars beyond the NewEra grid edge to it (Algol A)")
     args = p.parse_args()
+    if args.no_newera:
+        args.newera_dir = None
     warnings.filterwarnings("ignore", message=".*extrapolated.*")
     warnings.filterwarnings("ignore", message=".*dead-time.*")
 
@@ -273,6 +284,7 @@ def main():
         return
 
     system, arr = SYSTEMS[args.system], ARRAYS[args.array]
+    system = attach_from_cli(system, args.newera_dir, args.allow_extrapolation)
     phase = max_separation_phase(system) if args.phase is None else args.phase
     print(f"=== {system.name} on {args.array} ({len(arr.stations)} stations, "
           f"Omega = {system.node_pa_deg} deg, dec = {system.dec_deg} deg), "

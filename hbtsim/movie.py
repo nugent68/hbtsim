@@ -92,7 +92,8 @@ def stretch_rgb(disp: np.ndarray) -> np.ndarray:
 @partial(jax.jit, static_argnames=("n", "s", "n_band", "n_disp", "chunk"))
 def _frames_jit(x1, y1, x2, y2, front2,            # (nf,)
                 r1, r2,                            # scalars
-                w1, i1, i2,                        # (n_wl,), (n_wl, n_mu) x 2
+                w1, i1, i2,                        # (n_wl,), (n_wl, n_mu_s) x 2
+                mu1, mu2,                          # per-star mu nodes
                 fx_hi, fx_lo, fy_hi, fy_lo,        # (nf, n_g2, K)
                 n: int, s: int, n_band: int, n_disp: int, chunk: int):
     """Everything the movie needs, for all frames, in one jitted scan:
@@ -105,7 +106,8 @@ def _frames_jit(x1, y1, x2, y2, front2,            # (nf,)
     m = 2 * DISPLAY_HALF_PX
     render_all = jax.vmap(
         lambda a, b, c_, d, e, f, g, w, ia, ib:
-        render_kernel(a, b, c_, d, e, f, g, w, jnp.float32(1.0), ia, ib, n, s),
+        render_kernel(a, b, c_, d, e, f, g, w, jnp.float32(1.0), ia, ib, n, s,
+                      mu1=mu1, mu2=mu2),
         in_axes=(None, None, None, None, None, None, None, 0, 0, 0))
 
     def one_frame(fr):
@@ -162,9 +164,10 @@ def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
     flux, disp_raw, vis2 = _frames_jit(
         f32(pos_all.x1 / s), f32(pos_all.y1 / s),
         f32(pos_all.x2 / s), f32(pos_all.y2 / s), jnp.asarray(pos_all.front2),
-        jnp.float32(system.angular_radius_mas(system.primary) / s),
-        jnp.float32(system.angular_radius_mas(system.secondary) / s),
-        cw.w1, cw.i1, cw.i2, f32(fx_hi), f32(fx_lo), f32(fy_hi), f32(fy_lo),
+        jnp.float32(system.drawn_radius_mas(system.primary) / s),
+        jnp.float32(system.drawn_radius_mas(system.secondary) / s),
+        cw.w1, cw.i1, cw.i2, cw.mu1, cw.mu2,
+        f32(fx_hi), f32(fx_lo), f32(fy_hi), f32(fy_lo),
         grid.n, grid.supersample, len(cfg.bands), len(RGB_DISPLAY_NM), chunk)
     flux = np.asarray(flux, dtype=float)                 # (nf, n_band)
     disp_raw = np.asarray(disp_raw, dtype=np.float32)    # (nf, 3, m, m)

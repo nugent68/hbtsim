@@ -4,8 +4,11 @@ The image is built in the center-of-mass frame with one pixel = pixel_scale
 mas, axis 0 = y (North) and axis 1 = x (East), the grid centre at pixel
 (n-1)/2.  Each star is a limb-darkened disk -- its centre-to-limb
 profile I(mu)/I(1) is a table on a uniform mu grid (GridConfig.n_mu),
-which holds the linear law 1 - u(1 - mu) exactly and any model
-atmosphere profile (Star.ld_profile) to interpolation accuracy -- whose
+which holds the linear law 1 - u(1 - mu) exactly, or, for a model
+atmosphere profile (Star.ld_profile), the table's own mu nodes (so the
+drawn profile is exactly the piecewise-linear interpolant that
+Star.disk_flux_factor integrates; a spherical model is drawn out to its
+outer boundary, BinarySystem.drawn_radius_mas, where I -> 0) -- whose
 rim is softened over one (sub-)pixel by a coverage factor.  Occultation
 is handled by z-ordering: where the front disk covers a pixel, the back
 disk is hidden in proportion to the coverage, which reproduces the
@@ -36,28 +39,36 @@ from .params import BinarySystem, GridConfig, linear_ld_rows
 
 
 @partial(jax.jit, static_argnames=("n", "s"))
-def render_kernel(x1, y1, x2, y2, front2, r1, r2, w1, w2, i1, i2, n, s=1):
+def render_kernel(x1, y1, x2, y2, front2, r1, r2, w1, w2, i1, i2, n, s=1,
+                  mu1=None, mu2=None):
     """All positions/radii in pixels relative to the grid center; w1, w2
     are the central surface brightnesses of each star and i1, i2 their
-    limb-darkening profiles I(mu)/I(1) tabulated on n_mu points uniform
-    in mu (n_mu = i1.shape[-1]); s = supersampling factor."""
+    limb-darkening profiles I(mu)/I(1) tabulated on the mu nodes mu1, mu2
+    (ascending, n_mu = i1.shape[-1]; None = uniform in mu, which holds the
+    linear law exactly; a model table's own nodes, padded with mu = 0 and
+    I = 0, draw exactly the piecewise-linear profile whose integral is
+    Star.disk_flux_factor); s = supersampling factor.  A spherical model
+    is drawn out to its outer boundary (r1, r2 = drawn radii)."""
     c = (n - 1) / 2.0
     coord = jnp.arange(n, dtype=jnp.float32) - c
-    mu_grid = jnp.linspace(0.0, 1.0, i1.shape[-1], dtype=jnp.float32)
+    grid1 = (jnp.linspace(0.0, 1.0, i1.shape[-1], dtype=jnp.float32) if mu1 is None
+             else jnp.asarray(mu1, dtype=jnp.float32))
+    grid2 = (jnp.linspace(0.0, 1.0, i2.shape[-1], dtype=jnp.float32) if mu2 is None
+             else jnp.asarray(mu2, dtype=jnp.float32))
     inv_s = 1.0 / s
 
     def sub_render(dx, dy):
         xx = coord[None, :] + dx
         yy = coord[:, None] + dy
 
-        def disk(xc, yc, rad, irow):
+        def disk(xc, yc, rad, irow, mgrid):
             r = jnp.hypot(xx - xc, yy - yc)
             mu = jnp.sqrt(jnp.clip(1.0 - (r / rad) ** 2, 0.0, 1.0))
             cover = jnp.clip((rad - r) * s + 0.5, 0.0, 1.0)  # 1-sub-px soft rim
-            return jnp.interp(mu, mu_grid, irow) * cover, cover
+            return jnp.interp(mu, mgrid, irow) * cover, cover
 
-        d1, cover1 = disk(x1, y1, r1, i1)
-        d2, cover2 = disk(x2, y2, r2, i2)
+        d1, cover1 = disk(x1, y1, r1, i1, grid1)
+        d2, cover2 = disk(x2, y2, r2, i2, grid2)
         img_2front = w2 * d2 + w1 * d1 * (1.0 - cover2)
         img_1front = w1 * d1 + w2 * d2 * (1.0 - cover1)
         return jnp.where(front2, img_2front, img_1front)
@@ -88,7 +99,7 @@ def check_extent(pos: SkyPositions, system: BinarySystem,
                        (pos.x2, pos.y2, system.secondary)):
         reach = np.maximum(np.abs(np.asarray(x, float)),
                            np.abs(np.asarray(y, float))) \
-            + system.angular_radius_mas(star)
+            + system.drawn_radius_mas(star)
         worst = max(worst, float(np.max(reach)))
     if worst > half:
         raise ValueError(
@@ -107,33 +118,38 @@ def kernel_args(pos: SkyPositions, system: BinarySystem, grid: GridConfig):
     return (jnp.float32(pos.x1 / s), jnp.float32(pos.y1 / s),
             jnp.float32(pos.x2 / s), jnp.float32(pos.y2 / s),
             jnp.bool_(pos.front2),
-            jnp.float32(system.angular_radius_mas(system.primary) / s),
-            jnp.float32(system.angular_radius_mas(system.secondary) / s))
+            jnp.float32(system.drawn_radius_mas(system.primary) / s),
+            jnp.float32(system.drawn_radius_mas(system.secondary) / s))
 
 
 @dataclass(frozen=True)
 class ChannelWeights:
     """Per-channel render inputs: the primary/secondary central-intensity
-    ratio w1 (n_lambda,) and the limb-darkening rows i1, i2
-    (n_lambda, n_mu) on GridConfig.mu_grid, as float32 JAX arrays."""
+    ratio w1 (n_lambda,), the limb-darkening rows i1, i2 (n_lambda, n_mu_s)
+    on each star's own mu nodes mu1, mu2 (Star.ld_nodes: the table's
+    padded nodes, or GridConfig.mu_grid for the linear law), as float32
+    JAX arrays."""
     w1: jax.Array
     i1: jax.Array
     i2: jax.Array
+    mu1: jax.Array = None
+    mu2: jax.Array = None
 
 
 def spectral_weights(wavelengths_nm, system: BinarySystem,
                      grid: GridConfig = GridConfig()) -> ChannelWeights:
     """Render inputs for every channel: central-intensity ratio (model
-    SED or Planck) and tabulated limb-darkening rows (model profile or
-    linear law)."""
+    SED or Planck) and tabulated limb-darkening rows (model profile on
+    its native nodes, or the linear law on the uniform grid)."""
     lam = np.atleast_1d(np.asarray(wavelengths_nm, dtype=float))
     w1 = (system.primary.central_intensity(lam)
           / system.secondary.central_intensity(lam))
-    mu = grid.mu_grid
     return ChannelWeights(
         w1=jnp.asarray(w1, dtype=jnp.float32),
-        i1=jnp.asarray(system.primary.ld_rows(lam, mu), dtype=jnp.float32),
-        i2=jnp.asarray(system.secondary.ld_rows(lam, mu), dtype=jnp.float32))
+        i1=jnp.asarray(system.primary.ld_rows_native(lam, grid), dtype=jnp.float32),
+        i2=jnp.asarray(system.secondary.ld_rows_native(lam, grid), dtype=jnp.float32),
+        mu1=jnp.asarray(system.primary.ld_nodes(grid), dtype=jnp.float32),
+        mu2=jnp.asarray(system.secondary.ld_nodes(grid), dtype=jnp.float32))
 
 
 def render_image(pos: SkyPositions, system: BinarySystem, wavelength_nm: float,
@@ -143,7 +159,7 @@ def render_image(pos: SkyPositions, system: BinarySystem, wavelength_nm: float,
     cw = spectral_weights([wavelength_nm], system, grid)
     return render_kernel(*kernel_args(pos, system, grid), cw.w1[0],
                          jnp.float32(1.0), cw.i1[0], cw.i2[0], grid.n,
-                         grid.supersample)
+                         grid.supersample, mu1=cw.mu1, mu2=cw.mu2)
 
 
 def linear_rows_jnp(u, n_mu: int) -> jax.Array:

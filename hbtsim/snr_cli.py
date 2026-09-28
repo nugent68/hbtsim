@@ -154,11 +154,15 @@ def main(argv=None) -> None:
                    help="rectangular filter full width in nm")
     p.add_argument("--n-pixels", type=int, default=1,
                    help="pixels the light is spread over per channel")
+    p.add_argument("--newera-dir", default=None,
+                   help="directory of binned NewEra tables to attach to the stars")
+    p.add_argument("--allow-extrapolation", action="store_true")
     p.add_argument("--mag", type=float, default=None,
                    help="override source AB magnitude (narrowband mode)")
     args = p.parse_args(argv)
 
-    system = SYSTEMS[args.system]
+    from .sed import attach_from_cli
+    system = attach_from_cli(SYSTEMS[args.system], args.newera_dir, args.allow_extrapolation)
     grid = GridConfig().fit_orbit(system)
     tel = Telescope(diameter_m=args.diameter, throughput=args.throughput)
     base = SPAD_LAMBDA if args.readout == "timetag" else SPAD_LAMBDA_NG

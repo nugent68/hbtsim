@@ -224,6 +224,8 @@ def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
     pos = positions_at(system, orbital_phase)
     if grid is None:
         grid = GridConfig().fit_orbit(system)
+    from .sed import prepare_system
+    system = prepare_system(system, spectrograph, pos)
     ts = spectral_triple(pos, triangle, nm, system, grid, method=vis_method,
                          pupils=pupils, chunk_size=chunk_size)
     triple_amp = ts.triple_amp

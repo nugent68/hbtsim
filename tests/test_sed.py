@@ -54,7 +54,11 @@ def test_planck_tables_reproduce_render_weights_and_magnitudes():
     cw0 = spectral_weights(LAM[::10], BETA_AUR)
     cw1 = spectral_weights(LAM[::10], sysm)
     assert np.allclose(cw0.w1, cw1.w1, rtol=1e-5)
-    assert np.allclose(cw0.i1, cw1.i1, atol=1e-6)
+    # tabled stars render on their own (padded) mu nodes: compare on the
+    # uniform grid
+    mu0 = np.asarray(cw0.mu1)
+    i1_on_grid = np.stack([np.interp(mu0, np.asarray(cw1.mu1), row) for row in np.asarray(cw1.i1)])
+    assert np.allclose(cw0.i1, i1_on_grid, atol=1e-6)
     assert model_ab_mag(sysm, 500.0) == pytest.approx(model_ab_mag(BETA_AUR, 500.0), abs=1e-6)
     # with tables the anchors are only a check: no offset is applied, and
     # the blackbody's ~0.4 mag miss is reported

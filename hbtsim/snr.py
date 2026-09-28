@@ -493,6 +493,9 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
     widths = spectrograph.channel_widths_nm
     if grid is None:
         grid = GridConfig().fit_orbit(system)
+    # model tables: Doppler-shift for the epoch and average over the channels
+    from .sed import prepare_system
+    system = prepare_system(system, spectrograph, pos)
 
     if vis2_method == "fft":
         warnings.warn("vis2_method='fft' is now 'render'", DeprecationWarning,
@@ -563,12 +566,13 @@ BAND_LAMBDA_NM = {"g": 477.0, "i": 763.0}
 def model_ab_mag(system: BinarySystem, wavelength_nm):
     """Synthetic AB magnitude of the uneclipsed binary from the stars'
     surface fluxes (model SED tables, or pi B_lambda(T_eff) blackbodies):
-    f_nu = sum_s F_s(lambda) theta_s^2 lambda^2 / c, theta_s = R_s/d."""
+    f_nu = sum_s F_s(lambda) theta_s^2 lambda^2 / c, theta_s = R_s/d (the drawn, outer radius for a
+    spherical model: F is the flux at its outer boundary)."""
     lam_nm = np.asarray(wavelength_nm, dtype=float)
     lam = lam_nm * 1e-9
     f_nu = 0.0
     for star in (system.primary, system.secondary):
-        theta_r = system.angular_radius_mas(star) * MAS
+        theta_r = system.drawn_radius_mas(star) * MAS
         f_nu = f_nu + star.surface_flux(lam_nm) * theta_r**2 * lam**2 / C_LIGHT
     out = -2.5 * np.log10(f_nu / AB_ZERO_FNU)
     return float(out) if np.ndim(out) == 0 else out

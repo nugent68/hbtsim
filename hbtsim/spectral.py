@@ -49,13 +49,15 @@ def _pad_to_chunk(n_lambda: int, chunk_size: int | None):
 
 @partial(jax.jit, static_argnames=("n", "s", "chunk"))
 def _spectral_vis_jit(x1, y1, x2, y2, front2, r1, r2,
-                      w1, i1, i2,                     # (n_pad,), (n_pad, n_mu) x 2
+                      w1, i1, i2,                     # (n_pad,), (n_pad, n_mu_s) x 2
+                      mu1, mu2,                       # (n_mu_1,), (n_mu_2,)
                       fx_hi, fx_lo, fy_hi, fy_lo,     # (n_pad, K)
                       n: int, s: int, chunk: int):
     def one_channel(ch):
         w1_k, i1_k, i2_k, fxh, fxl, fyh, fyl = ch
         img = render_kernel(x1, y1, x2, y2, front2, r1, r2,
-                            w1_k, jnp.float32(1.0), i1_k, i2_k, n, s)
+                            w1_k, jnp.float32(1.0), i1_k, i2_k, n, s,
+                            mu1=mu1, mu2=mu2)
         return dft_points(img, fxh, fxl, fyh, fyl, s), jnp.sum(img)
 
     return jax.lax.map(one_channel, (w1, i1, i2, fx_hi, fx_lo, fy_hi, fy_lo),
@@ -88,7 +90,7 @@ def spectral_vis(pos: SkyPositions, bvecs_m, wavelengths_nm,
     f32 = lambda a: jnp.asarray(a, dtype=jnp.float32)
 
     vis, flux = _spectral_vis_jit(
-        *kernel_args(pos, system, grid), cw.w1, cw.i1, cw.i2,
+        *kernel_args(pos, system, grid), cw.w1, cw.i1, cw.i2, cw.mu1, cw.mu2,
         f32(fx_hi), f32(fx_lo), f32(fy_hi), f32(fy_lo), grid.n,
         grid.supersample, chunk)
     vis, flux = vis[:n_l], flux[:n_l]
@@ -101,8 +103,8 @@ def reference_flux(system: BinarySystem, wavelengths_nm, grid: GridConfig) -> np
     analytic value the rendered sum approaches out of eclipse."""
     lam = np.atleast_1d(np.asarray(wavelengths_nm, dtype=float))
     cw = spectral_weights(lam, system, grid)
-    r1 = system.angular_radius_mas(system.primary) / grid.pixel_scale_mas
-    r2 = system.angular_radius_mas(system.secondary) / grid.pixel_scale_mas
+    r1 = system.drawn_radius_mas(system.primary) / grid.pixel_scale_mas
+    r2 = system.drawn_radius_mas(system.secondary) / grid.pixel_scale_mas
     dff1 = np.asarray(system.primary.disk_flux_factor(lam), dtype=float)
     dff2 = np.asarray(system.secondary.disk_flux_factor(lam), dtype=float)
     return np.pi * (r1**2 * np.asarray(cw.w1, dtype=float) * dff1 + r2**2 * dff2)

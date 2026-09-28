@@ -22,6 +22,7 @@ hbtsim-snr = "hbtsim.snr_cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["slow: timing tests (deselect with -m 'not slow')"]
 filterwarnings = [
     "ignore:.*anchored-blackbody magnitude extrapolated.*:UserWarning",
     "ignore:.*dead-time load.*:UserWarning",

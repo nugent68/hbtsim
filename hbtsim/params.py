@@ -125,10 +125,31 @@ class LDProfile:
     wavelength_nm: np.ndarray
     intensity: np.ndarray
     source: str = ""
+    # spherical models: the table's mu = 0 is the model's OUTER boundary,
+    # R_outer = r_outer x R_edge where R_edge is the continuum limb (the
+    # tau = 1 radius, what a literature radius means) at mu_edge
+    r_outer: float = 1.0
+    mu_edge: float = 0.0
+
+    @property
+    def nodes(self) -> np.ndarray:
+        """The mu grid padded with 0 at the limb (I = 0 there), the grid
+        the renderer interpolates on."""
+        mu = np.asarray(self.mu, dtype=float)
+        return mu if mu[0] <= 0.0 else np.concatenate([[0.0], mu])
+
+    def rows_on_nodes(self, wavelength_nm) -> np.ndarray:
+        """rows() on `nodes` (a zero column prepended when padded)."""
+        r = self.rows(wavelength_nm)
+        if float(np.asarray(self.mu)[0]) <= 0.0:
+            return r
+        return np.concatenate([np.zeros((r.shape[0], 1)), r], axis=1)
 
     def rows(self, wavelength_nm) -> np.ndarray:
         """I(mu)/I(1) interpolated in wavelength: (..., n_mu)."""
         lam = np.atleast_1d(np.asarray(wavelength_nm, dtype=float))
+        if self.wavelength_nm.size == 1:
+            return np.broadcast_to(self.intensity[0], (lam.size, self.mu.size)).copy()
         k = np.clip(np.searchsorted(self.wavelength_nm, lam) - 1, 0,
                     self.wavelength_nm.size - 2)
         w = np.clip((lam - self.wavelength_nm[k])
@@ -139,7 +160,7 @@ class LDProfile:
     def on_grid(self, mu_grid, wavelength_nm) -> np.ndarray:
         """rows() resampled onto another mu grid (linear), (..., n_grid)."""
         r = self.rows(wavelength_nm)
-        return np.stack([np.interp(mu_grid, self.mu, row) for row in r])
+        return np.stack([np.interp(mu_grid, self.mu, row, left=0.0) for row in r])
 
 
 def integrate_profile_times_mu(mu, rows) -> np.ndarray:
@@ -175,6 +196,44 @@ class Star:
     # replace the blackbody SED and/or the linear limb-darkening law
     flux_table: FluxTable | None = None
     ld_profile: LDProfile | None = None
+    # model-atmosphere selection and physics hooks (hbtsim.sed): log g
+    # (from mass and radius when None), metallicity, projected rotation
+    # (rotational broadening of the tables when set), and which radius
+    # radius_rsun is: "tau1" (the continuum limb, literature radii) or
+    # "outer" (the model's outer boundary)
+    logg: float | None = None
+    metallicity: float = 0.0
+    vsini_kms: float | None = None
+    radius_ref: str = "tau1"
+
+    @property
+    def log_g(self) -> float:
+        """log g [cgs]: the logg field, else from mass and radius."""
+        if self.logg is not None:
+            return float(self.logg)
+        return float(4.438 + np.log10(self.mass_msun) - 2.0 * np.log10(self.radius_rsun))
+
+    @property
+    def radius_scale(self) -> float:
+        """Drawn (outer) radius over radius_rsun: the profile's
+        r_outer when radius_rsun is the tau = 1 radius, else 1."""
+        if self.ld_profile is not None and self.radius_ref == "tau1":
+            return float(self.ld_profile.r_outer)
+        return 1.0
+
+    def ld_nodes(self, grid) -> np.ndarray:
+        """The mu grid the renderer uses for this star: the table's own
+        (padded) nodes, or the uniform grid for the linear law."""
+        if self.ld_profile is not None:
+            return self.ld_profile.nodes
+        return np.asarray(grid.mu_grid, dtype=float)
+
+    def ld_rows_native(self, wavelength_nm, grid) -> np.ndarray:
+        """I(mu)/I(1) on ld_nodes(grid) for each wavelength."""
+        lam = np.atleast_1d(np.asarray(wavelength_nm, dtype=float))
+        if self.ld_profile is not None:
+            return self.ld_profile.rows_on_nodes(lam)
+        return linear_ld_rows(self.ld_coeff(lam), grid.mu_grid)
 
     def ld_coeff(self, wavelength_nm):
         """Linear LD coefficient at one wavelength (float) or an array of
@@ -260,10 +319,16 @@ class BinarySystem:
     def angular_radius_mas(self, star: Star) -> float:
         return (star.radius_rsun * R_SUN) / (self.distance_pc * PARSEC) / MAS
 
+    def drawn_radius_mas(self, star: Star) -> float:
+        """The radius the disk is drawn with: angular_radius_mas scaled by
+        the star's radius_scale (the model's outer boundary for a
+        spherical profile whose radius_rsun is the tau = 1 radius)."""
+        return self.angular_radius_mas(star) * star.radius_scale
+
     @property
     def sum_of_radii_mas(self) -> float:
-        return (self.angular_radius_mas(self.primary)
-                + self.angular_radius_mas(self.secondary))
+        return (self.drawn_radius_mas(self.primary)
+                + self.drawn_radius_mas(self.secondary))
 
 
 # ---------------------------------------------------------------------------
@@ -447,8 +512,8 @@ class GridConfig:
         to be the default for every renderer entry point."""
         from .orbit import sky_positions
 
-        r_max = max(system.angular_radius_mas(system.primary),
-                    system.angular_radius_mas(system.secondary))
+        r_max = max(system.drawn_radius_mas(system.primary),
+                    system.drawn_radius_mas(system.secondary))
         pos = sky_positions(np.linspace(0.0, 2.0 * np.pi, 4001), system)
         reach = max(float(np.max(np.abs(np.asarray(v)))) for v in
                     (pos.x1, pos.y1, pos.x2, pos.y2)) + r_max
@@ -470,8 +535,8 @@ class GridConfig:
         two <= n_max (raises if the orbit does not fit)."""
         from .orbit import sky_positions
 
-        r_min = min(system.angular_radius_mas(system.primary),
-                    system.angular_radius_mas(system.secondary))
+        r_min = min(system.drawn_radius_mas(system.primary),
+                    system.drawn_radius_mas(system.secondary))
         scale = min(self.pixel_scale_mas, r_min / min_radius_px)
         pos = sky_positions(np.linspace(0.0, 2.0 * np.pi, 4001), system)
         reach = max(float(np.max(np.abs(np.asarray(v)))) for v in

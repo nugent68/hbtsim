@@ -248,7 +248,7 @@ def binary_vis2_analytic(baselines_m, wavelength_nm, system,
     rho_rad = rho_mas * MAS
 
     stars = (system.primary, system.secondary)
-    th = [2.0 * system.angular_radius_mas(s) * MAS for s in stars]
+    th = [2.0 * system.drawn_radius_mas(s) * MAS for s in stars]
     # per-star flux weights F_s theta_s^2 (model SED or pi B_lambda): the
     # disk factors 2 int I mu dmu do not cancel between different stars
     f = [np.atleast_1d(s.surface_flux(lam_nm[:, 0]))[:, None] * t**2

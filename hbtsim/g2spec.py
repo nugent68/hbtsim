@@ -69,13 +69,17 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
     vis2 = np.empty((n_e, n_c), np.float32)
     flux = np.empty((n_e, n_c), np.float32)
     disp = np.empty((n_e, m_disp, m_disp, 3), np.float32)
+    from .sed import prepare_system
     for k, ph in enumerate(phases):
         pos = positions_at(system, ph)
-        v2, fl = spectral_vis2(pos, [baseline_m], nm, system, grid,
+        sys_k = prepare_system(system, spectrograph, pos)
+        v2, fl = spectral_vis2(pos, [baseline_m], nm, sys_k, grid,
                                chunk_size=chunk_size, return_flux=True,
                                pupils=(telescope.diameter_m, telescope.diameter_m))
         vis2[k] = np.asarray(v2)[:, 0]
-        flux[k] = np.asarray(fl)
+        # eclipse dimming of this epoch relative to the (channel-averaged)
+        # system's own out-of-eclipse flux
+        flux[k] = eclipse_dimming(fl, sys_k, nm, grid)
         disp[k] = render_display_rgb(pos, system, grid)
         if verbose and (k % 12 == 0 or k == n_e - 1):
             print(f"  epoch {k + 1}/{n_e} (phase {ph:.3f})", flush=True)
@@ -83,7 +87,7 @@ def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
     # per-epoch, per-channel magnitude: out-of-eclipse anchored value plus
     # the eclipse dimming from the rendered flux
     mag0 = np.asarray(system_ab_mag(system, nm))
-    dmag = -2.5 * np.log10(eclipse_dimming(flux, system, nm, grid))
+    dmag = -2.5 * np.log10(flux)
     mags = mag0[None, :] + dmag
 
     obs = Observation(wavelength_nm=nm[None, :], filter_width_nm=widths[None, :],
@@ -255,9 +259,13 @@ def main(argv=None) -> None:
     p.add_argument("--chunk", type=int, default=None)
     p.add_argument("--fps", type=int, default=8)
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--newera-dir", default=None,
+                   help="directory of binned NewEra tables to attach to the stars")
+    p.add_argument("--allow-extrapolation", action="store_true")
     args = p.parse_args(argv)
 
-    system = SYSTEMS[args.system]
+    from .sed import attach_from_cli
+    system = attach_from_cli(SYSTEMS[args.system], args.newera_dir, args.allow_extrapolation)
     npz = args.npz or f"output/g2spec_{args.system}.npz"
     out = args.out or f"output/g2spec_{args.system}.mp4"
     os.makedirs(os.path.dirname(npz) or ".", exist_ok=True)
