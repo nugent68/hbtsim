@@ -537,6 +537,24 @@ class GridConfig:
         return GridConfig(n=n, pixel_scale_mas=self.pixel_scale_mas, pad=self.pad,
                           supersample=self.supersample, n_mu=self.n_mu)
 
+    def fit_epoch(self, system: "BinarySystem", pos, margin: float = 1.2,
+                  n_min: int = 256, n_max: int = 4096) -> "GridConfig":
+        """This grid, with n the smallest power of two (n_min <= n <= n_max)
+        holding both disks at ONE epoch (an orbit.SkyPositions) with a
+        margin; the pixel scale is kept.  Near conjunction both stars sit
+        close to the centre of mass, so this is 16-64x cheaper than the
+        whole-orbit grid of fit_orbit for a wide binary."""
+        r_max = max(system.drawn_radius_mas(system.primary),
+                    system.drawn_radius_mas(system.secondary))
+        reach = max(abs(float(np.asarray(v))) for v in (pos.x1, pos.y1, pos.x2, pos.y2)) + r_max
+        need = 2.0 * margin * reach / self.pixel_scale_mas + 2.0
+        n = int(2 ** np.ceil(np.log2(max(need, n_min))))
+        if n > n_max:
+            raise ValueError(f"{system.name} needs a {n}-pixel grid at "
+                             f"{self.pixel_scale_mas:.4f} mas/px at this epoch (> n_max = {n_max})")
+        return GridConfig(n=n, pixel_scale_mas=self.pixel_scale_mas, pad=self.pad,
+                          supersample=self.supersample, n_mu=self.n_mu)
+
     def for_system(self, system: "BinarySystem", min_radius_px: float = 50.0,
                    n_max: int = 4096, margin: float = 1.1) -> "GridConfig":
         """A grid whose pixel scale resolves the smaller star with at

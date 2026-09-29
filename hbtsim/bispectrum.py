@@ -215,11 +215,12 @@ VLT_UT = Array(tuple(
 
 
 def eonsii_pair(baseline_m: float, detector: Detector | None = None,
-                pa_deg: float = 0.0, third: Station | None = None) -> Array:
+                pa_deg: float = 0.0, third: Station | None = None,
+                site: Site | None = None) -> Array:
     """The EON-SII pair (two 4 m transportable telescopes, snr.EON_SII_TELESCOPE)
-    at the given baseline and position angle (E of N) on Teide, as an Array
-    (two stations: g2 only, no triangles) -- with an optional third station
-    for closure-phase studies."""
+    at the given baseline and position angle (E of N), as an Array (two
+    stations: g2 only, no triangles) -- with an optional third station for
+    closure-phase studies.  site defaults to Teide (geometry.TEIDE)."""
     from .geometry import TEIDE
     from .snr import EON_SII_TELESCOPE, EONSII_MCP_PMT
     det = EONSII_MCP_PMT if detector is None else detector
@@ -229,7 +230,34 @@ def eonsii_pair(baseline_m: float, detector: Detector | None = None,
                         EON_SII_TELESCOPE, det)]
     if third is not None:
         stations.append(third)
-    return Array(tuple(stations), site=TEIDE)
+    return Array(tuple(stations), site=TEIDE if site is None else site)
+
+
+# closest centre-to-centre spacing of two 4 m transportable telescopes
+EONSII_MIN_SPACING_M = 6.0
+
+
+def eonsii_triangle(side_m: float = 20.0, detector: Detector | None = None,
+                    pa_deg: float = 0.0, site: Site | None = None,
+                    shape: str = "equilateral") -> Array:
+    """Three EON-SII 4 m units on an equilateral triangle of the given side
+    (the pair plus a hypothetical third identical unit), for closure
+    phases.  EON-1 at the origin, EON-2 at position angle pa_deg (E of N),
+    EON-3 at pa_deg + 60.  site defaults to Paranal / CTAO-South
+    (geometry.PARANAL): the southern targets (delta Vel, dec -54.7) never
+    rise usefully at Teide."""
+    from .snr import EON_SII_TELESCOPE, EONSII_MCP_PMT
+    if shape != "equilateral":
+        raise ValueError(f"only shape='equilateral' is implemented, not {shape!r}")
+    if side_m < EONSII_MIN_SPACING_M:
+        raise ValueError(f"side {side_m} m is below the {EONSII_MIN_SPACING_M} m minimum "
+                         "spacing of two 4 m units")
+    det = EONSII_MCP_PMT if detector is None else detector
+    a, b = np.radians(pa_deg), np.radians(pa_deg + 60.0)
+    stations = (Station("EON-1", 0.0, 0.0, EON_SII_TELESCOPE, det),
+                Station("EON-2", side_m * np.sin(a), side_m * np.cos(a), EON_SII_TELESCOPE, det),
+                Station("EON-3", side_m * np.sin(b), side_m * np.cos(b), EON_SII_TELESCOPE, det))
+    return Array(stations, site=PARANAL if site is None else site)
 
 
 def equilateral_triangle(side_m: float, telescope: Telescope = KECK,
