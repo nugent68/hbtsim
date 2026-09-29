@@ -482,7 +482,12 @@ class NewEraGrid:
 
     @staticmethod
     def _bracket(values, x):
+        """Neighbouring grid values (lo, hi) around x; (x, x) when x sits on
+        a grid value, so no spurious upper neighbour is demanded."""
         values = sorted(values)
+        for v in values:
+            if abs(x - v) < 1e-9:
+                return v, v
         if x <= values[0]:
             return values[0], values[0]
         if x >= values[-1]:
@@ -515,8 +520,16 @@ class NewEraGrid:
             clamped["logg"] = (float(logg), g_use)
         t0, t1 = self._bracket(teffs, t_use)
         g0, g1 = self._bracket(loggs, g_use)
-        corners_keys = {(t, g, z) for t in (t0, t1) for g in (g0, g1)}
-        missing = [k for k in corners_keys if k not in self.tables]
+        wt = 0.0 if t1 == t0 else (t_use - t0) / (t1 - t0)
+        wg = 0.0 if g1 == g0 else (g_use - g0) / (g1 - g0)
+        corners = []
+        for t, w_t in ((t0, 1.0 - wt), (t1, wt)):
+            for g, w_g in ((g0, 1.0 - wg), (g1, wg)):
+                w = w_t * w_g
+                if w > 0.0:
+                    corners.append((t, g, w))
+        # only the corners that actually carry weight must exist
+        missing = [(t, g, z) for t, g, _ in corners if (t, g, z) not in self.tables]
         if missing:
             near = sorted(keys, key=lambda k: ((k[0] - teff) / 100.0)**2 + ((k[1] - logg) / 0.25)**2)[:4]
             raise ValueError(f"NewEra grid does not bracket T_eff = {teff:.0f} K, "
@@ -534,18 +547,12 @@ class NewEraGrid:
                                     "; pass allow_extrapolation=True to clamp to the edge"))
             warnings.warn(f"NewEra: ({teff:.0f} K, log g {logg:.2f}) clamped to the grid "
                           f"edge {clamped}", stacklevel=2)
-        wt = 0.0 if t1 == t0 else (t_use - t0) / (t1 - t0)
-        wg = 0.0 if g1 == g0 else (g_use - g0) / (g1 - g0)
-        corners = []
-        for t, w_t in ((t0, 1.0 - wt), (t1, wt)):
-            for g, w_g in ((g0, 1.0 - wg), (g1, wg)):
-                w = w_t * w_g
-                if w > 0.0:
-                    corners.append((t, g, w))
         loaded = [(self.load((t, g, z)), w) for t, g, w in corners]
         lam = np.asarray(loaded[0][0][0].wavelength_nm, dtype=float)
         for (ft, ld), _ in loaded:
-            if not (np.array_equal(ft.wavelength_nm, lam) and np.array_equal(ld.wavelength_nm, lam)):
+            if not (np.shape(ft.wavelength_nm) == lam.shape and np.shape(ld.wavelength_nm) == lam.shape
+                    and np.allclose(ft.wavelength_nm, lam, rtol=0, atol=1e-6)
+                    and np.allclose(ld.wavelength_nm, lam, rtol=0, atol=1e-6)):
                 raise ValueError("NewEra corner tables must share one wavelength grid")
         logf = sum(w * np.log10(np.maximum(np.asarray(ft.flux, dtype=float), 1e-300))
                    for (ft, _), w in loaded)
@@ -575,32 +582,35 @@ class NewEraGrid:
                             extrapolated=bool(clamped), clamped=clamped or None)
 
 
+def with_newera_star(star, grid: NewEraGrid, allow_extrapolation: bool = False):
+    """One star with NewEra tables attached (bilinear in T_eff and its
+    log_g; rotationally broadened when Star.vsini_kms is set), or the star
+    unchanged when the grid does not cover it.  Returns (star, report)."""
+    try:
+        t = grid.interpolate(star.teff, star.log_g, star.metallicity,
+                             allow_extrapolation=allow_extrapolation)
+    except ValueError as e:
+        return star, (f"no NewEra coverage (T_eff {star.teff:.0f} K, log g "
+                      f"{star.log_g:.2f}): kept blackbody + linear law [{e}]")
+    ft, ld = t.flux_table, t.ld_profile
+    if star.vsini_kms:
+        ft, ld = rotational_broaden(ft, ld, star.vsini_kms)
+    how = "clamped to the grid edge " + str(t.clamped) if t.extrapolated else "interpolated"
+    return with_tables(star, ft, ld), (f"NewEra {how} from {[(c[0], c[1]) for c in t.corners]} "
+                                       f"(weights {[round(c[2], 3) for c in t.corners]}); "
+                                       f"R_outer/R_edge = {ld.r_outer:.5f}")
+
+
 def with_newera(system, grid: NewEraGrid, which=("primary", "secondary"),
                 allow_extrapolation: bool = False):
     """The system with NewEra tables attached to the stars the grid covers
-    (bilinear in T_eff and the star's log_g), rotationally broadened when
-    Star.vsini_kms is set.  Returns (system, report) where report maps
-    each star's name to what happened; stars outside the grid keep their
-    blackbody + linear-law defaults."""
+    (with_newera_star per star).  Returns (system, report) where report
+    maps each star's name to what happened; stars outside the grid keep
+    their blackbody + linear-law defaults."""
     report = {}
     stars = {"primary": system.primary, "secondary": system.secondary}
     for key in which:
-        star = stars[key]
-        try:
-            t = grid.interpolate(star.teff, star.log_g, star.metallicity,
-                                 allow_extrapolation=allow_extrapolation)
-        except ValueError as e:
-            report[star.name] = f"no NewEra coverage (T_eff {star.teff:.0f} K, log g " \
-                                f"{star.log_g:.2f}): kept blackbody + linear law [{e}]"
-            continue
-        ft, ld = t.flux_table, t.ld_profile
-        if star.vsini_kms:
-            ft, ld = rotational_broaden(ft, ld, star.vsini_kms)
-        stars[key] = with_tables(star, ft, ld)
-        how = "clamped to the grid edge " + str(t.clamped) if t.extrapolated else "interpolated"
-        report[star.name] = (f"NewEra {how} from {[(c[0], c[1]) for c in t.corners]} "
-                             f"(weights {[round(c[2], 3) for c in t.corners]}); "
-                             f"R_outer/R_edge = {ld.r_outer:.5f}")
+        stars[key], report[stars[key].name] = with_newera_star(stars[key], grid, allow_extrapolation)
     return replace(system, primary=stars["primary"], secondary=stars["secondary"]), report
 
 

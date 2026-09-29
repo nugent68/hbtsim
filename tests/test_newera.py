@@ -382,3 +382,34 @@ def test_rebin_is_memoized():
     assert a.ld_profile is b.ld_profile and a.flux_table is b.flux_table
     c = rebin_to_channels(star, Spectrograph(lambda_min_nm=480.0, lambda_max_nm=492.0, n_channels=7).channel_edges_nm)
     assert c.ld_profile is not a.ld_profile
+
+
+def test_bracket_on_node_ignores_zero_weight_corners(tmp_path):
+    """A star on a grid node in log g must not demand an upper-log g
+    neighbour it gives zero weight (Vega at log g 4.0 once 4.5 tables
+    exist for other temperatures)."""
+    lam = LAM[::10]
+    for t, g in ((9400.0, 3.5), (9400.0, 4.0), (9600.0, 3.5), (9600.0, 4.0), (9800.0, 4.5)):
+        _write_corner(tmp_path / f"newera_lte{int(t):05d}-{g:.2f}-0.0_x.npz", t, g, lam, 0.07)
+    grid = NewEraGrid.scan(str(tmp_path))
+    t = grid.interpolate(9550.0, 4.0)
+    assert {(c[0], c[1]) for c in t.corners} == {(9400.0, 4.0), (9600.0, 4.0)}
+    assert sum(c[2] for c in t.corners) == pytest.approx(1.0)
+    # T_eff on a node needs no T neighbour either
+    t2 = grid.interpolate(9600.0, 3.75)
+    assert {(c[0], c[1]) for c in t2.corners} == {(9600.0, 3.5), (9600.0, 4.0)}
+    # a genuinely missing weighted corner still raises
+    with pytest.raises(ValueError, match="missing corner"):
+        grid.interpolate(9700.0, 4.25)
+
+
+@needs_data
+def test_real_grid_covers_sirius_and_vega():
+    grid = NewEraGrid.scan(NEWERA_DIR)
+    if (9800.0, 4.5, 0.0) not in grid.tables:
+        pytest.skip("log g 4.5 corners not binned")
+    t = grid.interpolate(9940.0, 4.33)
+    assert {(c[0], c[1]) for c in t.corners} == {(9800.0, 4.0), (9800.0, 4.5), (10000.0, 4.0), (10000.0, 4.5)}
+    assert 1.002 < t.ld_profile.r_outer < 1.01
+    v = grid.interpolate(9550.0, 4.0)
+    assert {(c[0], c[1]) for c in v.corners} == {(9400.0, 4.0), (9600.0, 4.0)}
