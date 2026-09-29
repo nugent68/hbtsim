@@ -573,6 +573,32 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
 
     # out-of-eclipse model magnitude, dimmed by the rendered eclipse
     mag = np.asarray(system_ab_mag(system, nm)) - 2.5 * np.log10(dimming)
+    return _g2_budget(vis2, mag, spectrograph, baseline_m, t_int_s=t_int_s,
+                      telescope1=telescope1, telescope2=telescope2, det1=det1, det2=det2,
+                      polarization_mode=polarization_mode,
+                      sky_cps_per_channel=sky_cps_per_channel,
+                      coherence_broadening=coherence_broadening,
+                      enforce_readout=enforce_readout, vis2_method=vis2_method,
+                      smeared=quad is not None, dimming=dimming, caller="spectral_g2_snr")
+
+
+def _g2_budget(vis2, mag, spectrograph: Spectrograph, baseline_m: float, *,
+               t_int_s: float, telescope1: Telescope, telescope2: Telescope,
+               det1: Detector, det2: Detector, polarization_mode: str = "unpolarized",
+               sky_cps_per_channel: float = 0.0, coherence_broadening: bool = True,
+               enforce_readout: bool = True, vis2_method: str = "", smeared: bool = False,
+               dimming=None, channel_mask=None, caller: str = "spectral_g2_snr"
+               ) -> SpectralSNRResult:
+    """The photon-budget half of a multiplexed g2 measurement, shared by the
+    binary (spectral_g2_snr) and single-star (single.spectral_g2_snr_single)
+    paths: per-channel |V|^2 and AB magnitude in, SNR per channel out.
+    channel_mask (bool per channel) tags only the selected channels: the
+    link ceiling is applied to their total rate alone and the others
+    contribute nothing."""
+    nm = spectrograph.channel_centers_nm
+    widths = spectrograph.channel_widths_nm
+    mag = np.asarray(mag, dtype=float)
+    mask = np.ones(nm.size, dtype=bool) if channel_mask is None else np.asarray(channel_mask, bool)
     obs = Observation(wavelength_nm=nm, filter_width_nm=widths, t_int_s=t_int_s,
                       sky_cps=sky_cps_per_channel,
                       polarization_mode=polarization_mode,
@@ -580,28 +606,29 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
                       coherence_broadening=coherence_broadening)
     n_streams, _, _, _ = polarization_streams(polarization_mode)
 
-    # readout ceiling: total incident rate over all channels and streams
+    # readout ceiling: total incident rate over all tagged channels and streams
     scale = 1.0
     if enforce_readout:
-        tot = [float(np.sum(incident_rate(mag, t, d, obs))) * n_streams
+        tot = [float(np.sum(np.asarray(incident_rate(mag, t, d, obs))[mask])) * n_streams
                for t, d in ((telescope1, det1), (telescope2, det2))]
         scale = min(readout_scale(det1, tot[0]), readout_scale(det2, tot[1]))
     mag_eff = mag - 2.5 * np.log10(scale) if scale < 1.0 else mag
 
     res = g2_snr(vis2, mag_eff, obs, telescope1=telescope1, telescope2=telescope2,
                  detector1=det1, detector2=det2)
-    _check_dead_time(res.dead_time_load, "spectral_g2_snr")
-    total = (float(np.sum(res.rate1_cps)) * n_streams,
-             float(np.sum(res.rate2_cps)) * n_streams)
+    _check_dead_time(res.dead_time_load, caller)
+    snr = np.where(mask, np.asarray(res.snr), 0.0)
+    total = (float(np.sum(np.asarray(res.rate1_cps)[mask])) * n_streams,
+             float(np.sum(np.asarray(res.rate2_cps)[mask])) * n_streams)
     return SpectralSNRResult(
-        snr_total=float(np.sqrt(np.sum(res.snr**2))),
+        snr_total=float(np.sqrt(np.sum(snr**2))),
         spectrograph=spectrograph, baseline_m=baseline_m, channel_nm=nm,
-        snr=np.asarray(res.snr), rate_cps=np.asarray(res.rate1_cps), vis2=vis2,
+        snr=snr, rate_cps=np.asarray(res.rate1_cps), vis2=np.asarray(vis2),
         mag_ab=mag, vis2_method=vis2_method, channel_widths_nm=widths,
         total_rate_cps=total, readout_limited=scale < 1.0, readout_scale=scale,
         dead_time_load_max=float(np.max(res.dead_time_load)),
-        polarization_mode=polarization_mode, smeared=quad is not None,
-        dimming=dimming)
+        polarization_mode=polarization_mode, smeared=smeared,
+        dimming=np.ones(nm.size) if dimming is None else dimming)
 
 
 # ---------------------------------------------------------------------------
