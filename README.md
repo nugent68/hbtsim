@@ -221,7 +221,15 @@ readout lifts that to **≈ 15/√h at B = 35 m** (8 at 50 m) — the
 time-tag link caps it at ≈ 5 — and an R = 5000 backend to 60 (54 with
 the NewEra tables); the Keck pair at 85 m reaches 240/√h with 320
 channels (σ_|V|² ≈ 0.02 per channel-hour) and the EON-SII 4 m pair at
-30 m ≈ 570/√h with 1000 channels, both link-limited. Keck caveats: a
+30 m ≈ 570/√h with 1000 channels, both link-limited. The EON-SII
+design study quotes 10–25× shorter times; `scripts/eonsii_montecarlo.py`
+reruns its Sirius B Monte Carlo and shows its hours need a coincidence
+window of 2–6 ps, well below the detectors' 12–28 ps jitter (docs §5e.1).
+The matched filter stays the default. On single stars
+(`scripts/chromatic_diameters.py`, `docs/chromatic_diameters_eonsii.md`)
+EON-SII measures Sirius's and Vega's Balmer-core diameters (+3.6 to
++4.7 % over the continuum at Hβ–Hδ) at 5σ in 1–2 nights through its
+links, or in minutes with channel-subset tagging. Keck caveats: a
 single SPAD pixel saturates at Keck count rates (`--n-pixels`), and a
 10 m aperture on an 85 m baseline averages |V|² over B ± 10 m
 (modeled: `hbtsim.aperture`).
@@ -290,8 +298,14 @@ Spica with the R ≈ 5000 backend → **Δcos φc ≤ 0.1 in ~36 minutes**
 (14 h) per epoch around the 4-day orbit, and a one-night limiting
 magnitude of g ≈ 2.2 (southern targets only; Paranal cannot see
 Algol/β Aur). δ Vel, at its correct distance of 25.1 pc, has a 4.7 m
-blue fringe period that 8 m pupils smear out: it is a 1–4 m-class g²
-target (C2PU, EON-SII), not a VLT one.
+blue fringe period at maximum separation that 8 m pupils smear out (it
+returns near conjunction for ~21 % of the orbit). It is a 1–4 m-class g²
+target (C2PU, EON-SII). Three EON-SII units on a 12 m triangle at
+Paranal (`bispectrum.eonsii_triangle`, `snr3.campaign_g3_snr`,
+`scripts/deltavel_eonsii.py`) detect its closure-phase template in ~20
+nights over an orbit. The asymmetric part of its closure phase
+(φc ≠ 0, π) needs ~10⁴ nights on any array considered, because g³ sees
+only cos φc (docs §5g).
 
 ## Batched spectral pipeline (CPU/GPU)
 
@@ -392,13 +406,26 @@ movie locally with `--render-only`.
 - `hbtsim/photometry.py` — band fluxes, AB magnitudes, anchoring
 - `hbtsim/snr.py`, `hbtsim/snr_cli.py` — photon-budget SNR (telescopes,
   detectors, spectrograph multiplexing)
+- `hbtsim/snr3.py` — triple-correlation (closure-phase) SNR, uv tracks,
+  shared-geometry backends and multi-night campaigns
+  (`campaign_g3_snr`)
+- `hbtsim/estimators.py`, `hbtsim/montecarlo.py` — the EON-SII design
+  study's photon-level and classic-HBT estimators beside the matched
+  filter, and a Poisson coincidence-histogram Monte Carlo of a
+  multiplexed diameter measurement
+- `hbtsim/single.py`, `hbtsim/chromatic.py` — single stars (Sirius A,
+  Vega) with NewEra profiles, smeared uniform-disk inversion, and
+  Balmer-core vs continuum (chromatic) diameters
 - `hbtsim/movie.py`, `hbtsim/cli.py` — the 3-panel orbit movie
 - `hbtsim/g2spec.py` — the g²(λ)-with-error-bars movie
 - `scripts/` — `feasibility_g3.py` (every number in the docs),
-  `sed_compare.py` (blackbody vs NewEra), `eonsii_crosscheck.py`,
+  `sed_compare.py` (blackbody vs NewEra), `eonsii_crosscheck.py` and
+  `eonsii_montecarlo.py` (the EON-SII sensitivity gap),
+  `deltavel_eonsii.py` (δ Vel closure phases with three EON-SII units),
+  `chromatic_diameters.py` (Sirius/Vega Balmer-core diameters),
   benchmark + Perlmutter setup/sbatch
-- `tests/` — analytic validation tests (`pytest tests/`, ~210 tests,
-  ~65 s; the NewEra-data tests skip without `data/newera/`)
+- `tests/` — analytic validation tests (`pytest tests/`, ~255 tests,
+  ~90 s; the NewEra-data tests skip without `data/newera/`)
 
 ## References
 
