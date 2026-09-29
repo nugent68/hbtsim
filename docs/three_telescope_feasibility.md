@@ -12,9 +12,12 @@ an 8–10 m telescope, and even with a correlator readout the 320 channels
 need ~150 nights on the best case. A next-generation, R = 5000,
 correlator-readout SPAD array on the four VLT UTs detects Spica's
 closure-phase *signal* (a template amplitude over 4325 channels) in
-36 minutes (7 with a polarizing beamsplitter) and δ Velorum's in
-1.7–5 hours; spectrally resolved closure-phase *curves* at R = 100 take
-nights per epoch, and single 0.1 nm channels are out of reach. On
+36 minutes (7 with a polarizing beamsplitter); spectrally resolved
+closure-phase *curves* at R = 100 take nights per epoch, and single
+0.1 nm channels are out of reach. δ Velorum, at its corrected 25.1 pc,
+takes 20–27 nights on the VLT at maximum separation and ~20 nights over
+an orbit with three EON-SII 4 m units at Paranal; on either array only
+the symmetric part of its closure-phase signal is within reach (§5g). On
 Maunakea the same backend needs ~11 nights for Spica, and only because
 the rotating long arms sweep through favourable geometry over the night.
 The critical systematic is the calibration of the pair-correlation
@@ -156,7 +159,10 @@ beyond the validated 0.8 and refuses above 3 (`hbtsim.aperture`). On the
 VLT every Spica baseline lies inside the disks' first null at the true
 orientation, |γ| = 0.1–0.95, and the three-pupil-averaged triple
 amplitudes reach 0.3–0.6 in the red; δ Vel's 1.10/0.93 mas disks are
-resolved on the longer arms and its fringe is gone. On Maunakea the two Subaru arms
+resolved on the longer arms and at maximum separation its fringe is
+gone. Near conjunction (ρ ≲ 5 mas) the fringe returns: 8.2 m pupils keep
+> 50 % of the 400 nm contrast for 21 % of the orbit (uniform in phase),
+4 m pupils for 46 % (`scripts/deltavel_eonsii.py`, §5g). On Maunakea the two Subaru arms
 (152, 226 m) sit at or beyond the disks' first nulls over most of the
 band, and the triple amplitude at transit peaks at only **0.04 (Spica,
 Algol)** and **0.01 (β Aur)**.
@@ -202,7 +208,7 @@ fringe drifts ≤ 1/8 cycle; blocks combined as a template fit):
 |---|---|---|---|---|
 | Spica | VLT | next-gen R = 5000 | 0.10 (≈ 47 min of the 8.3 h window) | 9.1 |
 | Spica | VLT | next-gen R = 5000 + PBS | 0.02 | 1.9 |
-| δ Vel | VLT | — | not tracked: the fringe is smeared out (§4) | — |
+| δ Vel | VLT | — | not tracked (fringe smeared at maximum separation, §4); three EON-SII units: §5g | — |
 | Spica | Subaru+Keck+Keck | next-gen R = 5000 | **10.8** (snapshot: 430) | 1.3×10³ |
 | Spica | Subaru+Keck+Keck | next-gen R = 5000 + PBS | 2.2 | 260 |
 | Algol | Subaru+Keck+Keck | next-gen R = 5000 | 200 | 3.5×10⁴ |
@@ -231,10 +237,12 @@ disk, keeping |γ| alive at 50–130 m and even at 150–226 m. Spica
 is the textbook case; its 3.5× higher photon flux than Algol enters as
 R^{3/2}. δ Vel (V = 1.95, A2 IV + A4 V, 1.10/0.93 mas at 25.1 pc) is the
 other extreme: a 16.6 mas orbit whose blue fringe period (4.7 m) is
-below the 8.2 m UT pupils, so the VLT sees only the two disk envelopes.
-It is a target for 1–4 m apertures instead (§5e): on the C2PU pair or
-the EON-SII 4 m pair the fringe survives (D/P = 0.2–0.85) and the
-two-telescope g² tables below include it.
+below the 8.2 m UT pupils, so at maximum separation the VLT sees only
+the two disk envelopes (the fringe returns near conjunction, for ~21 % of
+the orbit). It is a better match for 1–4 m apertures (§5e): on the C2PU
+pair or the EON-SII 4 m pair the fringe survives (D/P = 0.2–0.85) and the
+two-telescope g² tables below include it; three EON-SII units are
+forecast in §5g.
 
 ## 5c. Four telescopes: the VLT Unit Telescopes
 
@@ -258,9 +266,13 @@ qualitatively:
   southern binaries and rapid rotators (β Cen, λ Sco, β Cru, α Eri …).
 - **Declination caveat**: Paranal (−24.6°) never sees Algol or β Aur
   above 30°; the VLT numbers are for southern targets.
-- **δ Vel is not a VLT closure-phase target** (its rows above are kept
-  for the record): the corrected distance puts its blue fringe period at
-  4.7 m against 8.2 m pupils.
+- **δ Vel is a poor VLT closure-phase target at maximum separation**
+  (the phase of its rows above): the corrected distance puts its blue
+  fringe period at 4.7 m against 8.2 m pupils (2 % of the 400 nm
+  contrast left). Near conjunction the fringe returns (> 50 % contrast
+  for 21 % of the orbit), but there the closure phase is nearly
+  symmetric (§5g). A transportable EON-SII triangle is the preferred
+  instrument.
 
 ## 5d. Effect of the NewEra model atmospheres
 
@@ -450,6 +462,80 @@ keep; (iv) EON-SII at 30 m on β Aur reaches SNR₂ ≈ 570/√h with the
 SPAD array (link-limited), i.e. |V|² per 0.15 nm channel to ~5 % per
 hour on a V = 1.9 star.
 
+## 5g. δ Vel with three EON-SII units at Paranal
+
+`scripts/deltavel_eonsii.py` (`output/logs/deltavel_eonsii.txt`,
+figures `output/g3_deltavel_eonsii_per_night.png`,
+`output/g3_cosphi_deltavel_eonsii.png`) places the EON-SII pair plus a
+third identical 4 m unit on an equilateral triangle
+(`bispectrum.eonsii_triangle`) at Paranal / CTAO-South. Teide never sees
+δ Vel (dec −54.7°); from Paranal it is above 30° for H = ±4.82 h.
+NewEra tables are used for both components.
+
+**Geometry.**
+- **Orbit.** ρ = 0.21–17.5 mas, with conjunctions at phase 0.406
+  (ρ = 0.36 mas) and 0.971 (0.21 mas).
+- **Eclipse guard.** The disks overlap or nearly do over 0.3935–0.4192
+  and 0.9633–0.9786, 4.1 % of the orbit. Blocks there are rendered on
+  per-epoch grids (`GridConfig.fit_epoch`, 256–512 px) and the rest use
+  the analytic model (`vis_method="auto"`).
+- **Pupil smearing.** At 400 nm, 4 m pupils keep > 50 % of the fringe
+  contrast for 46 % of the orbit (11 % at maximum separation); 8.2 m
+  pupils do so for 21 % (1.6 % at maximum separation).
+- **Triangle side.** A scan over 8–120 m (one-hour transit snapshots,
+  18 phases, SPAD + PBS) peaks at **12 m** for the phase statistic; 8–20 m
+  are within 7 % of each other. Longer sides resolve the 1 mas disks:
+  the phase statistic falls ×0.3 at 45 m and ×0.04 at 90 m (the
+  template ×0.6 and ×0.06).
+- **Blocks.** They are cut automatically so the fringe drifts ≤ 1/8
+  cycle: 13 min at maximum separation, 60 min near conjunction.
+
+**Campaign.** 32 nights at uniform phases plus 5 nights spanning the
+two eclipse windows (these fall in different orbital cycles), with four
+backends on shared geometry (`campaign_g3_snr`, resumable per-night
+cache). Totals add in quadrature over nights; "nights" repeats this
+phase sampling until the target is reached:
+
+| Backend (1 GHz time-tag links) | template SNR | nights to Δcos φc ≤ 0.1 | phase SNR | nights to 0.1 rad |
+|---|---|---|---|---|
+| 1000 ch, MCP-PMT | 2.3 | 708 | 0.076 | 6×10⁵ |
+| 1000 ch, QUASAR SPAD | 6.3 | 93 | 0.22 | 8×10⁴ |
+| 1000 ch, QUASAR SPAD + PBS | 12.7 | **23** | 0.44 | 2×10⁴ |
+| R = 7500 (2388 ch), QUASAR SPAD | 13.5 | **20** | 0.46 | 2×10⁴ |
+
+The five eclipse-window nights carry as much template signal as the 32
+uniform ones (8.5 against 9.5 for SPAD + PBS). Near conjunction the
+fringe period is long compared with the pupils, and the triple
+amplitude is at its largest.
+
+**Why the phase statistic is hopeless.** g³ measures |T| cos φc. The
+template ("amplitude") statistic detects that pattern, which fixes the
+sign of the closure phase (0 or π per channel) — information g² cannot
+give. The image asymmetry lives in the phase's departure from 0 or π,
+whose Fisher information ∝ (snr sin φc)² ("phase" statistic,
+`hbtsim.snr3`):
+- **Near conjunction** a 12 m triangle barely resolves the 1 mas disks,
+  so φc ≈ 0 and sin φc ≈ 0.
+- **At wide separation** the 4 m pupils average the binary fringe down
+  to 11 %, and the smeared bispectrum is again nearly real.
+- **In between** (ρ ≈ 5–7 mas, phases 0.31–0.34 and 0.47–0.50) it
+  peaks at ~0.14 per night, which is 10³× short.
+
+The phase statistic is thus a property of the source and the pupils,
+not of the photon budget. The VLT fares no better: its 8.2 m pupils
+remove even more of the wide-separation fringe.
+
+**Verdict.** Three EON-SII units with the SPAD + PBS or R = 7500 SPAD
+backends detect δ Vel's closure-phase template in about three weeks of
+nights spread over an orbit. That is comparable to the VLT's 20–27
+nights at maximum separation, from an array that can be built for the
+purpose. What they measure is the symmetric (sign) part of the
+bispectrum, not the asymmetry. The NewEra tables change the snapshot at
+maximum separation by −3 % in the template and +5 % in the phase
+statistic.
+The conjunction phases depend on the adopted ω convention; the campaign
+samples both conjunctions, so its totals do not.
+
 ## 6. Caveats
 
 - **Kernel calibration** (the critical systematic): ridge ratios of ~100
@@ -515,8 +601,11 @@ hour on a V = 1.9 star.
 6. **Model atmospheres change the photon budget, not the verdicts**
    (§5d): with the NewEra tables the sensitivities move by −20 % to
    +14 %; the Hβ/Hγ channels of Algol are the one place the fringe
-   itself changes (×3.4). δ Vel, at its correct 25.1 pc, is a target for
-   the 1–4 m class (C2PU, EON-SII: §5f), not for the VLT.
+   itself changes (×3.4). δ Vel, at its correct 25.1 pc, is a g² target
+   for the 1–4 m class (C2PU, EON-SII: §5f). Three EON-SII units detect
+   its closure-phase template in ~20 nights over an orbit, but the
+   asymmetric part of its closure phases is out of reach on every array
+   considered here (§5g).
 
 ## References
 

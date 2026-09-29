@@ -33,7 +33,7 @@ import numpy as np
 
 from hbtsim.aperture import fringe_smearing_factor
 from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, VLT_UT, Array, Triangle,
-                               binary_vis_complex_analytic, spectral_triple)
+                               binary_vis_complex_analytic, eonsii_triangle, spectral_triple)
 from hbtsim.geometry import hour_angle_window
 from hbtsim.orbit import max_separation_phase, positions_at, sky_positions
 from hbtsim.params import MAS, SYSTEMS, GridConfig
@@ -46,7 +46,10 @@ from hbtsim.snr3 import (array_g3_snr, nights_to_precision, spectral_g3_snr,
                          time_to_precision, track_g3_snr)
 
 NIGHT_H = 8.0
-ARRAYS = {"vlt": VLT_UT, "maunakea": MAUNAKEA_SUBARU_KECK}
+ARRAYS = {"vlt": VLT_UT, "maunakea": MAUNAKEA_SUBARU_KECK,
+          # three EON-SII 4 m units (the pair plus a third) on a 20 m triangle at
+          # Paranal / CTAO-South; scripts/deltavel_eonsii.py scans the side
+          "eonsii-paranal": eonsii_triangle(20.0)}
 
 # backends: (label, spectrograph, detector, polarization)
 SPEC_320 = Spectrograph(n_channels=320)
@@ -57,6 +60,20 @@ BACKENDS = [
     ("next-gen R = 5000, correlator", SPEC_R5000, SPAD_LAMBDA_NG, "unpolarized"),
     ("next-gen R = 5000, correlator + PBS", SPEC_R5000, SPAD_LAMBDA_NG, "pbs"),
 ]
+# EON-SII backends (1 GHz time-tag links, readout-limited where the star is bright)
+EONSII_G3_BACKENDS = [
+    ("EON-SII 1000 ch, MCP-PMT", EONSII_SPECTROGRAPH, EONSII_MCP_PMT, "unpolarized"),
+    ("EON-SII 1000 ch, QUASAR SPAD", EONSII_SPECTROGRAPH, EONSII_SPAD, "unpolarized"),
+    ("EON-SII 1000 ch, QUASAR SPAD + PBS", EONSII_SPECTROGRAPH, EONSII_SPAD, "pbs"),
+    ("EON-SII R = 7500 (2388 ch), QUASAR SPAD", EONSII_SPECTROGRAPH_R7500, EONSII_SPAD, "unpolarized"),
+]
+
+
+def backends_for(array_key: str):
+    """(snapshot backends, track backends) for an array key."""
+    if array_key.startswith("eonsii"):
+        return EONSII_G3_BACKENDS, EONSII_G3_BACKENDS
+    return BACKENDS, BACKENDS[2:]
 
 
 def _with_detector(arr, det):
@@ -148,11 +165,11 @@ def fig_cosphi_map(system, tri, out, n_phase=51):
 # ---------------------------------------------------------------------------
 # Tables
 # ---------------------------------------------------------------------------
-def snapshot_rows(system, arr, phase, latex=False):
+def snapshot_rows(system, arr, phase, latex=False, backends=None):
     """Per backend: snapshot sensitivities at one orbital phase and the
     time to Delta cos phi_c <= 0.1 for the three statistics."""
     rows = []
-    for label, spec, det, pol in BACKENDS:
+    for label, spec, det, pol in (BACKENDS if backends is None else backends):
         a = _with_detector(arr, det)
         is_arr = isinstance(a, Array)
         kw = dict(spectrograph=spec, polarization_mode=pol, orbital_phase=phase)
@@ -186,13 +203,13 @@ def snapshot_rows(system, arr, phase, latex=False):
     return rows
 
 
-def track_rows(system, arr, phase0, block_minutes=15.0):
+def track_rows(system, arr, phase0, block_minutes=15.0, backends=None):
     """One night along the uv track for the next-generation backends."""
     print(f"\n  uv track from {arr.site.name}: window "
           f"{hour_angle_window(system.dec_deg, arr.site.latitude_deg)} h, "
           f"{block_minutes:.0f}-min blocks, phase0 = {phase0:.3f}")
     out = []
-    for label, spec, det, pol in BACKENDS[2:]:
+    for label, spec, det, pol in (BACKENDS[2:] if backends is None else backends):
         a = _with_detector(arr, det)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -374,13 +391,14 @@ def main():
         tri = arr.triangles()[1] if isinstance(arr, Array) else arr
         fig_cosphi_map(system, tri, f"output/g3_cosphi_{tag}.png")
     print("\n  snapshot at quadrature (per hour):")
-    snapshot_rows(system, arr, phase, latex=args.table)
+    snap_b, track_b = backends_for(args.array)
+    snapshot_rows(system, arr, phase, latex=args.table, backends=snap_b)
     if args.system == "deltavel" and args.extra_phases:
         for ph in (0.25, 0.5, 0.9):
             print(f"\n  delta Vel at phase {ph}:")
-            snapshot_rows(system, arr, ph, latex=args.table)
+            snapshot_rows(system, arr, ph, latex=args.table, backends=snap_b)
     if not args.no_track:
-        track_rows(system, arr, phase, args.block_minutes)
+        track_rows(system, arr, phase, args.block_minutes, backends=track_b)
 
 
 if __name__ == "__main__":
