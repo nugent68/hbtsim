@@ -328,14 +328,87 @@ its white dwarfs as u = 0.3 disks at |V|² ≈ 0.6): the photon rates agree
 paper's ~5–10 kHz and ~7 MHz — but the hours to a given precision come
 out 5–25× longer than the paper's (Sirius B to 10 % diameter: MCP-PMT
 36 h unpolarized / 18 h with a beamsplitter vs 1.5 h; SPAD 3.3 / 1.7 h
-vs 0.33 h). Three identifiable factors account for ×3–4 in time: the
-unpolarized factor p₂ = ½ (×4 in time, unless the paper assumes
-polarized detection), our Gaussian matched-filter window 2√π σ_pair
-against a box of ±Δt_res (×1.3 in SNR), and diameter versus |V|²
-precision (×1.3). The remainder (×2–3) needs the paper's estimator
-assumptions (which |V|², which Δt_res — the 3.125 ps TDC bin would
-account for it exactly), which the abstract does not give; the
-comparison is recorded here as an open item rather than tuned away.
+vs 0.33 h). §5e.1 traces the gap.
+
+### 5e.1 The sensitivity gap, resolved
+
+`hbtsim/estimators.py` implements the paper's photon-level S/N (its
+Eq. 5, ηR₁R₂τ_c|V|²T / √(ηR₁R₂τ_c|V|²T + 2R₁R₂Δt_res T)) and classic
+HBT form (Eq. 3) beside our matched filter. Analytically, Eq. 5 **is**
+the matched filter when η = p₂ and Δt_res = √π σ_pair, and an honest
+coincidence box (one that counts only the erf fraction of the peak it
+captures) is best at a half-width of 1.40 σ_pair, where it reaches 0.943
+of the matched filter. `scripts/eonsii_crosscheck.py` confirms the
+mapping numerically on the paper's targets (SNR/h 1.41 vs 1.42 on
+Sirius B, MCP-PMT; the small residuals at low rates are the dark counts,
+which Eq. 5 omits).
+
+`hbtsim/montecarlo.py` reruns the paper's Sirius B Monte Carlo on our
+photon budget: 10 h at zenith 45 / 52.5 / 60° from Teide (Sirius B
+culminates at 45.0°), E–W 1750 m, 1000 channels, uniform-disk truth
+29.5 µas. It draws Poisson coincidence-lag histograms (3.125 ps bins,
+Gaussian pair kernel of the detector's jitter), estimates |V|² per
+channel and block, and fits a uniform disk
+(`scripts/eonsii_montecarlo.py`, `output/logs/eonsii_montecarlo.txt`,
+100 realizations):
+
+| Estimator | MCP-PMT: bias, scatter | SPAD: bias, scatter |
+|---|---|---|
+| matched filter (analytic σ: 18.6 % / 6.2 %) | +1.7 %, 19.7 % | −0.6 %, 6.6 % |
+| honest box, ±1.40 σ_pair | +0.1 %, 20.5 % | −1.5 %, 7.0 % |
+| raw box ±σ_pair (no capture correction) | **+30 %**, 16.9 % | **+34 %**, 5.5 % |
+| raw box ±3.125 ps (Eq. 5 with Δt_res = TDC bin) | **+130 %**, 52 % | **+78 %**, 5.3 % |
+| matched filter, sideband accidentals | +2.2 %, 22.6 % | −0.4 %, 7.0 % |
+
+The matched filter is unbiased with its analytic scatter (pull 0.96 /
+1.03). A narrow box without the capture correction looks more precise,
+but that is only because it loses most of the peak: θ comes out 30–130 %
+too large. Two implementation lessons were learned on the way. The
+accidental level should come from the singles rates (R₁R₂ΔT, known to
+~10⁻⁴), as a correlator normalizes it; estimating it from the
+histogram's sidebands adds 7–15 % scatter. And the weights must come
+from the model: weighting each channel by its own realization's
+background biased θ by −3 % at SPAD S/N and destabilized the MCP-PMT
+fit. The paper's MCP-PMT Monte Carlo gives 0.02955 ± 0.0014 mas
+(4.7 %); ours gives 19.7 %, 4.2× wider.
+
+**Gap ladder** (hours to 10 % on θ; paper 1.5 h MCP-PMT / 0.33 h SPAD;
+each step analytic unless noted):
+
+| Step | MCP-PMT | SPAD |
+|---|---|---|
+| our budget, matched filter, unpolarized | 34.5 h (×23) | 3.9 h (×12) |
+| + polarizing beamsplitter (p₂ → 1 per stream) | 17.2 h (×11.5) | 2.0 h (×6.2) |
+| + diameter-optimal baseline (2300 / 2500 m, not 1750 m) | 13.0 h (×8.7) | 1.40 h (×4.2) |
+| + QE × 1.3 | 7.7 h (×5.1) | 0.81 h (×2.5) |
+| (instead of QE) + Izaña extinction beyond the zenith budget | 16.4 h | 1.71 h |
+| (instead of QE) + 6 % adjacent-channel correlation (Gaussian MC) | 16.7 h | 1.68 h |
+| *not honest:* Eq. 5 with η = 1 on unpolarized light | 8.6 h | 0.97 h |
+| *not honest:* … and Δt_res = σ_pair, no capture correction | 4.9 h | 0.55 h |
+| *not honest:* … and Δt_res = 3.125 ps, no capture correction | 0.55 h | 0.14 h |
+
+Every honest step together (polarizing beamsplitter, optimal
+baseline, 30 % more QE) still leaves us ×5 (MCP-PMT) and ×2.5 (SPAD)
+slower than the paper. Channel correlation at the measured 5–7 % costs
+nothing measurable. The paper's hours are reproduced by Eq. 5 only with
+Δt_res ≈ 5–6 ps at the beamsplitter/optimal-baseline budget (and
+2–4 ps across all three white dwarfs in the cross-check). That is the
+TDC-bin scale, below the 5 ps coherence time, and 5–10× below the
+detectors' pair jitter (σ = 27.5 ps MCP-PMT, 12.2 ps SPAD). Our Monte
+Carlo shows that applying such a window to histograms that carry the
+jitter biases θ by +80–130 %. Since the paper's Monte Carlo recovers
+the true diameter, our inference is that the simulated correlation
+peak there is not broadened by the detector jitter (effective
+Δt_res ≈ TDC bin). This inference cannot be checked from the paper,
+because its estimator constants (b_el, F, η_vis, Δt_res) are not
+published.
+
+**Decision**: the matched filter, with the measured pair jitter and
+p₂ = ½ for unpolarized light, stays the default. hbtsim's EON-SII
+forecasts are therefore ×2.5–5 (honest optimum) to ×10–25 (as
+configured) more conservative than the design study. If the instrument
+team confirms a jitter-limited Δt_res ≲ 5 ps, `snr.Detector` jitter is
+the single knob to change.
 
 ## 5f. Two-telescope g² on the four systems
 
@@ -395,8 +468,12 @@ hour on a V = 1.9 star.
   (v sin i ≈ 145 km/s; oblate, gravity-darkened) is still not modeled
   and is the obvious suspect for both the photometry and the limb
   profiles.
-- **EON-SII**: atmosphere, QE curves and SPAD jitter are assumptions;
-  the SNR-per-photon of its design paper is 3–5× above ours (§5e).
+- **EON-SII**: atmosphere, QE curves and SPAD jitter are assumptions.
+  The design paper's hours are 10–25× shorter than ours, and 2.5–5×
+  shorter even after a beamsplitter, the optimal baseline and 30 % more
+  QE. They are reproduced only with Δt_res ≈ 2–6 ps, well below the
+  detectors' 12–28 ps pair jitter (§5e.1, Monte Carlo). We keep the
+  jitter-limited matched filter.
 - **Algol C**: the ~10% incoherent third light dilutes every γ by ~0.9
   and the triple product by ~0.73 unless C is excluded optically.
 - Orbital physics not modeled: Spica's e = 0.108 and apsidal motion, its

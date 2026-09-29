@@ -61,6 +61,10 @@ class MCConfig:
     bin_ps: float = 3.125
     lag_half_range_ps: float = 400.0
     sideband_sigma: float = 6.0
+    # accidental level: "singles" = R1 R2 bin T from the singles counts (what a
+    # correlator normalizes by; known to ~1e-4), "sideband" = mean of the
+    # histogram beyond sideband_sigma (adds its own noise to every estimate)
+    background: str = "singles"
 
 
 @dataclass(frozen=True)
@@ -189,63 +193,74 @@ def _sideband(exp: Expected, sideband_sigma: float) -> np.ndarray:
     return np.abs(exp.lags_s)[None, :] > sideband_sigma * exp.sigma_pair[:, None]
 
 
-def matched_filter_estimate(counts, exp: Expected, sideband_sigma: float = 6.0):
-    """|V|^2 per channel and block from the Gaussian matched filter with a
-    sideband background; returns (vis2_hat, sigma) combining the streams."""
-    k = exp.kernel()                                    # (n_ch, n_bins)
+def _background(counts, exp: Expected, background: str, sideband_sigma: float) -> np.ndarray:
+    """Accidental coincidences per bin (n_streams, n_ch, n_blk)."""
+    if background == "singles":
+        return np.broadcast_to(exp.bkg_per_bin, counts.shape[:3])
+    if background != "sideband":
+        raise ValueError(f"background must be 'singles' or 'sideband', not {background!r}")
     sb = _sideband(exp, sideband_sigma)
+    return np.array([[counts[s, c][:, sb[c]].mean(axis=1) for c in range(exp.nm.size)]
+                     for s in range(counts.shape[0])])
+
+
+def matched_filter_estimate(counts, exp: Expected, sideband_sigma: float = 6.0,
+                            background: str = "singles"):
+    """|V|^2 per channel and block from the Gaussian matched filter;
+    returns (vis2_hat, sigma) combining the streams.  The streams are
+    weighted by the model sigma (expected accidentals), never by the
+    realization's own background, which would correlate weights with
+    the estimates."""
+    k = exp.kernel()                                    # (n_ch, n_bins)
     counts = np.asarray(counts, dtype=float)
-    bkg = np.array([[counts[s, c][:, sb[c]].mean(axis=1) for c in range(k.shape[0])]
-                    for s in range(counts.shape[0])])   # (n_streams, n_ch, n_blk)
+    bkg = _background(counts, exp, background, sideband_sigma)
     exc = counts - bkg[..., None]
     amp = np.einsum("scbj,cj->scb", exc, k) / np.sum(k**2, axis=1)[None, :, None]
     v2 = amp / exp.signal_scale[None, ...]
-    sigma = np.sqrt(bkg / np.sum(k**2, axis=1)[None, :, None]) / exp.signal_scale[None, ...]
-    w = 1.0 / sigma**2
-    v2c = np.sum(w * v2, axis=0) / np.sum(w, axis=0)
-    return v2c, np.sqrt(1.0 / np.sum(w, axis=0))
+    sigma = np.sqrt(exp.bkg_per_bin / np.sum(k**2, axis=1)[:, None]) / exp.signal_scale
+    return v2.mean(axis=0), sigma / np.sqrt(counts.shape[0])
 
 
 def box_estimate(counts, exp: Expected, half_width_s: float, correct_capture: bool = True,
-                 sideband_sigma: float = 6.0):
+                 sideband_sigma: float = 6.0, background: str = "singles"):
     """|V|^2 from the excess inside |tau| <= half_width (optionally divided
-    by the Gaussian capture fraction); returns (vis2_hat, sigma)."""
-    inside = np.abs(exp.lags_s)[None, :] <= half_width_s
-    sb = _sideband(exp, sideband_sigma)
+    by the Gaussian capture fraction); returns (vis2_hat, sigma), sigma
+    from the model accidentals."""
+    inside = np.abs(exp.lags_s) <= half_width_s
+    n_in = int(inside.sum())
     counts = np.asarray(counts, dtype=float)
+    bkg = _background(counts, exp, background, sideband_sigma)
     frac = box_capture_fraction(half_width_s, exp.sigma_pair) if correct_capture else np.ones(exp.nm.size)
-    v2s, sig = [], []
-    for s in range(counts.shape[0]):
-        per_c, sig_c = [], []
-        for c in range(exp.nm.size):
-            bkg = counts[s, c][:, sb[c]].mean(axis=1)                  # (n_blk,)
-            n_in = int(inside[0].sum())
-            exc = counts[s, c][:, inside[0]].sum(axis=1) - bkg * n_in
-            per_c.append(exc / (frac[c] * exp.signal_scale[c]))
-            sig_c.append(np.sqrt(bkg * n_in) / (frac[c] * exp.signal_scale[c]))
-        v2s.append(np.array(per_c)); sig.append(np.array(sig_c))
-    v2s, sig = np.array(v2s), np.array(sig)
-    w = 1.0 / sig**2
-    return np.sum(w * v2s, axis=0) / np.sum(w, axis=0), np.sqrt(1.0 / np.sum(w, axis=0))
+    scale = frac[:, None] * exp.signal_scale                          # (n_ch, n_blk)
+    exc = counts[..., inside].sum(axis=-1) - bkg * n_in               # (n_streams, n_ch, n_blk)
+    sigma = np.sqrt(exp.bkg_per_bin * n_in) / scale
+    return (exc / scale[None, ...]).mean(axis=0), sigma / np.sqrt(counts.shape[0])
 
 
-def fit_ud(vis2_hat, sigma, b_proj_m, nm, theta0_mas, ld_u: float = 0.0, n_iter: int = 12):
+def fit_ud(vis2_hat, sigma, b_proj_m, nm, theta0_mas, ld_u: float = 0.0, n_iter: int = 30):
     """Weighted least-squares diameter from all channels and blocks
-    (1-D Gauss-Newton); returns (theta_mas, sigma_theta_mas)."""
+    (1-D Gauss-Newton); returns (theta_mas, sigma_theta_mas).  V^2 is even
+    in theta, so the fit runs on a signed theta and reports |theta|; at
+    low S/N a realization can legitimately land near theta = 0 (V^2 ~ 1),
+    where the derivative step is floored at 1e-3 theta0."""
     theta = float(theta0_mas)
     b = np.asarray(b_proj_m)[None, :]
     lam = np.asarray(nm)[:, None]
     w = 1.0 / np.asarray(sigma) ** 2
+
+    def deriv(t):
+        h = 1e-4 * max(abs(t), 1e-3 * theta0_mas)
+        return (ud_vis2(t + h, b, lam, ld_u) - ud_vis2(t - h, b, lam, ld_u)) / (2 * h)
+
     for _ in range(n_iter):
-        m = ud_vis2(theta, b, lam, ld_u)
-        h = 1e-4 * theta
-        d = (ud_vis2(theta + h, b, lam, ld_u) - ud_vis2(theta - h, b, lam, ld_u)) / (2 * h)
-        step = np.sum(w * d * (vis2_hat - m)) / np.sum(w * d * d)
+        d = deriv(theta)
+        step = np.sum(w * d * (vis2_hat - ud_vis2(theta, b, lam, ld_u))) / np.sum(w * d * d)
+        step = float(np.clip(step, -0.5 * theta0_mas, 0.5 * theta0_mas))   # damp wild steps
         theta += step
-        if abs(step) < 1e-10 * theta:
+        if abs(step) < 1e-10 * theta0_mas:
             break
-    d = (ud_vis2(theta * (1 + 1e-4), b, lam, ld_u) - ud_vis2(theta * (1 - 1e-4), b, lam, ld_u)) / (2e-4 * theta)
-    return theta, float(1.0 / np.sqrt(np.sum(w * d * d)))
+    d = deriv(theta)
+    return abs(theta), float(1.0 / np.sqrt(np.sum(w * d * d)))
 
 
 @dataclass(frozen=True)
@@ -307,10 +322,10 @@ def run_mc(cfg: MCConfig, n_real: int = 200, estimators=("matched", "box_opt", "
         counts = simulate_histograms(rng, exp)
         for e in estimators:
             if e == "matched":
-                v2, s = matched_filter_estimate(counts, exp, cfg.sideband_sigma)
+                v2, s = matched_filter_estimate(counts, exp, cfg.sideband_sigma, cfg.background)
             else:
                 hw, corr = widths[e]
-                v2, s = box_estimate(counts, exp, hw, corr, cfg.sideband_sigma)
+                v2, s = box_estimate(counts, exp, hw, corr, cfg.sideband_sigma, cfg.background)
             th, st = fit_ud(v2, s, exp.b_proj_m, exp.nm, truth, cfg.ld_u)
             thetas[e].append(th); sigmas[e].append(st)
     stats = {}

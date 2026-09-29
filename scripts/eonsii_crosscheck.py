@@ -12,7 +12,11 @@ Here each star is a uniform disk with a mild linear limb darkening
 (u = 0.3), observed at the baseline where |V|^2 ~ 0.6 (the paper's
 1.5 km for Sirius B), with hbtsim.snr.EON_SII_TELESCOPE and the two
 detector presets over the 1000-channel spectrograph.  Diameter precision
-follows from sigma(|V|^2) through d ln|V|^2 / d ln theta.
+follows from sigma(|V|^2) through d ln|V|^2 / d ln theta.  Each row also
+evaluates the design study's photon-level Eq. 5 (hbtsim.estimators) with
+eta = p2 and dt_res = sqrt(pi) sigma_pair, which equals the matched filter,
+and the dt_res Eq. 5 would need to reproduce the paper's hours.  The full
+Monte Carlo and gap ladder are in scripts/eonsii_montecarlo.py.
 
     .venv/bin/python scripts/eonsii_crosscheck.py
 """
@@ -21,6 +25,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from hbtsim.estimators import implied_dt_res, matched_filter_equivalents, photon_level_snr
 from hbtsim.limbdark import visibility_ld_disk
 from hbtsim.params import MAS
 from hbtsim.snr import (EON_SII_TELESCOPE, EONSII_MCP_PMT, EONSII_SPAD, EONSII_SPECTROGRAPH,
@@ -73,6 +78,16 @@ def main():
                       f"{hours[0]:7.2f} {hours[1]:7.2f} {hours[2]:7.1f}  (on |V|^2: "
                       f"{hours_v2[0]:.1f} {hours_v2[1]:.1f} {hours_v2[2]:.0f});  paper: "
                       f"{ref[0]} / {ref[1]} / {ref[2]} h  -> ratio ours/paper {hours[0] / ref[0]:.2f}")
+                sig = float(np.median(r.sigma_pair_s))
+                p2 = 0.5 if pol == "unpolarized" else 1.0
+                eq = matched_filter_equivalents(sig, p2)
+                n_str = 1 if pol == "unpolarized" else 2
+                snr5 = photon_level_snr(v2, r.rate1_cps, r.rate2_cps, r.tau_c_s, 3600.0,
+                                        eq["dt_res_s"], eta=eq["eta"])
+                snr5_h = float(np.sqrt(n_str * np.sum(snr5**2))) * sc
+                print(f"  {'':34s} {'':11s}  Eq. 5 (eta = p2, dt_res = sqrt(pi) sigma = "
+                      f"{eq['dt_res_s'] * 1e12:.1f} ps): SNR/h {snr5_h:6.2f} (matched {snr_h:.2f}); "
+                      f"dt_res that reproduces the paper: {implied_dt_res(ref[0], hours[0], sig) * 1e12:.2f} ps")
         print(f"  (tau_c per channel {float(np.median(r.tau_c_s)) * 1e12:.2f} ps, pair kernel sigma "
               f"{float(np.median(r.sigma_pair_s)) * 1e12:.1f} ps, p2 = {'1/2' if pol == 'unpolarized' else '1'})")
 

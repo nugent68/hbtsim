@@ -40,6 +40,31 @@ def test_fit_ud_noiseless_exact():
     assert th == pytest.approx(SMALL.theta_true_mas, rel=1e-6) and s > 0
 
 
+def test_fit_ud_finite_when_data_say_unresolved():
+    """Low-S/N realizations can pull theta to ~0 (V^2 ~ 1); the fit must stay finite."""
+    e = expected_counts(SMALL)
+    th, s = fit_ud(np.ones_like(e.vis2_true) + 0.01, e.analytic_sigma_vis2(), e.b_proj_m, e.nm,
+                   SMALL.theta_true_mas)
+    assert np.isfinite(th) and np.isfinite(s) and th < 0.2 * SMALL.theta_true_mas
+
+
+@pytest.mark.parametrize("background", ["singles", "sideband"])
+def test_background_modes_unbiased(background):
+    """Weights come from the model accidentals, so neither mode is biased;
+    the sideband adds variance (hence the looser tolerance)."""
+    e = expected_counts(SMALL)
+    rng = np.random.default_rng(3)
+    est = np.array([matched_filter_estimate(simulate_histograms(rng, e), e, background=background)[0]
+                    for _ in range(300)])
+    s_an = e.analytic_sigma_vis2()
+    z = (est.mean(axis=0) - e.vis2_true) / (s_an / np.sqrt(300))
+    assert abs(z.mean()) < 3.0 / np.sqrt(z.size)
+    ratio = est.std(axis=0).mean() / s_an.mean()
+    assert 0.9 < ratio < (1.1 if background == "singles" else 1.4)
+    with pytest.raises(ValueError):
+        matched_filter_estimate(simulate_histograms(rng, e), e, background="bogus")
+
+
 def test_mc_matched_filter_unbiased_with_analytic_scatter():
     rng = np.random.default_rng(3)
     e = expected_counts(SMALL)
