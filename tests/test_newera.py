@@ -161,9 +161,10 @@ def test_disk_visibility_cache():
     x = np.random.default_rng(1).uniform(0.0, 12.0, size=(prof.wavelength_nm.size, 5000))
     got = cache.lookup(prof, prof.wavelength_nm, x)
     ref = visibility_profile_batch(x, prof.mu, prof.rows(prof.wavelength_nm))
-    assert np.abs(got - ref).max() < 1e-5
+    assert np.abs(got - ref).max() < 1e-4
     assert len(cache._store) == 1
     cache.lookup(prof, prof.wavelength_nm, x)          # hit
+    cache.lookup(prof, prof.wavelength_nm, x * 1.2)    # x_max 14.4 -> same 16-unit table
     assert len(cache._store) == 1
 
 
@@ -298,6 +299,11 @@ def test_grid_refuses_and_clamps(synthetic_grid):
     assert t.corners == ((9400.0, 4.0, 1.0),)
     with pytest.raises(ValueError, match="M/H"):
         grid.interpolate(9300.0, 3.8, z=0.5)
+    # clamping is bounded: a star far beyond the edge is never clamped
+    with pytest.raises(ValueError, match="not clamped"):
+        grid.interpolate(20900.0, 4.15, allow_extrapolation=True)
+    with pytest.raises(ValueError, match="not clamped"):
+        grid.interpolate(9300.0, 5.0, allow_extrapolation=True)
 
 
 def test_with_newera_report(synthetic_grid):
@@ -311,9 +317,13 @@ def test_with_newera_report(synthetic_grid):
     sysm2, rep2 = with_newera(ALGOL, grid)
     assert sysm2.secondary.flux_table is None and "no NewEra coverage" in rep2[ALGOL.secondary.name]
     assert sysm2.primary.flux_table is None
+    # Algol A (12 550 K) is > 1000 K beyond this grid's 9400 K edge: never clamped
+    sysm3, rep3 = with_newera(ALGOL, grid, which=("primary",), allow_extrapolation=True)
+    assert sysm3.primary.flux_table is None and "not clamped" in rep3[ALGOL.primary.name]
+    # delta Vel Ab (9830 K) is 430 K beyond: clamped with a warning when allowed
     with pytest.warns(UserWarning, match="clamped"):
-        sysm3, rep3 = with_newera(ALGOL, grid, which=("primary",), allow_extrapolation=True)
-    assert sysm3.primary.flux_table is not None and "clamped" in rep3[ALGOL.primary.name]
+        sysm4, rep4 = with_newera(DELTA_VEL, grid, allow_extrapolation=True)
+    assert sysm4.secondary.flux_table is not None and "clamped" in rep4[DELTA_VEL.secondary.name]
 
 
 # ---------------------------------------------------------------------------
@@ -358,3 +368,17 @@ def test_real_tables_edge_definitions_agree():
         r_tau = 1 / np.sqrt(1 - float(d["mu_tau1"])**2)
         r_drop = float(d["r_outer_over_edge"])
         assert abs(r_tau - r_drop) < 1e-4
+
+
+def test_rebin_is_memoized():
+    """Repeated channel averaging of the same tables returns the same
+    objects (so the disk-visibility cache keyed on them keeps hitting)."""
+    lam = LAM
+    prof = spherical_profile(lam)
+    star = with_tables(BETA_AUR.primary, FluxTable(lam, line_flux(lam, 9350.0)), prof)
+    spec = Spectrograph(lambda_min_nm=480.0, lambda_max_nm=492.0, n_channels=6)
+    a = rebin_to_channels(star, spec.channel_edges_nm)
+    b = rebin_to_channels(star, spec.channel_edges_nm)
+    assert a.ld_profile is b.ld_profile and a.flux_table is b.flux_table
+    c = rebin_to_channels(star, Spectrograph(lambda_min_nm=480.0, lambda_max_nm=492.0, n_channels=7).channel_edges_nm)
+    assert c.ld_profile is not a.ld_profile

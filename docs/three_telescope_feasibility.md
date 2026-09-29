@@ -148,11 +148,15 @@ each triangle at quadrature), `output/g3_cosphi_{spica,deltavel}_vlt.png`
 A binary fringe of period P = λ/ρ sampled by pupils D₁, D₂ keeps
 A(πD₁/P)·A(πD₂/P) of its contrast, A(x) = 2J₁(x)/x: for 8.2 m pupils at
 400 nm that is 0.93 for Spica (ρ = 1.7 mas), 0.89 for Algol, 0.76 for
-β Aur (3.3 mas) and **0.46 for δ Vel at maximum separation** (5.5 mas,
-P = 15 m). On the VLT every Spica baseline lies inside the disks' first
-null at the true orientation, |γ| = 0.1–0.95, and the three-pupil-averaged
-triple amplitudes reach 0.3–0.6 in the red; δ Vel's unresolved disks
-give 0.68–0.86 around the orbit. On Maunakea the two Subaru arms
+β Aur (3.3 mas) and **0.02 for δ Vel at maximum separation** (17.5 mas
+at its correct distance of 25.1 pc, P = 4.7 m, D/P = 1.74 — an earlier
+revision carried δ Vel at 80.6 pc, three times too far, which gave
+5.5 mas and 0.46). The pupil quadrature scales its node count with D/P
+beyond the validated 0.8 and refuses above 3 (`hbtsim.aperture`). On the
+VLT every Spica baseline lies inside the disks' first null at the true
+orientation, |γ| = 0.1–0.95, and the three-pupil-averaged triple
+amplitudes reach 0.3–0.6 in the red; δ Vel's 1.10/0.93 mas disks are
+resolved on the longer arms and its fringe is gone. On Maunakea the two Subaru arms
 (152, 226 m) sit at or beyond the disks' first nulls over most of the
 band, and the triple amplitude at transit peaks at only **0.04 (Spica,
 Algol)** and **0.01 (β Aur)**.
@@ -160,21 +164,28 @@ Algol)** and **0.01 (β Aur)**.
 ## 5. Feasibility
 
 Integration for Δcos φc ≤ 0.1 (8-hour nights), snapshot at quadrature
-(δ Vel: range over orbital phases 0.25–0.9):
+(δ Vel: at maximum separation, 25.1 pc; rows marked NewEra use the model
+atmospheres of §5d, the others blackbody + Claret; the multi-triangle
+R = 100 bins now combine the four VLT triangles in quadrature, which the
+previous revision under-counted by up to √N):
 
 | System | Array | Backend | SNR_amp / √h | amplitude | R = 100 bins | one channel |
 |---|---|---|---|---|---|---|
 | Spica | VLT 4×UT | current SPAD Lambda, 320 ch, time-tag link | 9×10⁻⁵ | — | — | — |
-| Spica | VLT 4×UT | current SPAD Lambda, 320 ch, correlator | 0.29 | 151 nights | 2.6×10⁴ nights | 8×10⁵ nights |
-| **Spica** | **VLT 4×UT** | **next-gen R = 5000, correlator** | **12.9** | **36 min** | **13.6 nights** | 1.2×10⁴ nights |
-| Spica | VLT 4×UT | next-gen R = 5000 + PBS | 28.7 | 7.3 min | 2.8 nights | 2.5×10³ nights |
-| δ Vel | VLT 4×UT | current, 320 ch, correlator | 0.12–0.23 | 230–810 nights | ≥1.7×10⁵ nights | ≥5×10⁶ nights |
-| **δ Vel** | **VLT 4×UT** | **next-gen R = 5000, correlator** | **4.4–7.7** | **1.7–5.1 h** | **280–800 nights** | ≥9×10⁴ nights |
-| δ Vel | VLT 4×UT | next-gen R = 5000 + PBS | 9.1–16.1 | 23–73 min | 66–190 nights | ≥2×10⁴ nights |
+| Spica | VLT 4×UT | current SPAD Lambda, 320 ch, correlator | 0.29 | 151 nights | 1.9×10⁴ nights | 8×10⁵ nights |
+| **Spica** | **VLT 4×UT** | **next-gen R = 5000, correlator** | **12.9** | **36 min** | **8.6 nights** | 1.2×10⁴ nights |
+| Spica | VLT 4×UT | next-gen R = 5000 + PBS | 28.7 | 7.3 min | 14 h | 2.5×10³ nights |
+| δ Vel | VLT 4×UT | current, 320 ch, correlator | 0.029 | 1.5×10⁴ nights | 2.2×10⁶ nights | 5×10⁷ nights |
+| δ Vel | VLT 4×UT | next-gen R = 5000, correlator | 0.68 | 27 nights | 3.7×10³ nights | 2.3×10⁶ nights |
+| δ Vel | VLT 4×UT | next-gen R = 5000 + PBS | 1.41 | 6.3 nights | 900 nights | 5×10⁵ nights |
+| δ Vel, NewEra | VLT 4×UT | next-gen R = 5000, correlator | 0.78 | 20 nights | 2.6×10³ nights | 1.6×10⁶ nights |
+| δ Vel, NewEra | VLT 4×UT | next-gen R = 5000 + PBS | 1.63 | 4.7 nights | 610 nights | 4×10⁵ nights |
 | Spica | Subaru+Keck+Keck | next-gen R = 5000, correlator | 0.17 | 430 nights | 1.5×10⁴ nights | 8×10⁵ nights |
 | Spica | Subaru+Keck+Keck | next-gen R = 5000 + PBS | 0.38 | 88 nights | 3×10³ nights | 1.5×10⁵ nights |
 | Algol | Subaru+Keck+Keck | next-gen R = 5000, correlator | 0.045 | 6.3×10³ nights | 1.9×10⁶ nights | 9×10⁷ nights |
+| Algol, NewEra (A) | Subaru+Keck+Keck | next-gen R = 5000, correlator | 0.041 | 7.5×10³ nights | 1.8×10⁶ nights | 9×10⁷ nights |
 | β Aur | Subaru+Keck+Keck | next-gen R = 5000, correlator | 0.007 | 2.8×10⁵ nights | 1.4×10⁸ nights | 6×10⁹ nights |
+| β Aur, NewEra | Subaru+Keck+Keck | next-gen R = 5000, correlator | 0.0054 | 4.3×10⁵ nights | 2.1×10⁸ nights | 9×10⁹ nights |
 
 The current SPAD Lambda's time-tag link (≈10⁸ events/s per detector, an
 estimate from its two USB3 links) is 200–800× below what these stars
@@ -189,13 +200,14 @@ fringe drifts ≤ 1/8 cycle; blocks combined as a template fit):
 
 | System | Array | Backend | nights to Δcos φc ≤ 0.1 (amplitude) | (R = 100 bins) |
 |---|---|---|---|---|
-| Spica | VLT | next-gen R = 5000 | 0.10 (≈ 47 min of the 8.3 h window) | 11.7 |
-| Spica | VLT | next-gen R = 5000 + PBS | 0.02 | 2.5 |
-| δ Vel | VLT | next-gen R = 5000 (4-min blocks) | 0.58 | 195 |
-| δ Vel | VLT | next-gen R = 5000 + PBS (4-min blocks) | 0.13 | 46 |
+| Spica | VLT | next-gen R = 5000 | 0.10 (≈ 47 min of the 8.3 h window) | 9.1 |
+| Spica | VLT | next-gen R = 5000 + PBS | 0.02 | 1.9 |
+| δ Vel | VLT | — | not tracked: the fringe is smeared out (§4) | — |
 | Spica | Subaru+Keck+Keck | next-gen R = 5000 | **10.8** (snapshot: 430) | 1.3×10³ |
 | Spica | Subaru+Keck+Keck | next-gen R = 5000 + PBS | 2.2 | 260 |
 | Algol | Subaru+Keck+Keck | next-gen R = 5000 | 200 | 3.5×10⁴ |
+| Algol, NewEra (A) | Subaru+Keck+Keck | next-gen R = 5000 | 241 | 4.0×10⁴ |
+| β Aur, NewEra | Subaru+Keck+Keck | next-gen R = 5000 | 3.2×10³ | 3.7×10⁶ |
 
 On Maunakea the track is the measurement: the transit snapshot sits at a
 near-null orientation of the long arms, and the rotating (u, v) points
@@ -217,9 +229,12 @@ brightness**: hotter photospheres pack the same flux into a smaller
 disk, keeping |γ| alive at 50–130 m and even at 150–226 m. Spica
 (V = 0.97, B1 III-IV + B2 V, θ = 0.91/0.45 mas, ρ = 1.71 mas, P = 4.01 d)
 is the textbook case; its 3.5× higher photon flux than Algol enters as
-R^{3/2}. δ Vel (V = 1.95, A2 IV + A4 V, 0.34/0.29 mas) is the other
-extreme: unresolved disks and the largest triple amplitudes, paid for by
-the flux⁻³ scaling and the pupil averaging of its 15 m blue fringes.
+R^{3/2}. δ Vel (V = 1.95, A2 IV + A4 V, 1.10/0.93 mas at 25.1 pc) is the
+other extreme: a 16.6 mas orbit whose blue fringe period (4.7 m) is
+below the 8.2 m UT pupils, so the VLT sees only the two disk envelopes.
+It is a target for 1–4 m apertures instead (§5e): on the C2PU pair or
+the EON-SII 4 m pair the fringe survives (D/P = 0.2–0.85) and the
+two-telescope g² tables below include it.
 
 ## 5c. Four telescopes: the VLT Unit Telescopes
 
@@ -236,13 +251,131 @@ qualitatively:
   coverage, the minimal configuration for model-independent imaging.
 - **Result for Spica** (transits at 77° at Paranal): the template
   detection in 36 min (7 min with a beamsplitter); R = 100 closure-phase
-  curves in 13.6 (2.8) nights per epoch.
+  curves in 8.6 nights (14 h) per epoch.
 - **Limiting magnitude.** Time scales as flux⁻³; a one-night template
   detection at Δcos φc ≤ 0.1 works down to **g ≈ 1.7 unpolarized,
   g ≈ 2.2 with the beamsplitter** — a dozen to several dozen hot
   southern binaries and rapid rotators (β Cen, λ Sco, β Cru, α Eri …).
 - **Declination caveat**: Paranal (−24.6°) never sees Algol or β Aur
   above 30°; the VLT numbers are for southern targets.
+- **δ Vel is not a VLT closure-phase target** (its rows above are kept
+  for the record): the corrected distance puts its blue fringe period at
+  4.7 m against 8.2 m pupils.
+
+## 5d. Effect of the NewEra model atmospheres
+
+Every number above the line was blackbody + Claret & Bloemen linear
+limb darkening; the rows marked NewEra use the angle-resolved PHOENIX
+NewEra tables (Hauschildt et al. 2025; A-star box 8000–12 000 K ×
+log g 3.0–4.5, [M/H] = 0, binned to 0.02 nm and mirrored at NERSC
+`/global/cfs/projectdirs/newera`), interpolated bilinearly in T_eff and
+log g (`hbtsim.sed.NewEraGrid`), averaged over each spectrograph channel
+(`sed.prepare_system`), with the spherical models' outer boundary drawn
+at R_outer = (1.004–1.008) × R_τ=1 (`Star.radius_ref`,
+`BinarySystem.drawn_radius_mas`; the τ = 1 tangent ray and the
+half-intensity drop agree to 10⁻⁴ in μ). β Aur (both stars bracketed)
+and δ Vel (both) use interpolated tables; Algol A (12 550 K) is clamped
+to the 12 000 K edge (flagged); Algol B (4900 K, log g 3.2) and Spica
+have no models and stay on blackbody + Claret. `scripts/sed_compare.py`
+(output in `output/logs/sed_compare.txt`):
+
+| System | F(NewEra)/πB at 400 / 500 / 800 nm | f₁/f₂ 400 nm BB → NewEra | fringe 2f₁f₂/(f₁+f₂)² 400 nm BB → NewEra | Hβ core | u(400 nm) NewEra vs C11 | g, i: BB / NewEra / anchor |
+|---|---|---|---|---|---|---|
+| β Aur | 1.47 / 1.17 / 0.86 | 1.234 → 1.236 | 0.4945 → 0.4944 | fringe 0.495 (twins) | 0.68 vs 0.52 | 2.07, 2.16 / **1.81, 2.29** / 1.80, 2.10 |
+| δ Vel | 1.47 / 1.16 / 0.85 | 1.193 → 1.222 | 0.4961 → 0.4950 | fringe 0.496 | 0.68 vs 0.52 | 1.89, 2.03 / **1.66, 2.17** / 1.90, 2.25 |
+| Algol (A only) | 1.05 / 0.89 / 0.73 | 57.9 → 60.5 | 0.0334 → 0.0320 | **0.068 → 0.230** | 0.62 vs 0.42 | 2.07, 2.36 / 2.14, 2.64 / 2.07, 2.58 |
+
+What the atmospheres change: (i) the *absolute* flux — the Balmer jump
+and line blanketing make A stars 45 % brighter than πB at 400 nm and
+15 % fainter at 800 nm, so β Aur's g magnitude lands on its anchor to
+0.01 mag without any offset (the blackbody needed 0.26 mag), while
+**δ Vel comes out 0.24 mag brighter than its A-only V ≈ 2.0** with the
+Mérand et al. 2011 radii, T_eff and distance — a tension in the
+published parameters, not in the code (a 12 % smaller radius or 700 K
+cooler stars would close it); (ii) the fringe contrast of the twin
+systems changes by < 0.3 % (equal stars, equal spectra), Algol's by
+−4 % in the blue continuum, +10–25 % in the red and **×3.4 in the Hβ
+core**, where the B8 primary's line removes most of its light and the K
+subgiant's share rises; (iii) the blue limb darkening is 30 % stronger
+than the Claret tables (u = 0.68 vs 0.52 at 400 nm; 0.20 in the Hβ
+core), and the disks are 0.4–0.8 % larger than the catalogue radii
+(R_outer). The SNR rows therefore move by the flux change (SNR ∝ rate
+∝ 10^{−0.4Δm}, up to 25 % for δ Vel) rather than by the fringe; the Hβ
+and Hγ channels of Algol are the one place the fringe itself changes.
+
+## 5e. A 4 m transportable pair: EON-SII
+
+EON-SII (arXiv:2608.17444) is two road-transportable 4 m telescopes
+(≈ 9 m² each, 80 % reflectivity) with a fibre-free 400–550 nm
+spectrograph (R ≈ 7000–8000, ~1000 effective channels, > 60 %
+throughput), picosecond time tags (CERN picoTDC) to a central
+correlator at up to ~1 GHz per telescope, and reconfigurable
+1.5–3 km baselines for compact stars. `hbtsim.snr` carries it as
+`EON_SII_TELESCOPE`, `EONSII_MCP_PMT` (Photonis MCP-PMT: measured HBT
+pair width σ = 27.4 ps; bialkali QE assumed), `EONSII_SPAD` (QUASAR
+32×32 SPAD array: 20 ps and the SPAD Lambda PDE assumed) and
+`EONSII_SPECTROGRAPH` (1000 × 0.15 nm; `_R7500` for the optical
+resolution); `bispectrum.eonsii_pair` places the pair on Teide;
+`scripts/feasibility_g3.py --g2 --instrument eonsii` gives the
+two-telescope table (§5f) with the baseline free (tens to hundreds of
+metres for milliarcsecond binaries). The assumptions flagged in the
+code (atmosphere 0.80, QE curves, SPAD jitter) are to be replaced by the
+instrument team's numbers.
+
+**Cross-check against the paper** (`scripts/eonsii_crosscheck.py`,
+its white dwarfs as u = 0.3 disks at |V|² ≈ 0.6): the photon rates agree
+— 5.5 kHz per channel and 5.3 MHz per telescope on Sirius B against the
+paper's ~5–10 kHz and ~7 MHz — but the hours to a given precision come
+out 5–25× longer than the paper's (Sirius B to 10 % diameter: MCP-PMT
+36 h unpolarized / 18 h with a beamsplitter vs 1.5 h; SPAD 3.3 / 1.7 h
+vs 0.33 h). Three identifiable factors account for ×3–4 in time: the
+unpolarized factor p₂ = ½ (×4 in time, unless the paper assumes
+polarized detection), our Gaussian matched-filter window 2√π σ_pair
+against a box of ±Δt_res (×1.3 in SNR), and diameter versus |V|²
+precision (×1.3). The remainder (×2–3) needs the paper's estimator
+assumptions (which |V|², which Δt_res — the 3.125 ps TDC bin would
+account for it exactly), which the abstract does not give; the
+comparison is recorded here as an open item rather than tuned away.
+
+## 5f. Two-telescope g² on the four systems
+
+`scripts/feasibility_g3.py --g2 --instrument {c2pu,keck,eonsii}` scans
+the baseline along the separation axis at quadrature and reports, at
+the baseline maximizing the first backend's total SNR, the SNR per hour
+of every backend (the tables are regenerated in §5f-tables below from
+`output/logs/g2_*.txt`).
+
+SNR₂ per √hour at quadrature (blackbody → **NewEra**; Spica has no models;
+Algol's NewEra column tables only its primary), from `output/logs/g2_*.txt`
+(`scripts/g2_logs_to_md.py` for the full 98-row table):
+
+| Instrument | Backend | β Aur (35/30 m) | Algol (10 m) | δ Vel (10–15 m) | Spica (10 m) |
+|---|---|---|---|---|---|
+| C2PU 2 × 1 m | 320 ch, time-tag | 5.1 → **5.0** (link-limited) | 6.9 → **6.8** (link-limited) | 4.5 → **4.4** (link-limited) | 6.6 (link-limited) |
+| C2PU 2 × 1 m | 320 ch, correlator | 15 → **14** | 15 → **15** | 12 → **14** | 52 |
+| C2PU 2 × 1 m | R = 5000, correlator | 60 → **54** | 60 → **58** | 47 → **54** | 208 |
+| C2PU 2 × 1 m | R = 5000, correlator + PBS | 85 → **76** | 85 → **82** | 67 → **76** | 294 |
+| Keck 2 × 10 m | 320 ch, correlator | 608 → **569** | 780 → **761** | 484 → **511** | 1431 |
+| Keck 2 × 10 m | R = 5000, correlator | 5082 → **4583** | 5616 → **5433** | 3660 → **4162** | 16576 |
+| EON-SII 2 × 4 m | 1000 ch, MCP-PMT | 344 → **343** (link-limited) | 434 → **434** (link-limited) | 234 → **238** (link-limited) | 391 (link-limited) |
+| EON-SII 2 × 4 m | 1000 ch, QUASAR SPAD | 575 → **568** (link-limited) | 694 → **658** (link-limited) | 350 → **351** (link-limited) | 638 (link-limited) |
+| EON-SII 2 × 4 m | 1000 ch, QUASAR SPAD + PBS | 817 → **808** (link-limited) | 986 → **935** (link-limited) | 497 → **499** (link-limited) | 907 (link-limited) |
+| EON-SII 2 × 4 m | R = 7500 (2388 ch), QUASAR SPAD | 848 → **841** (link-limited) | 1031 → **994** (link-limited) | 524 → **528** (link-limited) | 945 (link-limited) |
+
+Reading the table: (i) every time-tag row is pinned at ≈ 5–7 by the 10⁸
+cps link whatever the telescope, and the four bright binaries saturate
+even EON-SII's 10⁹ cps links (rates scaled ×0.1–0.5), so on-detector
+correlation is the enabling item for g² as much as for g³; (ii) the
+NewEra tables move the g² sensitivities by −10 % (β Aur: fainter in the
+red where most channels are, stronger limb darkening) to +14 % (δ Vel:
+the model is brighter than the blackbody anchored to its V) — a
+photon-budget effect, since the twin systems' fringe contrast is
+unchanged; (iii) δ Vel's best two-telescope baseline is 10–15 m (its
+4.7 m blue fringe is already smeared by 4 m pupils, D/P = 0.85, but
+survives 1 m ones), which is where a transportable pair earns its
+keep; (iv) EON-SII at 30 m on β Aur reaches SNR₂ ≈ 570/√h with the
+SPAD array (link-limited), i.e. |V|² per 0.15 nm channel to ~5 % per
+hour on a V = 1.9 star.
 
 ## 6. Caveats
 
@@ -251,18 +384,29 @@ qualitatively:
 - **Readout**: the on-detector correlator assumed for the next-generation
   device is a development item; the 10⁸ cps time-tag ceiling of the
   current SPAD Lambda is an estimate to be confirmed with Pi Imaging.
-- **SEDs**: blackbody surface fluxes with observed anchors set the flux
-  ratio of the two stars (hence the fringe contrast) only to tens of
-  per cent in the blue for Algol; the model-atmosphere hooks
-  (`hbtsim.sed`, NewEra PHOENIX) remove this once angle-resolved spectra
-  for these parameters are available.
+- **SEDs**: the NewEra tables now set the flux ratio and the limb
+  profiles of β Aur, δ Vel and Algol A (§5d); Algol B (K0 IV) and
+  Spica (25 300 / 20 900 K) still use blackbodies with observed anchors
+  until the K-subgiant box and an NLTE hot-star grid arrive from
+  Hamburg. Algol A is a 550 K extrapolation (clamped to 12 000 K).
+- **δ Vel photometry**: with the Mérand et al. 2011 radii, T_eff and
+  25.1 pc the model is 0.24 mag brighter than the observed A-only
+  V ≈ 2.0; the SNR rows with tables inherit that brightness. Rotation
+  (v sin i ≈ 145 km/s; oblate, gravity-darkened) is still not modeled
+  and is the obvious suspect for both the photometry and the limb
+  profiles.
+- **EON-SII**: atmosphere, QE curves and SPAD jitter are assumptions;
+  the SNR-per-photon of its design paper is 3–5× above ours (§5e).
 - **Algol C**: the ~10% incoherent third light dilutes every γ by ~0.9
   and the triple product by ~0.73 unless C is excluded optically.
 - Orbital physics not modeled: Spica's e = 0.108 and apsidal motion, its
   β Cep pulsations and tidal distortion; δ Vel's rotational oblateness
-  (the signal a campaign would target); the δ Vel ω convention should be
-  checked against the observed eclipse timing before it is used for
-  timing work.
+  (the signal a campaign would target). The code's ω is the primary's
+  spectroscopic argument of periastron (dz > 0 = secondary in front,
+  ascending node along −p), so entering the published 109.7° is the
+  consistent choice; the orbital radial velocities (`orbit.sky_positions`)
+  reproduce β Aur's K₁/K₂ and put the secondary receding at the
+  ascending node.
 
 ## 7. Conclusions
 
@@ -270,14 +414,16 @@ qualitatively:
    binaries** on any large telescope: its time-tag link caps the photon
    rate 200–800× below what the stars deliver, and even with a
    correlator readout its 320 channels need ~150 nights on the best
-   case (Spica, VLT).
+   case (Spica, VLT).  The same link caps every two-telescope g² row
+   at SNR ≈ 5–7/√h regardless of aperture (§5f).
 2. **Spectral resolution plus on-detector correlation is the enabling
    hardware**: an R = 5000 backend brings the Spica template detection on
    the VLT to 36 minutes (7 with a polarizing beamsplitter), a factor of
    ~2000 in time over 320 channels.
 3. **Detection and imaging are different measurements.** The template
    amplitude comes in minutes; R = 100 closure-phase curves take nights
-   per epoch; single 0.1 nm channels are out of reach. Image
+   per epoch (8.6 on the VLT for Spica, 14 h with a beamsplitter);
+   single 0.1 nm channels are out of reach. Image
    reconstruction (Nuñez & Domiciano de Souza 2015: bispectrum SNR ≳ 30
    in ~10³ channels) needs the multi-night regime.
 4. **Geometry and tracking**: on Maunakea the long Subaru arms resolve
@@ -289,6 +435,11 @@ qualitatively:
 5. **The systematics budget is set by the pair ridges**: a 10⁻³ kernel
    calibration, not photon statistics, is the hard requirement for a
    closure-phase measurement at Δcos φc = 0.1.
+6. **Model atmospheres change the photon budget, not the verdicts**
+   (§5d): with the NewEra tables the sensitivities move by −20 % to
+   +14 %; the Hβ/Hγ channels of Algol are the one place the fringe
+   itself changes (×3.4). δ Vel, at its correct 25.1 pc, is a target for
+   the 1–4 m class (C2PU, EON-SII: §5f), not for the VLT.
 
 ## References
 

@@ -151,11 +151,15 @@ def visibility_profile_batch(x, mu, rows, chunk_elems: float = 2e7) -> np.ndarra
 
 class DiskVisibilityCache:
     """V(x) of a tabulated profile on a uniform x grid per channel,
-    computed once and linearly interpolated afterwards (error < 1e-5 at
-    dx = 0.005).  Keyed by the profile object, the channel wavelengths
-    and the x range; the feasibility and uv-track drivers evaluate the
-    same channels at thousands of pupil points per call."""
-    DX = 0.005
+    computed once and linearly interpolated afterwards (error < 1e-4 at
+    dx = 0.02; the build costs ~10 s per 1000 channels and 16 units of
+    x).  Keyed by the profile object, the channel wavelengths and the x
+    range rounded up to a multiple of 8, so a uv track or a baseline
+    scan (x_max varying call by call) reuses one table; the feasibility
+    drivers evaluate the same channels at thousands of pupil points per
+    call."""
+    DX = 0.02
+    X_ROUND = 8.0
 
     def __init__(self):
         self._store = {}
@@ -163,7 +167,7 @@ class DiskVisibilityCache:
     def _key(self, profile, lam, x_max):
         lam = np.asarray(lam, dtype=float)
         return (id(profile), lam.size, float(lam[0]), float(lam[-1]),
-                hash(lam.tobytes()), int(np.ceil(x_max / 2.0)) * 2)
+                hash(lam.tobytes()), int(np.ceil(x_max / self.X_ROUND)) * int(self.X_ROUND))
 
     def lookup(self, profile, lam, x) -> np.ndarray:
         x = np.asarray(x, dtype=float)

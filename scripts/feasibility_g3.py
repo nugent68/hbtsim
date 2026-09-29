@@ -300,7 +300,9 @@ def g2_table(instrument: str, newera_dir=None, allow_extrapolation=False,
                                    vis2_method="analytic").snr_total for b in b_scan]
         b_best = float(b_scan[int(np.argmax(tot))])
         d_over_p = tel.diameter_m * float(pos.rho) * MAS / (spec0.lambda_min_nm * 1e-9)
-        tabled = "NewEra" if system.has_sed_tables else ("NewEra(A)" if system.primary.flux_table is not None else "blackbody")
+        tabled = {(True, True): "NewEra", (True, False): "NewEra(A)",
+                  (False, True): "NewEra(B)", (False, False): "blackbody"}[
+            (system.primary.flux_table is not None, system.secondary.flux_table is not None)]
         print(f"\n  {system.name} [{tabled}]: rho = {float(pos.rho):.2f} mas at phase {phase:.3f}; "
               f"best baseline {b_best:.0f} m (first backend), D/P = {d_over_p:.2f} at "
               f"{spec0.lambda_min_nm:.0f} nm, fringe contrast retained "
@@ -337,6 +339,9 @@ def main():
     p.add_argument("--g2", action="store_true", help="only the g2 numbers")
     p.add_argument("--instrument", choices=sorted(G2_INSTRUMENTS), default="c2pu",
                    help="two-telescope instrument for the --g2 table")
+    p.add_argument("--extra-phases", action="store_true",
+                   help="delta Vel: also snapshot phases 0.25, 0.5, 0.9 (slow on 8 m pupils: "
+                        "the fringe-aware triple quadrature needs ~24000 samples per channel)")
     p.add_argument("--newera-dir", default=os.environ.get("HBTSIM_NEWERA_DIR") or
                    ("data/newera" if os.path.isdir("data/newera") else None),
                    help="directory of binned NewEra tables to attach to every star "
@@ -370,7 +375,7 @@ def main():
         fig_cosphi_map(system, tri, f"output/g3_cosphi_{tag}.png")
     print("\n  snapshot at quadrature (per hour):")
     snapshot_rows(system, arr, phase, latex=args.table)
-    if args.system == "deltavel":
+    if args.system == "deltavel" and args.extra_phases:
         for ph in (0.25, 0.5, 0.9):
             print(f"\n  delta Vel at phase {ph}:")
             snapshot_rows(system, arr, ph, latex=args.table)

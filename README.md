@@ -1,8 +1,8 @@
 # hbtsim — Intensity interferometry of binary stars
 
 Simulation of the Hanbury Brown–Twiss (HBT) effect in optical intensity
-interferometry for bright eclipsing binaries, currently **Beta Aurigae
-(Menkalinan)** and **Algol (β Persei) A–B**. The code renders each binary
+interferometry for bright binaries: **Beta Aurigae (Menkalinan)**,
+**Algol (β Persei) A–B**, **Spica** and **δ Velorum Aa–Ab**. The code renders each binary
 as a pair of limb-darkened stellar disks on a sky grid, computes the
 complex visibility V(**u**) by an exact discrete Fourier transform of the
 image at the sampled baselines (JAX, GPU-batched for spectral work),
@@ -24,22 +24,23 @@ All simulations start at greatest projected separation (quadrature) and
 follow the baseline along the projected separation axis by default
 (`--baseline-pa` for a fixed instrumental orientation).
 
-## The two systems
+## The four systems
 
-|  | **Beta Aurigae** (`betaaur`, default) | **Algol A–B** (`algol`) |
-|---|---|---|
-| Components | A1m IV + A1m IV near-twins | B8V dwarf + K0IV subgiant |
-| Masses | 2.376 / 2.291 M☉ | 3.17 / 0.70 M☉ |
-| Radii | 2.762 / 2.568 R☉ | 2.73 / 3.48 R☉ |
-| T_eff | 9350 / 9200 K | 12550 / 4900 K |
-| Period | 3.96004 d | 2.867328 d |
-| Inclination | 76.8° | 98.70° |
-| Distance | 24.87 pc | 28.82 pc |
-| Angular semi-major axis | 3.303 mas | 2.151 mas |
-| Angular diameters | 1.033 / 0.960 mas | 0.881 / 1.123 mas |
-| Eclipses | partial, ~0.08 mag | deep primary, **1.48 mag in g** |
-| Anchored photometry | g 1.80, i 2.10 | g 2.07, i 2.58 (C-corrected) |
-| Sources | Southworth et al. 2007; Hipparcos | Baron et al. 2012 (CHARA); Zavala et al. 2010; Kolbas et al. 2015 |
+|  | **Beta Aurigae** (`betaaur`, default) | **Algol A–B** (`algol`) | **Spica** (`spica`) | **δ Velorum Aa–Ab** (`deltavel`) |
+|---|---|---|---|---|
+| Components | A1m IV + A1m IV near-twins | B8V dwarf + K0IV subgiant | B1 III-IV + B2 V | A2 IV + A4 V rapid rotators |
+| Masses | 2.376 / 2.291 M☉ | 3.17 / 0.70 M☉ | 11.43 / 7.21 M☉ | 2.43 / 2.27 M☉ |
+| Radii | 2.762 / 2.568 R☉ | 2.73 / 3.48 R☉ | 7.47 / 3.74 R☉ | 2.97 / 2.52 R☉ |
+| T_eff | 9350 / 9200 K | 12550 / 4900 K | 25300 / 20900 K | 9450 / 9830 K |
+| Period | 3.96004 d | 2.867328 d | 4.0145 d | 45.1503 d, e = 0.29 |
+| Inclination | 76.8° | 98.70° | 63.1° | 89.0° |
+| Distance | 24.87 pc | 28.82 pc | 76.6 pc | 25.13 pc (orbital parallax) |
+| Angular semi-major axis | 3.303 mas | 2.151 mas | 1.71 mas | 16.56 mas |
+| Angular diameters | 1.033 / 0.960 mas | 0.881 / 1.123 mas | 0.91 / 0.45 mas | 1.10 / 0.93 mas |
+| Eclipses | partial, ~0.08 mag | deep primary, **1.48 mag in g** | none | grazing |
+| Anchored photometry | g 1.80, i 2.10 | g 2.07, i 2.58 (C-corrected) | g 0.71, i 1.06 | g 1.90, i 2.25 (B-corrected) |
+| NewEra tables | both stars (interpolated) | A (clamped to 12 000 K); B blackbody | blackbody | both stars (interpolated) |
+| Sources | Southworth et al. 2007; Hipparcos | Baron et al. 2012 (CHARA); Zavala et al. 2010; Kolbas et al. 2015 | Herbison-Evans et al. 1971; Tkachenko et al. 2016 | Mérand et al. 2011 |
 
 The two systems probe complementary regimes. Beta Aurigae is the clean
 textbook case: equal stars, equal colors, fringes of period λ/ρ ≈ 25 m
@@ -61,13 +62,17 @@ model anchors and validation use C-corrected values (undiluted depth
 secondary is rendered as a sphere, so the ellipsoidal variation and
 reflection effect of the real out-of-eclipse lightcurve are absent.
 
-A third system, **Spica** (`spica` — α Vir, V = 0.97, B1 III-IV + B2 V,
-θ = 0.91/0.45 mas, ρ = 1.71 mas, P = 4.01 d; Herbison-Evans et al. 1971
-Narrabri intensity-interferometer orbit, Tkachenko et al. 2016
-disentangling), is included as the recommended bright target for
-three-telescope closure-phase work (true e = 0.108 approximated as
-circular; β Cep pulsations and tidal distortion not modeled;
-non-eclipsing).
+**Spica** (α Vir, V = 0.97; Herbison-Evans et al. 1971 Narrabri
+intensity-interferometer orbit, Tkachenko et al. 2016 disentangling) is
+the recommended bright target for three-telescope closure-phase work
+(true e = 0.108 approximated as circular; β Cep pulsations and tidal
+distortion not modeled; non-eclipsing). **δ Vel** (Mérand et al. 2011:
+eccentric 45-day orbit, both components rotating at ~145 km/s, not
+modeled as oblate) sits at 25.1 pc, so its 16.6 mas orbit puts the blue
+fringe period (4.7 m) below 8 m pupils: it is a target for 1–4 m
+telescopes, not for the VLT. Its NewEra photometry comes out 0.24 mag
+brighter than the observed A-only V, a tension in the published
+parameters recorded in `tests/test_newera.py`.
 
 Adding another binary is one `BinarySystem` instance in
 `hbtsim/params.py` (registered in `SYSTEMS`).
@@ -90,13 +95,25 @@ transform of the sky brightness distribution at spatial frequency
 Each star is a limb-darkened disk whose centre-to-limb profile is
 tabulated on a μ grid: by default the linear law I(μ)/I(1) = 1 − u_λ(1 − μ)
 with per-star Claret & Bloemen (2011) coefficients, weighted by the
-Planck function at its effective temperature; optionally
-(`Star.ld_profile`, `Star.flux_table`, built by `hbtsim.sed`) the
-angle-resolved intensities I(μ, λ) and surface fluxes of a model
-atmosphere — `scripts/prepare_newera.py` bins a NewEra PHOENIX HSR-RF
-file (Hauschildt et al. 2025) to a small table, which then sets both
-the flux ratio of the two stars (hence the fringe contrast) and their
-limb profiles, line by line. Eclipses are handled by z-ordering the
+Planck function at its effective temperature; with `--newera-dir`
+(`hbtsim.sed.NewEraGrid`, `with_newera`) the angle-resolved intensities
+I(μ, λ) and surface fluxes of the NewEra PHOENIX models (Hauschildt et
+al. 2025; `scripts/prepare_newera.py` bins an HSR-RF file to a 0.02 nm
+table, the grid at NERSC `/global/cfs/projectdirs/newera` covers
+8000–12 000 K × log g 3.0–4.5), interpolated bilinearly in T_eff and
+log g per star, which then set both the flux ratio of the two stars
+(hence the fringe contrast) and their limb profiles, line by line.
+Three things a spherical model needs are built in: its μ = 0 is the
+model's outer boundary, drawn at R_outer = (1.004–1.008) × the τ = 1
+radius the catalogue quotes (`Star.radius_ref`,
+`BinarySystem.drawn_radius_mas`); each star renders on its own μ nodes
+so the drawn profile is exactly the one `disk_flux_factor` integrates;
+and the 0.02 nm tables are averaged over each spectrograph channel
+(`sed.prepare_system`), optionally Doppler-shifted by the orbital
+radial velocities (`BinarySystem.doppler`) and rotationally broadened
+(`Star.vsini_kms`); interstellar reddening (`BinarySystem.a_v`, CCM89)
+and an air-wavelength channel grid (`Spectrograph.frame`) are hooks
+with defaults off. Eclipses are handled by z-ordering the
 disks on the grid, which also yields the lightcurves by direct image
 summation. Lightcurves are calibrated in two steps: synthetic
 monochromatic AB magnitudes from the physical flux at Earth, then a
@@ -112,11 +129,14 @@ the ratio of coherence time to detector resolution (Rai, Basak & Saha
 2021, eq. 6) — that physics lives in the SNR module below.
 
 Numerical layout: 1024² source grid at 0.01 mas/pixel (disk radii
-~45–55 px, limb darkening well resolved); `GridConfig.for_system()`
-picks a finer scale when a star would fall below 50 px (δ Vel), and
+~45–55 px, limb darkening well resolved); `GridConfig.fit_orbit()` (the
+renderer default) grows the grid to hold an orbit (δ Vel's 16.6 mas
+needs 2048 px), `GridConfig.for_system()` also refines the scale for
+stars below 50 px, and
 `GridConfig(supersample=4)` renders each pixel as the mean of 16
-sub-pixel soft-rim renders (with the pixel-window sinc removed from
-the DFT), which takes the renderer's limb bias from ~1e-4 to ~1e-5 in
+sub-pixel soft-rim renders (with the exact Dirichlet pixel window of
+the s × s average removed from the DFT), which takes the renderer's
+limb bias from ~1e-4 to ~1e-5 in
 |V|² and the rendered-vs-analytic closure phase from 0.15° to 0.02°.
 The visibility is *not*
 taken from a padded FFT map: the interferometer only ever needs V at a
@@ -171,9 +191,13 @@ implementation cannot escape:
   — a ~1 % loss at 0.1 nm in the red, on by default.
 
 Built-in hardware: the **C2PU pair** (Calern, 2 × 1 m, 15 m apart), the
-**Keck pair** (2 × 10 m, ~85 m), and the Pi Imaging **SPAD Lambda** detector
-(320×1 pixels, PDE 22%/14% at 400/800 nm, 120 ps FWHM jitter, 10 ns
-dead time, 250 cps dark; datasheet in `background/`).
+**Keck pair** (2 × 10 m, ~85 m), the **EON-SII pair** (arXiv:2608.17444:
+two transportable 4 m telescopes of 9 m², a 400–550 nm spectrograph with
+1000 effective channels, Photonis MCP-PMT or QUASAR SPAD detectors,
+1 GHz time-tag links; `EON_SII_TELESCOPE`, `EONSII_*`,
+`bispectrum.eonsii_pair`, `--instrument eonsii`), and the Pi Imaging
+**SPAD Lambda** detector (320×1 pixels, PDE 22%/14% at 400/800 nm,
+120 ps FWHM jitter, 10 ns dead time, 250 cps dark).
 
 Two observing modes (`python -m hbtsim.snr_cli --system {betaaur,algol}`):
 
@@ -190,12 +214,17 @@ Two observing modes (`python -m hbtsim.snr_cli --system {betaaur,algol}`):
 - **Narrowband** — single filters (`--mode narrowband --wavelengths 400
   800 --filter-width 10`).
 
-Headline numbers for Beta Aurigae at quadrature, 1 h: a single 10 nm
-filter on C2PU gives SNR ≈ 0.1–0.4; spectral multiplexing lifts that to
-**≈ 16 at B = 50 m**; the Keck pair reaches per-channel SNR ≈ 7
-(σ_|V|² ≈ 0.01–0.03). Keck caveats (documented, not modeled): a single
-SPAD pixel saturates at Keck count rates, and a 10 m aperture on an
-85 m baseline averages |V|² over B ± 10 m.
+Headline numbers for Beta Aurigae at quadrature, 1 h
+(`scripts/feasibility_g3.py --g2`, docs §5f): a single 10 nm filter on
+C2PU gives SNR ≈ 0.1–0.9; the 320-channel SPAD Lambda with a correlator
+readout lifts that to **≈ 15/√h at B = 35 m** (8 at 50 m) — the
+time-tag link caps it at ≈ 5 — and an R = 5000 backend to 60 (54 with
+the NewEra tables); the Keck pair at 85 m reaches 240/√h with 320
+channels (σ_|V|² ≈ 0.02 per channel-hour) and the EON-SII 4 m pair at
+30 m ≈ 570/√h with 1000 channels, both link-limited. Keck caveats: a
+single SPAD pixel saturates at Keck count rates (`--n-pixels`), and a
+10 m aperture on an 85 m baseline averages |V|² over B ± 10 m
+(modeled: `hbtsim.aperture`).
 
 ## g²(λ) movies with error bars
 
@@ -243,22 +272,26 @@ cycle.
 `scripts/feasibility_g3.py`): the Subaru arms resolve out the ~1 mas
 disks (triple amplitude ≲ 0.04) and with the stock 320-channel SPAD
 Lambda the closure phase of Algol needs **centuries**; an R ≈ 5000
-backend (0.1 nm × 5500 channels) brings Δcos φc ≤ 0.3 to **~42 nights**;
-a *compact* 85 m triangle of 10 m apertures with the same backend does
-it in **hours**. Geometry beats aperture — and target selection rescues
-the real triangle: **Spica** (`--system spica`; V = 0.97, hot
-small-disk B-star pair whose primary diameter was itself measured by
-the Narrabri intensity interferometer) reaches Δcos φc ≤ 0.3 in
-**~0.7 night** and ≤ 0.1 in ~6 nights on Subaru + Keck I + Keck II
-with the R ≈ 5000 backend.
+backend with a correlator readout brings the template detection of
+Algol's closure phase (Δcos φc ≤ 0.1) to **~200 nights** along the uv
+track. Geometry beats aperture — and target selection rescues the real
+triangle: **Spica** (`--system spica`; V = 0.97, hot small-disk B-star
+pair whose primary diameter was itself measured by the Narrabri
+intensity interferometer) reaches Δcos φc ≤ 0.1 in **~11 nights** on
+Subaru + Keck I + Keck II with the R ≈ 5000 backend (2 with a
+polarizing beamsplitter).
 
 The best configuration studied is the **VLT 4×UT array**
 (`bispectrum.VLT_UT`: 8.2 m × 4, baselines 46.6–130.2 m — all inside
 Spica's first null, four simultaneous triangles + six |V|² baselines):
-combined bispectrum sensitivity ≈ 28/√h on Spica with the R ≈ 5000
-backend → **Δcos φc ≤ 0.1 in ~8 minutes**, closure-phase *curves*
-around the 4-day orbit, and a one-night limiting magnitude of g ≈ 2.2
-(southern targets only; Paranal cannot see Algol/β Aur).
+combined bispectrum sensitivity ≈ 13/√h (29 with a beamsplitter) on
+Spica with the R ≈ 5000 backend → **Δcos φc ≤ 0.1 in ~36 minutes**
+(7 with the beamsplitter), R = 100 closure-phase *curves* in 8.6 nights
+(14 h) per epoch around the 4-day orbit, and a one-night limiting
+magnitude of g ≈ 2.2 (southern targets only; Paranal cannot see
+Algol/β Aur). δ Vel, at its correct distance of 25.1 pc, has a 4.7 m
+blue fringe period that 8 m pupils smear out: it is a 1–4 m-class g²
+target (C2PU, EON-SII), not a VLT one.
 
 ## Batched spectral pipeline (CPU/GPU)
 
@@ -294,8 +327,12 @@ uv pip install -p .venv/bin/python -e ".[test,movie]"   # + [sed] for h5py, [gpu
 # SNR tables (hbtsim-snr)
 .venv/bin/python -m hbtsim.snr_cli --system algol --baseline 50 85
 
-# tests (analytic validation suite, ~45 s)
+# tests (analytic validation suite, ~65 s)
 .venv/bin/python -m pytest
+
+# feasibility tables with the NewEra tables (rsync data/newera/ from NERSC first)
+.venv/bin/python scripts/feasibility_g3.py --system betaaur --array maunakea --newera-dir data/newera
+.venv/bin/python scripts/feasibility_g3.py --g2 --instrument eonsii --newera-dir data/newera --allow-extrapolation
 ```
 
 ## Running on NERSC Perlmutter
@@ -334,8 +371,9 @@ movie locally with `--render-only`.
 ## Package layout
 
 - `hbtsim/params.py` — constants, `Star`/`BinarySystem`/`GridConfig`/
-  `MovieConfig`, per-star LD tables, the `BETA_AUR` and `ALGOL`
-  instances and the `SYSTEMS` registry (single source of truth)
+  `MovieConfig`, per-star LD tables, the `BETA_AUR`, `ALGOL`, `SPICA`
+  and `DELTA_VEL` instances and the `SYSTEMS` registry (single source
+  of truth)
 - `hbtsim/orbit.py` — Keplerian sky geometry, oriented on the sky by Ω
 - `hbtsim/aperture.py` — finite-aperture (pupil) averaging of |V|² and
   of the three-pupil bispectrum
@@ -343,7 +381,9 @@ movie locally with `--render-only`.
 - `hbtsim/limbdark.py` — linear LD law, analytic and numeric (tabulated
   profile) disk visibilities
 - `hbtsim/sed.py`, `scripts/prepare_newera.py` — model-atmosphere flux
-  and I(μ, λ) tables (NewEra PHOENIX HSR-RF reader)
+  and I(μ, λ) tables (NewEra PHOENIX HSR-RF reader), the `NewEraGrid`
+  (T_eff, log g) interpolation, channel averaging, Doppler / rotational
+  broadening / extinction hooks
 - `hbtsim/render.py` — JAX rendering of the occulted limb-darkened disks
 - `hbtsim/hbt.py` — exact K-point DFT sampling of V(u, v), |V|², g²(B);
   analytic binary visibility
@@ -354,8 +394,11 @@ movie locally with `--render-only`.
   detectors, spectrograph multiplexing)
 - `hbtsim/movie.py`, `hbtsim/cli.py` — the 3-panel orbit movie
 - `hbtsim/g2spec.py` — the g²(λ)-with-error-bars movie
-- `scripts/` — benchmark + Perlmutter setup/sbatch
-- `tests/` — analytic validation tests (`pytest tests/`, ~20 s)
+- `scripts/` — `feasibility_g3.py` (every number in the docs),
+  `sed_compare.py` (blackbody vs NewEra), `eonsii_crosscheck.py`,
+  benchmark + Perlmutter setup/sbatch
+- `tests/` — analytic validation tests (`pytest tests/`, ~210 tests,
+  ~65 s; the NewEra-data tests skip without `data/newera/`)
 
 ## References
 

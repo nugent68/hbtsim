@@ -307,13 +307,25 @@ def band_average_profile(ld: LDProfile, flux: FluxTable, edges_nm) -> np.ndarray
     return rows
 
 
+_REBIN_CACHE: dict = {}
+_REBIN_CACHE_MAX = 64
+
+
 def rebin_to_channels(star, edges_nm):
     """The star with its tables replaced by channel-averaged ones on the
     channel centres (flux: band mean; profile: intensity-weighted mean);
-    unchanged when it carries no tables."""
+    unchanged when it carries no tables.  Memoized on the source tables
+    and the channel edges, so repeated calls (every SNR evaluation of a
+    feasibility scan) return the SAME table objects and the disk-
+    visibility cache keyed on them keeps hitting."""
     if star.flux_table is None and star.ld_profile is None:
         return star
     e = np.asarray(edges_nm, dtype=float)
+    key = (id(star.flux_table), id(star.ld_profile), e.size, float(e[0]), float(e[-1]),
+           hash(e.tobytes()))
+    hit = _REBIN_CACHE.get(key)
+    if hit is not None and hit[0] is star.flux_table and hit[1] is star.ld_profile:
+        return with_tables(star, hit[2], hit[3])
     centres = 0.5 * (e[:-1] + e[1:])
     ft = star.flux_table
     ld = star.ld_profile
@@ -327,6 +339,10 @@ def rebin_to_channels(star, edges_nm):
         else:
             rows = ld.rows(centres)
         ld = replace(ld, wavelength_nm=centres, intensity=rows)
+    if len(_REBIN_CACHE) >= _REBIN_CACHE_MAX:
+        _REBIN_CACHE.clear()
+    # keep the source tables referenced so their ids stay unique
+    _REBIN_CACHE[key] = (star.flux_table, star.ld_profile, ft, ld)
     return with_tables(star, ft, ld)
 
 
@@ -474,8 +490,16 @@ class NewEraGrid:
         k = int(np.searchsorted(values, x, side="right"))
         return values[k - 1], values[k]
 
+    MAX_CLAMP_TEFF = 1000.0    # K beyond the grid edge that allow_extrapolation may clamp
+    MAX_CLAMP_LOGG = 0.5       # dex
+
     def interpolate(self, teff: float, logg: float, z: float = 0.0,
                     allow_extrapolation: bool = False) -> NewEraTables:
+        """Tables at (teff, logg): bilinear inside the grid; outside it a
+        ValueError, or -- with allow_extrapolation and within
+        MAX_CLAMP_TEFF / MAX_CLAMP_LOGG of the edge -- the edge model,
+        flagged and warned about (Algol A at 12 550 K -> 12 000 K).  A
+        25 000 K star is never clamped onto a 12 000 K model."""
         keys = [k for k in self.tables if k[2] == z]
         if not keys:
             raise ValueError(f"no NewEra tables at [M/H] = {z}")
@@ -499,11 +523,15 @@ class NewEraGrid:
                              f"log g = {logg:.2f}: missing corner(s) {sorted(missing)}; "
                              f"nearest models {[(k[0], k[1]) for k in near]}")
         if clamped:
-            if not allow_extrapolation:
+            too_far = (abs(teff - t_use) > self.MAX_CLAMP_TEFF
+                       or abs(logg - g_use) > self.MAX_CLAMP_LOGG)
+            if not allow_extrapolation or too_far:
                 raise ValueError(f"({teff:.0f} K, log g {logg:.2f}) lies outside the NewEra "
                                  f"grid (T_eff {teffs[0]:.0f}-{teffs[-1]:.0f} K, log g "
-                                 f"{loggs[0]:.1f}-{loggs[-1]:.1f}); pass "
-                                 f"allow_extrapolation=True to clamp to the edge")
+                                 f"{loggs[0]:.1f}-{loggs[-1]:.1f})"
+                                 + (f" by more than {self.MAX_CLAMP_TEFF:.0f} K / "
+                                    f"{self.MAX_CLAMP_LOGG} dex: not clamped" if too_far else
+                                    "; pass allow_extrapolation=True to clamp to the edge"))
             warnings.warn(f"NewEra: ({teff:.0f} K, log g {logg:.2f}) clamped to the grid "
                           f"edge {clamped}", stacklevel=2)
         wt = 0.0 if t1 == t0 else (t_use - t0) / (t1 - t0)
