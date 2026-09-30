@@ -134,10 +134,14 @@ def fig_gammas(system, arr, out, phase):
     print(f"  wrote {out}")
 
 
-def fig_cosphi_map(system, tri, out, n_phase=51):
+def fig_cosphi_map(system, tri, out, n_phase=51, sky_panels=11):
+    """cos(phi_c) over wavelength and orbital phase, with a column of small
+    sky images (the two disks at their projected positions, centre-of-mass
+    frame, north up and east left) aligned with the phase axis."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.patches import Circle
 
     nm = np.linspace(400.0, 950.0, 120)
     phases = np.linspace(0.0, 1.0, n_phase)
@@ -150,13 +154,59 @@ def fig_cosphi_map(system, tri, out, n_phase=51):
             ts = spectral_triple(pos, tri, nm, system, GridConfig().fit_orbit(system), method="render",
                                  pupils=True)
         cosmap[k] = ts.cos_phi_c
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig = plt.figure(figsize=(9.6, 7.0))
+    ax = fig.add_axes([0.07, 0.09, 0.60, 0.76])
     im = ax.pcolormesh(nm, phases, cosmap, cmap="RdBu_r", vmin=-1, vmax=1, shading="auto")
-    fig.colorbar(im, label=r"$\cos\varphi_c$")
+    cax = fig.add_axes([0.685, 0.09, 0.018, 0.76])
+    fig.colorbar(im, cax=cax, label=r"$\cos\varphi_c$")
     ax.set_xlabel("Wavelength [nm]")
     ax.set_ylabel("Orbital phase")
-    ax.set_title(f"{system.name}: closure-phase cosine on {tri.name} (aperture-averaged)")
-    fig.tight_layout()
+    ax.set_title(f"{system.name}: closure-phase cosine on {tri.name} (aperture-averaged)",
+                 fontsize=10, loc="left")
+
+    # sky panels: one small square axis per phase, centred on that phase's y
+    r1 = system.drawn_radius_mas(system.primary)
+    r2 = system.drawn_radius_mas(system.secondary)
+    all_pos = sky_positions(np.linspace(0.0, 2 * np.pi, 721), system)
+    reach = max(float(np.max(np.abs(np.asarray(v)))) for v in
+                (all_pos.x1, all_pos.y1, all_pos.x2, all_pos.y2)) + max(r1, r2)
+    half = 1.08 * reach
+    x0, y0, w, h = 0.80, 0.09, 0.60, 0.76
+    fig_w, fig_h = fig.get_size_inches()
+    size_in = min(0.95 * h * fig_h / sky_panels, 1.0)         # square panels [inches]
+    sw, sh = size_in / fig_w, size_in / fig_h
+    ph_panels = np.linspace(0.0, 1.0, sky_panels)
+    for j, ph in enumerate(ph_panels):
+        yc = y0 + h * ph
+        sax = fig.add_axes([x0, yc - sh / 2, sw, sh])
+        pos = positions_at(system, ph)
+        # east to the left: plot -x
+        sax.add_patch(Circle((-float(pos.x1), float(pos.y1)), r1, color="#c9973a", lw=0))
+        sax.add_patch(Circle((-float(pos.x2), float(pos.y2)), r2, color="#3f6fb5", lw=0))
+        for xx, yy in ((all_pos.x1, all_pos.y1), (all_pos.x2, all_pos.y2)):
+            sax.plot(-np.asarray(xx), np.asarray(yy), color="0.8", lw=0.4, zorder=0)
+        sax.set_xlim(half, -half)
+        sax.set_ylim(-half, half)
+        sax.set_aspect("equal")
+        sax.set_xticks([]); sax.set_yticks([])
+        for sp in sax.spines.values():
+            sp.set_linewidth(0.4); sp.set_color("0.6")
+        sax.text(1.08, 0.5, f"{ph:.1f}", transform=sax.transAxes, va="center", fontsize=7)
+    # compass and scale bar in their own box above the column
+    lax = fig.add_axes([x0, y0 + h + sh / 2 + 0.01, sw, sh * 0.8])
+    lax.set_xlim(half, -half); lax.set_ylim(-half * 0.8, half * 0.8); lax.set_aspect("equal")
+    lax.axis("off")
+    lax.annotate("", xy=(half * 0.7, half * 0.55), xytext=(half * 0.7, -half * 0.35),
+                 arrowprops=dict(arrowstyle="-|>", lw=0.8))
+    lax.annotate("", xy=(-half * 0.2, -half * 0.35), xytext=(half * 0.7, -half * 0.35),
+                 arrowprops=dict(arrowstyle="-|>", lw=0.8))
+    lax.text(half * 0.7, half * 0.6, "N", ha="center", va="bottom", fontsize=6)
+    lax.text(-half * 0.25, -half * 0.35, "E", ha="right", va="center", fontsize=6)
+    bar = 1.0 if half > 1.5 else 0.5
+    lax.plot([-half * 0.35, -half * 0.35 - bar], [half * 0.45] * 2, color="k", lw=1.2)
+    lax.text(-half * 0.35 - bar / 2, half * 0.5, f"{bar:g} mas", ha="center", va="bottom", fontsize=6)
+    fig.text(x0 + sw / 2, y0 + h + sh / 2 + 0.01 + sh * 0.8 + 0.006,
+             f"sky: A {2 * r1:.2f} mas, B {2 * r2:.2f} mas", ha="center", fontsize=7)
     fig.savefig(out, dpi=140)
     plt.close(fig)
     print(f"  wrote {out}")
