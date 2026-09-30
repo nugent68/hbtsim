@@ -73,13 +73,13 @@ Significance per night (Sirius: 5.5 h; Vega: 8 h) and nights to 5σ:
 
 | Backend | Readout | Sirius A | Vega |
 |---|---|---|---|
-| 1000 ch, MCP-PMT | link (×0.020 / ×0.072) | 2.8σ → 3.1 nights | 3.6σ → 2.0 nights |
+| 1000 ch, MCP-PMT | link (×0.020 / ×0.072) | 2.8σ → 3.1 nights | 3.5σ → 2.0 nights |
 | 1000 ch, SPAD | link (×0.010 / ×0.038) | 3.8σ → 1.7 nights | 4.7σ → 1.1 nights |
 | 1000 ch, SPAD + PBS | link | 5.4σ → 0.9 nights | 6.7σ → 0.6 nights |
 | R = 7500, SPAD | link | 5.8σ → 0.7 nights | 7.3σ → 0.5 nights |
-| 1000 ch, MCP-PMT | subset (31 / 86 ch) | 73σ | 29σ |
-| 1000 ch, SPAD | subset (18 / 58 ch) | 89σ | 57σ |
-| 1000 ch, SPAD | correlator | 231σ | 109σ |
+| 1000 ch, MCP-PMT | subset (31 / 86 ch) | 72σ | 29σ |
+| 1000 ch, SPAD | subset (17 / 59 ch) | 85σ | 57σ |
+| 1000 ch, SPAD | correlator | 230σ | 108σ |
 | R = 7500, SPAD | correlator | 452σ | 182σ |
 
 **Readout is the decisive design choice.** Sirius sends about 10¹¹

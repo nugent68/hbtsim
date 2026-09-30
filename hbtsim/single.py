@@ -79,7 +79,28 @@ SIRIUS_A = SingleStar("Sirius A", _star("Sirius A", 9940.0, 4.33, 2.06, 6.039, 2
 VEGA = SingleStar("Vega", _star("Vega", 9550.0, 4.0, 2.15, 3.329, 7.68),
                   theta_ld_mas=3.329, v_mag=0.03, dec_deg=38.7837, ra_hours=18.6156,
                   distance_pc=7.68)
-SINGLE_STARS = {"sirius": SIRIUS_A, "vega": VEGA}
+# Red-clump validation targets of Kim & Kaiser (2026, PASP 138, 044202):
+# theta_LD from Gallenne et al. (VLTI/PIONIER), T_eff / log g as adopted
+# there; coordinates from SIMBAD.  The linear-law fallback is a rough K-giant
+# table (replace by a NewEra profile: no 4800 K / log g 2.5 model exists yet,
+# see scripts/redclump_ii.py for the stand-ins and the model request).
+LD_K_GIANT = ((400.0, 0.85), (450.0, 0.78), (550.0, 0.68), (650.0, 0.60), (800.0, 0.50),
+              (1000.0, 0.42), (1650.0, 0.32), (2200.0, 0.28))
+
+
+def _giant(name, teff, logg, mass, theta_ld_mas, d_pc):
+    radius_rsun = 0.5 * theta_ld_mas * MAS * d_pc * PARSEC / R_SUN
+    return Star(name, mass_msun=mass, radius_rsun=radius_rsun, teff=teff,
+                ld_table_nm=LD_K_GIANT, logg=logg)
+
+
+HD_17652 = SingleStar("HD 17652 (beta For, G9 IIIb)", _giant("HD 17652", 4786.0, 2.5, 1.5, 1.835, 54.17),
+                      theta_ld_mas=1.835, v_mag=4.456, dec_deg=-32.4059, ra_hours=2.8182,
+                      distance_pc=54.17)
+HD_360 = SingleStar("HD 360 (HR 16, K1 II)", _giant("HD 360", 4764.0, 2.5, 1.5, 0.906, 110.97),
+                    theta_ld_mas=0.906, v_mag=5.986, dec_deg=-8.8241, ra_hours=0.1382,
+                    distance_pc=110.97)
+SINGLE_STARS = {"sirius": SIRIUS_A, "vega": VEGA, "hd17652": HD_17652, "hd360": HD_360}
 
 
 def attach_newera_single(target: SingleStar, grid, allow_extrapolation: bool = False):

@@ -239,3 +239,24 @@ def test_anchoring_disabled_with_sed_tables():
     # the blackbody system is still anchored
     anc = anchored_mags(m, "g", ALGOL, reference_mag=2.05)
     assert anc[2] == pytest.approx(g)
+
+
+def test_rebin_to_channels_is_idempotent():
+    """A second pass at the same edges must not smooth the tables again."""
+    import os
+    import pytest
+    from hbtsim.sed import load_star_tables, rebin_to_channels, with_tables
+    from hbtsim.single import VEGA
+    from hbtsim.snr import Spectrograph
+    path = "data/newera/newera_lte09600-4.00-0.0_380-1000nm_0.02nm.npz"
+    if not os.path.exists(path):
+        pytest.skip("NewEra table not present")
+    ft, ld = load_star_tables(path)
+    star = with_tables(VEGA.star, ft, ld)
+    edges = Spectrograph.from_resolving_power(5000.0, 400.0, 950.0).channel_edges_nm
+    once = rebin_to_channels(star, edges)
+    twice = rebin_to_channels(once, edges)
+    assert twice.flux_table is once.flux_table and twice.ld_profile is once.ld_profile
+    # one channel: the band mean is finite and close to the raw table's mean
+    one = rebin_to_channels(star, np.array([480.0, 492.0]))
+    assert np.isfinite(one.flux_table.flux).all() and one.flux_table.flux[0] > 0

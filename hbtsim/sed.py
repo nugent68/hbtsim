@@ -321,6 +321,16 @@ def rebin_to_channels(star, edges_nm):
     if star.flux_table is None and star.ld_profile is None:
         return star
     e = np.asarray(edges_nm, dtype=float)
+    centres_req = 0.5 * (e[:-1] + e[1:])
+    # idempotent: tables already on these channel centres are returned as
+    # they are (a second pass would smooth them by ~[1/8, 3/4, 1/8])
+    done = True
+    for t in (star.flux_table, star.ld_profile):
+        if t is not None:
+            w = np.asarray(t.wavelength_nm, dtype=float)
+            done = done and w.shape == centres_req.shape and np.allclose(w, centres_req, rtol=0, atol=1e-9)
+    if done:
+        return star
     key = (id(star.flux_table), id(star.ld_profile), e.size, float(e[0]), float(e[-1]),
            hash(e.tobytes()))
     hit = _REBIN_CACHE.get(key)
