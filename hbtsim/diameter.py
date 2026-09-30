@@ -25,11 +25,15 @@ from .single import SingleStar, prepare_single, single_star_vis2, spectral_g2_sn
 from .snr import Detector, Spectrograph, SpectralSNRResult, Telescope
 
 # Kim & Kaiser's fiducial instrument: two 4 m telescopes, 0.3 overall
-# throughput (atmosphere, optics, detector), 42.4 ps FWHM timing jitter
-# (sigma_t = 16.6 ps per detector), no dark counts, no readout ceiling
+# throughput (atmosphere, optics, detector), sigma_t = 16.6 ps per detector
+# (their formula uses sigma_t; the "42.4 ps FWHM" they quote alongside would
+# be 18.0 ps, so we adopt the 16.6 ps that enters their numbers), no dark
+# counts, no readout ceiling
+KK_SIGMA_T_PS = 16.6
 KK_TELESCOPE = Telescope(diameter_m=4.0, throughput=0.3)
-KK_DETECTOR = Detector(name="Kim & Kaiser fiducial (42.4 ps FWHM, throughput in the telescope)",
-                       pde_table_nm=((300.0, 1.0), (2600.0, 1.0)), jitter_fwhm_ps=42.4,
+KK_DETECTOR = Detector(name="Kim & Kaiser fiducial (sigma_t 16.6 ps, throughput in the telescope)",
+                       pde_table_nm=((300.0, 1.0), (2600.0, 1.0)),
+                       jitter_fwhm_ps=KK_SIGMA_T_PS * 2.0 * np.sqrt(2.0 * np.log(2.0)),
                        dead_time_ns=0.0, dark_cps_per_pixel=0.0, readout="correlator",
                        max_total_cps=None)
 

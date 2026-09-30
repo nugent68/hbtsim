@@ -39,25 +39,46 @@ class SingleStar:
     dec_deg: float
     ra_hours: float
     distance_pc: float
+    # observed AB magnitudes ((wavelength_nm, mag), ...): when given, the
+    # model spectrum is scaled by the offset interpolated in log(lambda)
+    # between the anchors (held constant beyond them), as
+    # snr.system_ab_mag does for the binaries; empty = unanchored model
+    mag_anchors: tuple = ()
 
     @property
     def drawn_diameter_mas(self) -> float:
         """The diameter the disk is drawn with (outer boundary for NewEra)."""
         return self.theta_ld_mas * self.star.radius_scale
 
-    def ab_mag(self, wavelength_nm):
-        """Model AB magnitude (unanchored): surface flux x solid angle of
-        the drawn disk."""
+    def model_ab_mag(self, wavelength_nm):
+        """Unanchored model AB magnitude: surface flux x solid angle of the
+        drawn disk."""
         lam_nm = np.asarray(wavelength_nm, dtype=float)
         theta_r = 0.5 * self.drawn_diameter_mas * MAS
         f_nu = self.star.surface_flux(lam_nm) * theta_r**2 * (lam_nm * 1e-9) ** 2 / C_LIGHT
         out = -2.5 * np.log10(f_nu / AB_ZERO_FNU)
         return float(out) if np.ndim(out) == 0 else out
 
+    def anchor_offset(self, wavelength_nm):
+        """Observed minus model magnitude, interpolated between the anchors."""
+        lam_nm = np.asarray(wavelength_nm, dtype=float)
+        if not self.mag_anchors:
+            return np.zeros(lam_nm.shape) if np.ndim(lam_nm) else 0.0
+        pts = sorted(self.mag_anchors)
+        lam_a = np.array([p[0] for p in pts], dtype=float)
+        off = np.array([p[1] - float(self.model_ab_mag(p[0])) for p in pts])
+        out = np.interp(np.log10(lam_nm), np.log10(lam_a), off)
+        return float(out) if np.ndim(out) == 0 else out
+
+    def ab_mag(self, wavelength_nm):
+        """AB magnitude of the model, anchored to the observed magnitudes
+        when mag_anchors is set."""
+        return self.model_ab_mag(wavelength_nm) + self.anchor_offset(wavelength_nm)
+
     def v_check(self) -> float:
-        """Model AB mag at 550 nm minus the observed V (Vega-system V and AB
-        agree to ~0.02 mag there)."""
-        return float(self.ab_mag(550.0) - self.v_mag)
+        """Unanchored model AB mag at 550 nm minus the observed V (Vega-system
+        V and AB agree to ~0.02 mag there)."""
+        return float(self.model_ab_mag(550.0) - self.v_mag)
 
 
 def _star(name, teff, logg, mass, theta_ld_mas, d_pc):
@@ -94,12 +115,19 @@ def _giant(name, teff, logg, mass, theta_ld_mas, d_pc):
                 ld_table_nm=LD_K_GIANT, logg=logg)
 
 
+# Vega -> AB offsets: V +0.02 (Bessell), 2MASS H +1.39, Ks +1.85 (Blanton &
+# Roweis 2007); the V, H, K magnitudes are those Kim & Kaiser adopt.
+VEGA_TO_AB = {"V": 0.02, "H": 1.39, "K": 1.85}
 HD_17652 = SingleStar("HD 17652 (beta For, G9 IIIb)", _giant("HD 17652", 4786.0, 2.5, 1.5, 1.835, 54.17),
                       theta_ld_mas=1.835, v_mag=4.456, dec_deg=-32.4059, ra_hours=2.8182,
-                      distance_pc=54.17)
+                      distance_pc=54.17,
+                      mag_anchors=((551.0, 4.456 + VEGA_TO_AB["V"]), (1630.0, 2.256 + VEGA_TO_AB["H"]),
+                                   (2190.0, 2.139 + VEGA_TO_AB["K"])))
 HD_360 = SingleStar("HD 360 (HR 16, K1 II)", _giant("HD 360", 4764.0, 2.5, 1.5, 0.906, 110.97),
                     theta_ld_mas=0.906, v_mag=5.986, dec_deg=-8.8241, ra_hours=0.1382,
-                    distance_pc=110.97)
+                    distance_pc=110.97,
+                    mag_anchors=((551.0, 5.986 + VEGA_TO_AB["V"]), (1630.0, 3.757 + VEGA_TO_AB["H"]),
+                                 (2190.0, 3.653 + VEGA_TO_AB["K"])))
 SINGLE_STARS = {"sirius": SIRIUS_A, "vega": VEGA, "hd17652": HD_17652, "hd360": HD_360}
 
 

@@ -1,6 +1,6 @@
 \documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
-\usepackage{graphicx,booktabs,amsmath,hyperref,xcolor}
+\usepackage{graphicx,booktabs,amsmath,amssymb,hyperref,xcolor}
 \usepackage[T1]{fontenc}
 \hypersetup{colorlinks,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black}
 \newcommand{\todo}[1]{\textcolor{red!70!black}{\textbf{ToDo:} #1}}
@@ -8,7 +8,7 @@
 \title{Red-clump angular sizes with intensity interferometry:\\
 what \texttt{hbtsim} and the NewEra models add to Kim \& Kaiser (2026)}
 \author{P. Nugent (with Claude)}
-\date{30 September 2026 --- draft}
+\date{30 September 2026 --- draft v2}
 
 \begin{document}
 \maketitle
@@ -27,9 +27,11 @@ asked what the package and the angle-resolved NewEra PHOENIX models add.
 Four results:
 \begin{enumerate}
 \item Their noise formula is \texttt{hbtsim}'s matched filter with
-  $p_2 = \tfrac12$ (unpolarized light), to $5\times10^{-8}$; their
-  H-band result reproduces ($\sigma_s = 0.0061$ at 120~m for HD~17652,
-  0.025 at 245~m for HD~360).
+  $p_2 = \tfrac12$ (unpolarized light), to $5\times10^{-8}$. With the
+  model spectrum anchored to their photometry, their Table~1 (the
+  zero-baseline S/N per band) reproduces to 1--6\%, and their H-band
+  result to within its rounding ($\sigma_s = 0.0068$ at 120~m for
+  HD~17652 against ``$< 0.007$''; 0.027 for HD~360 against ``$< 0.03$'').
 \item The \emph{radius convention} is the largest systematic. In a
   spherical model of a giant the Rosseland $\tau = 1$ radius, the
   visible limb and the outer boundary differ; for the 5000~K, $\log g
@@ -38,10 +40,10 @@ Four results:
   will sit between that and the dwarf's 0.14\%, plausibly at a few
   per cent --- comparable to the 1\% goal.
 \item Spectral multiplexing in the optical with \emph{real} detectors
-  is at parity with the single H filter to $\times3$ better in time
-  (EON-SII's 1000-channel SPAD: $\sigma_s = 0.0036$ in 2~h at 40~m);
+  is at parity with the single H filter to $\times4$ better in time
+  (EON-SII's 1000-channel SPAD: $\sigma_s = 0.0035$ in 2~h at 40~m);
   their ``factor $\sim$100'' holds only for an ideal detector (unit
-  PDE, 42~ps jitter over 400--950~nm).
+  PDE, 16.6~ps jitter over 400--950~nm), and even then it is $\times$45.
 \item Multiplexing measures the limb-darkening chromaticity the
   authors worry about: $\theta_{\rm UD}/\theta_{\rm LD}$ runs from
   0.89 at 400~nm to 0.955 at 950~nm, a $\sim$3$\sigma$ slope per 2~h
@@ -56,12 +58,17 @@ gravity (Section~\ref{sec:todo}).
 \paragraph{Stars.} HD~17652 (G9~IIIb; $T_{\rm eff} = 4786$~K, $\log g
 = 2.5$, $\theta_{\rm LD} = 1.835$~mas from Gallenne et al.; $d =
 54.2$~pc) and HD~360 (K1~II; 4764~K, 2.5, 0.906~mas; 111~pc), as
-\texttt{hbtsim.single.SingleStar} objects. Magnitudes come from the
-model surface flux and the drawn diameter (not anchored to $V$).
+\texttt{hbtsim.single.SingleStar} objects. The model spectrum is
+anchored to the $V$, $H$ and $K$ magnitudes the paper adopts (4.456,
+2.256, 2.139 and 5.986, 3.757, 3.653; Vega $\to$ AB offsets 0.02,
+1.39, 1.85), the offset interpolated in $\log\lambda$ between the
+anchors. Unanchored, the stand-in models are 0.2~mag too bright in
+$V$ and $H$.
 
 \paragraph{Instrument.} Their fiducial: two 4~m telescopes, 0.3
-overall throughput, 42.4~ps FWHM timing jitter ($\sigma_t = 16.6$~ps
-per detector), no dark counts or readout limit
+overall throughput, $\sigma_t = 16.6$~ps per detector (their formula
+uses $\sigma_t$; the ``42.4~ps FWHM'' quoted alongside would be
+18.0~ps), no dark counts or readout limit
 (\texttt{diameter.KK\_TELESCOPE}, \texttt{KK\_DETECTOR}); single
 top-hat filters $B\,V\,R\,I\,H\,K$. For the multiplexed cases the
 telescopes are the same and the detectors are \texttt{hbtsim}'s
@@ -89,31 +96,66 @@ $\log g = 0$ supergiant (the other side of the gravity bracket).
 
 \section{Results}
 
-\subsection{Reproduction of the paper}
+\subsection{Comparison with the paper}
+
+Their Eq.~7, $\sigma(|V|^2)^{-1} = (d\Gamma/d\nu)(T/\sigma_t)^{1/2}
+(128\pi)^{-1/4}$, is exactly \texttt{snr.g2\_snr} with $p_2 =
+\tfrac12$ and a Gaussian pair kernel of width $\sqrt2\,\sigma_t$; the
+test suite checks the two agree. Their Table~1 lists this inverse noise
+at zero baseline per band in 2~h; Table~\ref{tab:t1} sets it against
+\texttt{hbtsim} with the anchored model
+(\texttt{scripts/redclump\_compare.py}).
+
+\begin{table}[h]
+\centering
+\caption{Zero-baseline $1/\sigma(|V|^2)$ in 2~h on their instrument:
+their Table~1 against \texttt{hbtsim} (matched filter, model spectrum
+anchored to their $V H K$ photometry; ratio in parentheses) and the
+unanchored dwarf stand-in. $R$ and $I$ differ because they interpolate
+fluxes between $V$, $H$, $K$ and Gaia while \texttt{hbtsim} interpolates
+the anchor offset over the model spectrum.}
+\small
+\begin{tabular}{lccccc}
+\toprule
+& $V$ & $R$ & $I$ & $H$ & $K$ \\
+\midrule
+HD 17652, paper & 28.9 & 40.4 & 69.7 & 188.5 & 168.6 \\
+\quad hbtsim, anchored & 28.6 (0.99) & 45.4 (1.13) & 66.4 (0.95) & 181.8 (0.96) & 178.1 (1.06) \\
+\quad hbtsim, unanchored stand-in & 34.3 & 54.8 & 80.4 & 224.1 & 185.6 \\
+HD 360, paper & 7.07 & 9.81 & 17.0 & 47.3 & 41.8 \\
+\quad hbtsim, anchored & 6.99 (0.99) & 11.2 (1.14) & 16.4 (0.96) & 45.6 (0.96) & 44.2 (1.06) \\
+\quad hbtsim, unanchored stand-in & 8.37 & 13.4 & 19.6 & 54.6 & 45.2 \\
+\bottomrule
+\end{tabular}
+\label{tab:t1}
+\end{table}
 
 \begin{table}[h]
 \centering
 \caption{Fractional scale precision $\sigma_s$ in 2~h with the paper's
-instrument, one filter, baseline scanned 20--300~m (dwarf stand-in
-profile; the supergiant profile changes these by $< 3$\%). Optimum
-baselines in parentheses. The paper quotes $< 0.007$ at $\sim$100~m
-(HD~17652) and $< 0.03$ (HD~360) in $H$.}
+instrument, one filter, baseline scanned 20--300~m (anchored fluxes,
+dwarf stand-in profile; the supergiant profile changes these by
+$< 1$\%). Optimum baselines in parentheses. The paper quotes
+$< 0.007$ at $\sim$100~m (HD~17652) and $< 0.03$ (HD~360) in $H$,
+``$\lesssim 0.01$ at $\sim$150~m'' in $H$ and $K$, and optical
+uncertainties ``2--10 times larger'' than $H$ (here 3.3--6.4$\times$).}
 \small
 \begin{tabular}{lccccc}
 \toprule
 star & $V$ & $R$ & $I$ & $H$ & $K$ \\
 \midrule
-HD 17652 & 0.043 (45 m) & 0.025 (50 m) & 0.017 (60 m) & \textbf{0.0061 (120 m)} & 0.0067 (160 m) \\
-HD 360   & 0.18 (85 m) & 0.10 (100 m) & 0.067 (125 m) & \textbf{0.025 (245 m)} & 0.028 (300 m) \\
+HD 17652 & 0.044 (45 m) & 0.032 (50 m) & 0.023 (60 m) & \textbf{0.0068 (120 m)} & 0.0069 (160 m) \\
+HD 360   & 0.18 (85 m) & 0.13 (100 m) & 0.092 (125 m) & \textbf{0.027 (245 m)} & 0.028 (300 m) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Their Eq.~8, $\sigma(|V|^2)^{-1} = (d\Gamma/d\nu)(T/\sigma_t)^{1/2}
-(128\pi)^{-1/4}$, is exactly \texttt{snr.g2\_snr} with $p_2 =
-\tfrac12$ and a Gaussian pair kernel of width $\sqrt2\,\sigma_t$; the
-test suite checks the two agree. The optimum sits at $|V|^2 \approx
-0.33$ ($x = \pi\theta B/\lambda \approx 2.0$) in every band.
+The photon budgets agree to a few per cent band by band, and the
+H-band $\sigma_s$ agree within their rounding. The remaining
+differences are inputs, not physics: the $R$/$I$ flux interpolation,
+the $K$ filter's effective wavelength, and the Vega-to-AB offsets. The
+optimum sits at $|V|^2 \approx 0.33$ ($x = \pi\theta B/\lambda \approx
+2.0$) in every band; for HD~360 that is 245~m in $H$, not 100~m.
 
 \subsection{The radius convention}
 
@@ -163,9 +205,10 @@ filters (colours) and three multiplexed optical backends (black and
 grey), dwarf stand-in profile. The thin red line is the paper's
 $\sigma_s = 0.007$. Beyond $\sim$60~m (HD~17652) the optical channels
 pass through the first null, hence the structure. The grey dotted
-curve is their ideal detector (unit PDE, 42~ps) with 1000 channels:
-that is the ``factor $\sim$100'' in time. Real detectors give parity
-(the $R = 5000$ SPAD~Lambda correlator) to $\times3$ in time (EON-SII).}
+curve is their ideal detector (unit PDE, 16.6~ps) with 1000 channels:
+that is the ``factor $\sim$100'' in time (here $\times$45). Real
+detectors give parity (the $R = 5000$ SPAD~Lambda correlator) to
+$\times4$ in time (EON-SII).}
 \label{fig:sigma}
 \end{figure}
 
@@ -178,13 +221,13 @@ as $1/T$).}
 \toprule
 backend & HD 17652 & HD 360 \\
 \midrule
-KK instrument, one H filter & 0.0061 (120 m) $\to$ 1.5 h & 0.025 (245 m) $\to$ 26 h \\
-ideal detector, 1000 ch 400--950 nm & 0.0007 (60 m) $\to$ 0.02 h & 0.0029 (120 m) $\to$ 0.33 h \\
-SPAD Lambda 320 ch, time-tag & 0.10 $\to$ 430 h & 0.10 $\to$ 430 h \\
-SPAD Lambda 320 ch, correlator & 0.021 $\to$ 18 h & 0.084 $\to$ 290 h \\
-$R = 5000$ (4325 ch), correlator & 0.0056 (50 m) $\to$ 1.3 h & 0.023 (95 m) $\to$ 21 h \\
-$R = 5000$, correlator + PBS & 0.0040 $\to$ 0.64 h & 0.016 $\to$ 11 h \\
-EON-SII 1000 ch, QUASAR SPAD, 1 GHz link & \textbf{0.0036 (40 m) $\to$ 0.52 h} & \textbf{0.015 (80 m) $\to$ 8.7 h} \\
+KK instrument, one H filter & 0.0068 (120 m) $\to$ 1.9 h & 0.027 (245 m) $\to$ 30 h \\
+ideal detector, 1000 ch 400--950 nm & 0.0010 (55 m) $\to$ 0.04 h & 0.0040 (115 m) $\to$ 0.65 h \\
+SPAD Lambda 320 ch, time-tag & 0.11 $\to$ 455 h & 0.11 $\to$ 454 h \\
+SPAD Lambda 320 ch, correlator & 0.026 $\to$ 28 h & 0.11 $\to$ 454 h \\
+$R = 5000$ (4325 ch), correlator & 0.0075 (45 m) $\to$ 2.3 h & 0.031 (95 m) $\to$ 38 h \\
+$R = 5000$, correlator + PBS & 0.0053 $\to$ 1.1 h & 0.022 $\to$ 19 h \\
+EON-SII 1000 ch, QUASAR SPAD, 1 GHz link & \textbf{0.0035 (40 m) $\to$ 0.49 h} & \textbf{0.014 (80 m) $\to$ 8.2 h} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -209,12 +252,12 @@ H$\alpha$, the Ca~II triplet) stand 2--4\% above the continuum.}
 \label{fig:chrom}
 \end{figure}
 
-The uniform-disk diameter runs 6\% across 400--950~nm (0.891, 0.903,
-0.917, 0.929, 0.944, 0.955 in the bins 400--450, 450--500, 500--550,
+The uniform-disk diameter runs 6\% across 400--950~nm (0.895, 0.905,
+0.919, 0.930, 0.945, 0.955 in the bins 400--450, 450--500, 500--550,
 550--650, 650--800, 800--950~nm). The two stand-ins differ by $\le
-1$\% in the continuum. With $\sigma(\theta_{\rm UD})/\theta = 0.45$
-per channel in 2~h on HD~17652, 50~nm bins reach $\sim$2\% and the
-continuum slope is a $\sim$3$\sigma$ measurement per 2~h ($\sim$7$\sigma$
+1$\% in the continuum. With $\sigma(\theta_{\rm UD})/\theta = 0.59$
+per channel in 2~h on HD~17652, 50~nm bins reach $\sim$3\% and the
+continuum slope is a $\sim$2$\sigma$ measurement per 2~h ($\sim$5$\sigma$
 per night): the limb darkening of a K giant measured rather than
 assumed, which is the test the authors say G/K atmospheres need.
 
@@ -235,10 +278,12 @@ assumed, which is the test the authors say G/K atmospheres need.
   Gallenne et al.\ SATLAS fits report (the SATLAS reference radius vs
   the visible limb) and evaluate the NewEra giant's profile with the
   same definition before quoting a diameter offset.
-\item \todo{Photometry check.} With $\theta_{\rm LD}$ and the stand-in
-  fluxes the model $V$ is 0.18~mag brighter than observed (0.34 with
-  the supergiant's larger drawn disk); see whether the giant model and
-  metallicity close this.
+\item \todo{Photometry check.} Unanchored, the stand-in models are
+  0.2~mag brighter than the observed $V$ and $H$ at $\theta_{\rm LD}$
+  (0.34 with the supergiant's larger drawn disk); the anchoring hides
+  this. See whether the giant model and its metallicity close it, since
+  a 0.2~mag surface-brightness offset at fixed $T_{\rm eff}$ and
+  $\theta$ is itself an SBC-relation question.
 \item \todo{H-band detector.} Add an InGaAs-SPAD / SNSPD preset (PDE
   curve, jitter, dark rate, dead time) so that the H-band case is
   computed with the same realism as the optical ones.
@@ -255,8 +300,8 @@ assumed, which is the test the authors say G/K atmospheres need.
 (commit \texttt{e8a197f} and following):
 \begin{itemize}\setlength{\itemsep}{0pt}
 \item \texttt{hbtsim/diameter.py}; \texttt{hbtsim/single.py} (\texttt{HD\_17652}, \texttt{HD\_360})
-\item \texttt{scripts/redclump\_ii.py}, \texttt{scripts/redclump\_figures.py}
-\item \texttt{output/logs/redclump\_ii\_dwarf.txt}, \texttt{redclump\_ii\_supergiant.txt}
+\item \texttt{scripts/redclump\_ii.py}, \texttt{redclump\_compare.py}, \texttt{redclump\_figures.py}
+\item \texttt{output/logs/redclump\_ii\_dwarf.txt}, \texttt{redclump\_ii\_supergiant.txt},\\ \texttt{redclump\_compare.txt}
 \item \texttt{docs/redclump\_ii.md} (the same results in Markdown)
 \end{itemize}
 

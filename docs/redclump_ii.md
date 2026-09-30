@@ -28,16 +28,25 @@ with p₂ = ½ (unpolarized light) and a Gaussian pair kernel of width
 (throughput 0.3 for the whole chain, 42.4 ps FWHM jitter, no dark
 counts, no readout ceiling) is `diameter.KK_TELESCOPE` / `KK_DETECTOR`.
 
+The model spectrum is anchored to the V, H, K magnitudes the paper
+adopts (`SingleStar.mag_anchors`); unanchored, the stand-ins are 0.2 mag
+too bright. Their Table 1 (zero-baseline 1/σ(|V|²) per band in 2 h)
+then reproduces to 1–6 % (V 0.99, I 0.95, H 0.96, K 1.06; R and I
+differ by ~13 % through their flux interpolation):
+`scripts/redclump_compare.py`, `output/logs/redclump_compare.txt`.
+Their σt = 16.6 ps is adopted (their "42.4 ps FWHM" would be 18.0 ps).
+
 **Reproduction** (2 h, one top-hat filter, 4 m pupils averaged,
-baseline scanned 20–300 m, dwarf stand-in profile):
+baseline scanned 20–300 m, anchored fluxes, dwarf stand-in profile):
 
 | star | V | R | I | H | K | paper |
 |---|---|---|---|---|---|---|
-| HD 17652 | 0.043 (45 m) | 0.025 (50 m) | 0.017 (60 m) | **0.0061 (120 m)** | 0.0067 (160 m) | < 0.007 at ~100 m (H) |
-| HD 360 | 0.18 (85 m) | 0.10 (100 m) | 0.067 (125 m) | **0.025 (245 m)** | 0.028 (300 m) | < 0.03 (H) |
+| HD 17652 | 0.044 (45 m) | 0.032 (50 m) | 0.023 (60 m) | **0.0068 (120 m)** | 0.0069 (160 m) | < 0.007 at ~100 m (H) |
+| HD 360 | 0.18 (85 m) | 0.13 (100 m) | 0.092 (125 m) | **0.027 (245 m)** | 0.028 (300 m) | < 0.03 (H) |
 
 The optimum sits at |V|² ≈ 0.33 (x ≈ 2.0). The supergiant profile
-changes these by < 3 %.
+changes these by < 1 %. Their optical uncertainties are "2–10 times"
+the H-band one; here 3.3–6.4×.
 
 ## 2. The radius convention
 
@@ -75,22 +84,22 @@ or the comparison tests conventions rather than stars.
 
 | backend | HD 17652: σ_s (B) → hours to 0.007 | HD 360 |
 |---|---|---|
-| KK detector, one H filter | 0.0061 (120 m) → 1.5 h | 0.025 (245 m) → 26 h |
-| KK detector (PDE 1, 42 ps), 1000 ch 400–950 nm | 0.0007 (60 m) → 0.02 h | 0.0029 (120 m) → 0.33 h |
-| SPAD Lambda 320 ch, time-tag (10⁸ cps) | 0.10 → 430 h | 0.10 → 430 h |
-| SPAD Lambda 320 ch, correlator | 0.021 → 18 h | 0.084 → 290 h |
-| R = 5000 (4325 ch), correlator | 0.0056 (50 m) → 1.3 h | 0.023 (95 m) → 21 h |
-| R = 5000, correlator + PBS | 0.0040 → 0.64 h | 0.016 → 11 h |
-| EON-SII 1000 ch 400–550 nm, QUASAR SPAD (1 GHz link) | **0.0036 (40 m) → 0.52 h** | 0.015 (80 m) → 8.7 h |
+| KK detector, one H filter | 0.0068 (120 m) → 1.9 h | 0.027 (245 m) → 30 h |
+| KK detector (PDE 1, 16.6 ps), 1000 ch 400–950 nm | 0.0010 (55 m) → 0.04 h | 0.0040 (115 m) → 0.65 h |
+| SPAD Lambda 320 ch, time-tag (10⁸ cps) | 0.11 → 455 h | 0.11 → 454 h |
+| SPAD Lambda 320 ch, correlator | 0.026 → 28 h | 0.11 → 454 h |
+| R = 5000 (4325 ch), correlator | 0.0075 (45 m) → 2.3 h | 0.031 (95 m) → 38 h |
+| R = 5000, correlator + PBS | 0.0053 → 1.1 h | 0.022 → 19 h |
+| EON-SII 1000 ch 400–550 nm, QUASAR SPAD (1 GHz link) | **0.0035 (40 m) → 0.49 h** | 0.014 (80 m) → 8.2 h |
 
-- With an *ideal* optical detector (their throughput, unit PDE, 42 ps
-  jitter) 1000 channels beat the single H filter by ×9 in σ_s, i.e. ×76
-  in time: their "factor ~100" is right for that assumption.
+- With an *ideal* optical detector (their throughput, unit PDE, 16.6 ps
+  jitter) 1000 channels beat the single H filter by ×7 in σ_s, i.e. ×45
+  in time: their "factor ~100" is right in spirit for that assumption.
 - With *real* detectors the gain shrinks to parity or a factor of a
   few: the R = 5000 SPAD Lambda correlator backend matches the H
-  filter, EON-SII's 1000-channel SPAD beats it by ×1.7 in σ_s (×3 in
-  time) on HD 17652 and ×1.7 on HD 360, and the current 320-channel
-  time-tag detector is hopeless (link-limited ×0.2, 120 ps jitter).
+  filter, EON-SII's 1000-channel SPAD beats it by ×1.9 in σ_s (×4 in
+  time) on both stars, and the current 320-channel time-tag detector
+  is hopeless (link-limited, 120 ps jitter).
 - For HD 360 the H filter needs 245 m; the optical channels do their
   work at 80–120 m, within the PIONIER-like baselines they want.
 
@@ -106,13 +115,13 @@ stand-in; figure `output/redclump_hd17652_dwarf_chromatic.png`):
 
 | 400–450 | 450–500 | 500–550 | 550–650 | 650–800 | 800–950 nm |
 |---|---|---|---|---|---|
-| 0.891 | 0.903 | 0.917 | 0.929 | 0.944 | 0.955 |
+| 0.895 | 0.905 | 0.919 | 0.930 | 0.945 | 0.955 |
 
 A 6 % run across the band, with the strong lines (Ca II H and K, the
 G band, Mg b, Hα, the Ca II triplet) 2–4 % above the neighbouring
-continuum. Per channel σ(θ_UD)/θ is 0.45 in 2 h on HD 17652 (1.8 on
-HD 360), so 50 nm bins of ~400 channels reach ~2 % per 2 h and the
-continuum slope is a ~3σ measurement per 2 h, ~7σ per night. That is
+continuum. Per channel σ(θ_UD)/θ is 0.59 in 2 h on HD 17652 (2.4 on
+HD 360), so 50 nm bins of ~400 channels reach ~3 % per 2 h and the
+continuum slope is a ~2σ measurement per 2 h, ~5σ per night. That is
 the limb-darkening chromaticity of a K giant measured rather than
 assumed, the test the authors say G/K atmospheres need.
 
@@ -123,9 +132,10 @@ assumed, the test the authors say G/K atmospheres need.
   dependence between them is small for the UD ratios (< 1 %) and large
   for the radius convention (0.1 % → 16 %); the giant's own values are
   the point of the model request.
-- **Photometry.** With θ_LD and the stand-in fluxes the model V is
-  0.18 mag brighter than observed (0.34 with the supergiant's larger
-  drawn disk); the giant model and its metallicity will move this.
+- **Photometry.** Unanchored, the stand-in models are 0.2 mag brighter
+  than the observed V and H at θ_LD (0.34 with the supergiant's larger
+  drawn disk); the anchoring hides this, and the giant model and its
+  metallicity should close it.
 - **Not modeled:** baseline projection over the 2 h, atmospheric
   extinction, sky (negligible for V ≈ 4–6), an H-band detector. All
   are hooks that exist in hbtsim except the last.
