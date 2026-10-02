@@ -160,7 +160,7 @@ def test_constant_resolving_power_spectrograph():
 
 def test_readout_ceiling_and_dead_time_warning():
     """Spica on a 10 m telescope: ~1e10 detected cps over 320 channels,
-    far beyond the SPAD Lambda's time-tag link (1e8): the rates are
+    far beyond the SPAD Lambda's time-tag link (1.4e8): the rates are
     scaled down and flagged; a correlator readout is not, but the
     per-pixel load exceeds 1 and warns."""
     spec = Spectrograph(n_channels=320)

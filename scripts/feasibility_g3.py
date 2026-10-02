@@ -19,7 +19,7 @@ docs/three_telescope_feasibility.md and the paper's Table 3:
 
 Instrument model (hbtsim.snr): telescope throughput 0.3 x spectrograph
 0.5 x PDE; aperture smearing on; sky orientation from each system's
-Omega; the current SPAD Lambda is time-tag limited (1e8 cps) while the
+Omega; the current SPAD Lambda is time-tag limited (1.4e8 cps) while the
 next-generation detector has a correlator readout.
 """
 

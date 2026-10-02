@@ -175,10 +175,12 @@ implementation cannot escape:
 - **Readout**: a bright star dispersed over thousands of channels
   delivers 10¹⁰–10¹¹ detected photons/s per 8–10 m telescope, far
   beyond any time-tag link. `Detector.readout` is `"timetag"` (the
-  SPAD Lambda as delivered, USB3, `max_total_cps` ≈ 10⁸ — the spectral
-  functions scale the rates down to the ceiling and flag
-  `readout_limited`) or `"correlator"` (the next-generation design,
-  `SPAD_LAMBDA_NG`, correlation done on the detector electronics). A
+  SPAD Lambda as delivered, USB3, `max_total_cps` = 1.4 × 10⁸, the
+  manufacturer's 140 Mcps — the spectral functions scale the rates
+  down to the ceiling and flag `readout_limited`) or `"correlator"`
+  (the next-generation design, `SPAD_LAMBDA_NG`: a real-time correlator
+  with no link limit, either both beams on one sensor or tags streamed
+  to a central FPGA/GPU; an idealization, not an existing system). A
   per-pixel dead-time load r·τ_dead > 1 raises a warning (the
   non-paralyzable model is unreliable there; spread the light over
   more pixels).
@@ -218,7 +220,7 @@ Headline numbers for Beta Aurigae at quadrature, 1 h
 (`scripts/feasibility_g3.py --g2`, docs §5f): a single 10 nm filter on
 C2PU gives SNR ≈ 0.1–0.9; the 320-channel SPAD Lambda with a correlator
 readout lifts that to **≈ 15/√h at B = 35 m** (8 at 50 m) — the
-time-tag link caps it at ≈ 5 — and an R = 5000 backend to 60 (54 with
+time-tag link caps it at ≈ 7 — and an R = 5000 backend to 60 (54 with
 the NewEra tables); the Keck pair at 85 m reaches 240/√h with 320
 channels (σ_|V|² ≈ 0.02 per channel-hour) and the EON-SII 4 m pair at
 30 m ≈ 570/√h with 1000 channels, both link-limited. The EON-SII

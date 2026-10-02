@@ -129,7 +129,7 @@ def main():
         print(f"  Multiplexed optical backends (hours to sigma_s = {KK_TARGET_SIGMA_S}):")
         cases = [
             ("KK detector, 1000 ch 400-950 nm", SPEC_OPT_KK, KK_TELESCOPE, KK_DETECTOR, "unpolarized"),
-            ("SPAD Lambda 320 ch, time-tag (1e8 cps)", SPEC_320, KK_TELESCOPE, SPAD_LAMBDA, "unpolarized"),
+            ("SPAD Lambda 320 ch, time-tag (1.4e8 cps)", SPEC_320, KK_TELESCOPE, SPAD_LAMBDA, "unpolarized"),
             ("SPAD Lambda 320 ch, correlator", SPEC_320, KK_TELESCOPE, SPAD_LAMBDA_NG, "unpolarized"),
             ("R = 5000 (4325 ch), correlator", SPEC_R5000, KK_TELESCOPE, SPAD_LAMBDA_NG, "unpolarized"),
             ("R = 5000, correlator + PBS", SPEC_R5000, KK_TELESCOPE, SPAD_LAMBDA_NG, "pbs"),

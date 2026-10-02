@@ -247,7 +247,7 @@ forecast in §5g.
 ## 5c. Four telescopes: the VLT Unit Telescopes
 
 Putting next-generation SPAD arrays with R = 5000 backends and
-on-detector correlators on the four 8.2 m VLT UTs changes the problem
+real-time correlators (no link limit) on the four 8.2 m VLT UTs changes the problem
 qualitatively:
 
 - **All six baselines are short.** 46.6–130.2 m sits inside Spica's
@@ -436,7 +436,7 @@ Algol's NewEra column tables only its primary), from `output/logs/g2_*.txt`
 
 | Instrument | Backend | β Aur (35/30 m) | Algol (10 m) | δ Vel (10–15 m) | Spica (10 m) |
 |---|---|---|---|---|---|
-| C2PU 2 × 1 m | 320 ch, time-tag | 5.1 → **5.0** (link-limited) | 6.9 → **6.8** (link-limited) | 4.5 → **4.4** (link-limited) | 6.6 (link-limited) |
+| C2PU 2 × 1 m | 320 ch, time-tag | 7.2 → **7.0** (link-limited) | 9.6 → **9.5** (link-limited) | 6.4 → **6.2** (link-limited) | 9.2 (link-limited) |
 | C2PU 2 × 1 m | 320 ch, correlator | 15 → **14** | 15 → **15** | 12 → **14** | 52 |
 | C2PU 2 × 1 m | R = 5000, correlator | 60 → **54** | 60 → **58** | 47 → **54** | 208 |
 | C2PU 2 × 1 m | R = 5000, correlator + PBS | 85 → **76** | 85 → **82** | 67 → **76** | 294 |
@@ -447,9 +447,9 @@ Algol's NewEra column tables only its primary), from `output/logs/g2_*.txt`
 | EON-SII 2 × 4 m | 1000 ch, QUASAR SPAD + PBS | 817 → **808** (link-limited) | 986 → **935** (link-limited) | 497 → **499** (link-limited) | 907 (link-limited) |
 | EON-SII 2 × 4 m | R = 7500 (2388 ch), QUASAR SPAD | 848 → **841** (link-limited) | 1031 → **994** (link-limited) | 524 → **528** (link-limited) | 945 (link-limited) |
 
-Reading the table: (i) every time-tag row is pinned at ≈ 5–7 by the 10⁸
+Reading the table: (i) every time-tag row is pinned at ≈ 5–10 by the 1.4 × 10⁸
 cps link whatever the telescope, and the four bright binaries saturate
-even EON-SII's 10⁹ cps links (rates scaled ×0.1–0.5), so on-detector
+even EON-SII's 10⁹ cps links (rates scaled ×0.1–0.5), so real-time
 correlation is the enabling item for g² as much as for g³; (ii) the
 NewEra tables move the g² sensitivities by −10 % (β Aur: fainter in the
 red where most channels are, stronger limb darkening) to +14 % (δ Vel:
@@ -540,9 +540,17 @@ samples both conjunctions, so its totals do not.
 
 - **Kernel calibration** (the critical systematic): ridge ratios of ~100
   at R = 5000 require the pair-correlation kernel shape to 10⁻³.
-- **Readout**: the on-detector correlator assumed for the next-generation
-  device is a development item; the 10⁸ cps time-tag ceiling of the
-  current SPAD Lambda is an estimate to be confirmed with Pi Imaging.
+- **Readout**: the "correlator" readout assumed for the next-generation
+  device is an idealization with no link limit, i.e. a real-time
+  correlator. A correlator needs both telescopes' photons: either both
+  beams are fibred to one sensor whose FPGA counts coincidences (short
+  baselines), or each detector streams time-tags over fast links to a
+  central FPGA/GPU correlator. This exists for analog photomultiplier
+  streams (MAGIC, real-time GPU correlator) but not yet for
+  multi-channel photon counting at ≥ 10⁹ cps; it is a development item.
+  The 1.4 × 10⁸ cps time-tag ceiling of the current SPAD Lambda is the
+  manufacturer's quoted maximum throughput (140 Mcps over two USB3
+  links, 6 Gbps).
 - **SEDs**: the NewEra tables now set the flux ratio and the limb
   profiles of β Aur, δ Vel and Algol A (§5d); Algol B (K0 IV) and
   Spica (25 300 / 20 900 K) still use blackbodies with observed anchors
@@ -579,7 +587,7 @@ samples both conjunctions, so its totals do not.
    correlator readout its 320 channels need ~150 nights on the best
    case (Spica, VLT).  The same link caps every two-telescope g² row
    at SNR ≈ 5–7/√h regardless of aperture (§5f).
-2. **Spectral resolution plus on-detector correlation is the enabling
+2. **Spectral resolution plus real-time correlation is the enabling
    hardware**: an R = 5000 backend brings the Spica template detection on
    the VLT to 36 minutes (7 with a polarizing beamsplitter), a factor of
    ~2000 in time over 320 channels.

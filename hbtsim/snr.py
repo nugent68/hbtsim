@@ -175,11 +175,11 @@ class Detector:
 # Pi Imaging SPAD Lambda (datasheet v2.3, 01.2026).  PDE read from the
 # "Photon detection probability" curve (peak 50% at 520 nm); median DCR
 # 250 cps/pixel; dead time 10 ns; timing jitter 120 ps FWHM typical.
-# Time tags leave the camera over two USB3 links: with >= 32-bit tags
-# that is a few 1e8 events/s at most -- max_total_cps = 1e8 is an
-# ESTIMATE (the datasheet quotes no time-tag throughput; to be confirmed
-# with Pi Imaging), well below the 1e10-1e11 cps a bright star delivers
-# to a 10 m telescope.
+# Time tags leave the camera over two USB3 links (6 Gbps system
+# bandwidth): the manufacturer quotes a maximum photon throughput of
+# 140 Mcps in time-tagging mode (piimaging.com/spad-lambda, read
+# 2026-10-02), which is max_total_cps = 1.4e8 for the array -- well below
+# the 1e10-1e11 cps a bright star delivers to a 10 m telescope.
 SPAD_LAMBDA = Detector(
     name="Pi Imaging SPAD Lambda",
     pde_table_nm=((400.0, 0.22), (450.0, 0.40), (500.0, 0.49), (520.0, 0.50),
@@ -191,13 +191,16 @@ SPAD_LAMBDA = Detector(
     dark_cps_per_pixel=250.0,
     n_pixels=1,
     readout="timetag",
-    max_total_cps=1e8,
+    max_total_cps=1.4e8,
 )
 
 # The next-generation design assumed for the R ~ 5000 studies: the same
-# SPAD pixel performance with the correlation done on the detector
-# electronics (FPGA correlator), so the rate is limited only by dead
-# time, not by a time-tag link.
+# SPAD pixel performance with no rate ceiling between photon detection and
+# the coincidence histogram -- a real-time correlator (both beams on one
+# sensor with coincidences counted in its FPGA, or separate detectors
+# streaming tags to a central FPGA/GPU correlator over fast links), so the
+# rate is limited only by dead time.  An idealization: no such system
+# exists yet for multi-channel photon counting at >= 1e9 cps.
 SPAD_LAMBDA_NG = replace(SPAD_LAMBDA, name="next-gen SPAD Lambda (correlator readout)",
                          readout="correlator", max_total_cps=None)
 
