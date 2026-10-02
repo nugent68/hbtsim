@@ -25,7 +25,7 @@ from scipy.special import j1
 
 from .aperture import PupilQuadrature, pupil_pair_quadrature
 from .limbdark import star_disk_visibility
-from .params import AB_ZERO_FNU, C_LIGHT, LD_BETA_AUR, MAS, PARSEC, R_SUN, Star
+from .params import AB_ZERO_FNU, C_LIGHT, LD_BETA_AUR, LD_SPICA, MAS, PARSEC, R_SUN, Star
 from .snr import (C2PU, SPAD_LAMBDA, Detector, Spectrograph, SpectralSNRResult,
                   Telescope, _g2_budget)
 
@@ -128,7 +128,69 @@ HD_360 = SingleStar("HD 360 (HR 16, K1 II)", _giant("HD 360", 4764.0, 2.5, 1.5, 
                     distance_pc=110.97,
                     mag_anchors=((551.0, 5.986 + VEGA_TO_AB["V"]), (1630.0, 3.757 + VEGA_TO_AB["H"]),
                                  (2190.0, 3.653 + VEGA_TO_AB["K"])))
-SINGLE_STARS = {"sirius": SIRIUS_A, "vega": VEGA, "hd17652": HD_17652, "hd360": HD_360}
+# gamma Cas (B0.5 IVe): T_eff 25 000 K, log g 3.5, d = 168 pc (parallax 5.94 mas),
+# V = 2.39, B = 2.29; theta_LD = 0.532 mas is the MAGIC circular fit (Abe et al.
+# 2024); VERITAS (2025) resolve an ellipse of minor axis 0.43 mas, axis ratio
+# 1.28, PA 116 deg.  Beyond the NewEra grid: blackbody with Spica's linear law.
+GAMMA_CAS = SingleStar("gamma Cas (B0.5 IVe)",
+                       Star("gamma Cas", mass_msun=13.0, radius_rsun=10.0, teff=25000.0, ld_table_nm=LD_SPICA, logg=3.5),
+                       theta_ld_mas=0.532, v_mag=2.39, dec_deg=60.7167, ra_hours=0.9451, distance_pc=168.3,
+                       mag_anchors=((445.0, 2.29 - 0.09), (551.0, 2.39 + 0.02)))
+GAMMA_CAS_ELLIPSE = dict(theta_major_mas=0.43 * 1.28, axis_ratio=1.28, pa_deg=116.0)   # VERITAS 2025
+SINGLE_STARS = {"sirius": SIRIUS_A, "vega": VEGA, "hd17652": HD_17652, "hd360": HD_360, "gammacas": GAMMA_CAS}
+
+
+# ---------------------------------------------------------------------------
+# Oblate photosphere and circumstellar disk: complex visibilities on (u, v)
+# baseline vectors (E, N components in metres), for rapid rotators and Be stars
+# ---------------------------------------------------------------------------
+def _axis_components(bvecs_m, pa_deg):
+    """Baseline components along the major axis (position angle pa_deg, east
+    of north) and the minor axis, each (K,)."""
+    b = np.atleast_2d(np.asarray(bvecs_m, dtype=float))
+    pa = np.radians(pa_deg)
+    e_maj = np.array([np.sin(pa), np.cos(pa)])
+    e_min = np.array([np.cos(pa), -np.sin(pa)])
+    return b @ e_maj, b @ e_min
+
+
+def ellipse_vis(bvecs_m, wavelength_nm, star: Star, theta_major_mas: float, axis_ratio: float = 1.0,
+                pa_deg: float = 0.0) -> np.ndarray:
+    """Visibility (n_lambda, K) of a limb-darkened elliptical disk: the
+    affine image of the circular disk of diameter theta_major, so V(u, v)
+    is the circular visibility at the effective baseline
+    sqrt(b_maj^2 + (b_min / axis_ratio)^2).  axis_ratio = major / minor
+    >= 1; pa_deg is the major axis's position angle east of north."""
+    nm = np.atleast_1d(np.asarray(wavelength_nm, dtype=float))
+    b_maj, b_min = _axis_components(bvecs_m, pa_deg)
+    b_eff = np.hypot(b_maj, b_min / axis_ratio)
+    x = np.pi * theta_major_mas * MAS * b_eff[None, :] / (nm[:, None] * 1e-9)
+    return star_disk_visibility(star, x, nm)
+
+
+def gaussian_disk_vis(bvecs_m, wavelength_nm, fwhm_major_mas: float, axis_ratio: float = 1.0,
+                      pa_deg: float = 0.0) -> np.ndarray:
+    """Visibility (n_lambda, K) of an elliptical Gaussian of the given FWHM
+    along its major axis (FWHM / axis_ratio along the minor one)."""
+    nm = np.atleast_1d(np.asarray(wavelength_nm, dtype=float))
+    b_maj, b_min = _axis_components(bvecs_m, pa_deg)
+    th_maj = fwhm_major_mas * MAS
+    th_min = th_maj / axis_ratio
+    arg = (np.pi**2 / (4.0 * np.log(2.0))) * ((th_maj * b_maj[None, :])**2 + (th_min * b_min[None, :])**2) \
+        / (nm[:, None] * 1e-9) ** 2
+    return np.exp(-arg)
+
+
+def composite_vis(bvecs_m, wavelength_nm, star: Star, theta_major_mas: float, *, axis_ratio: float = 1.0,
+                  pa_deg: float = 0.0, disk_fraction: float = 0.0, disk_fwhm_mas: float = 2.9,
+                  disk_axis_ratio: float = 1.0, disk_pa_deg: float = 0.0) -> np.ndarray:
+    """Photosphere plus an extended Gaussian component carrying a fraction
+    disk_fraction of the flux at this wavelength: V = (1 - f) V_star + f V_disk
+    (both centred, so the sum is real)."""
+    v = (1.0 - disk_fraction) * ellipse_vis(bvecs_m, wavelength_nm, star, theta_major_mas, axis_ratio, pa_deg)
+    if disk_fraction > 0.0:
+        v = v + disk_fraction * gaussian_disk_vis(bvecs_m, wavelength_nm, disk_fwhm_mas, disk_axis_ratio, disk_pa_deg)
+    return v
 
 
 def attach_newera_single(target: SingleStar, grid, allow_extrapolation: bool = False):

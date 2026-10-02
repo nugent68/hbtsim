@@ -46,6 +46,8 @@ class Site:
 MAUNAKEA = Site("Maunakea", 19.8260, -155.4747, 4150.0)
 PARANAL = Site("Paranal", -24.6272, -70.4045, 2635.0)
 TEIDE = Site("Teide (Izana)", 28.30, -16.51, 2390.0)     # EON-SII
+FLWO = Site("Fred Lawrence Whipple Observatory (VERITAS)", 31.675, -110.952, 1268.0)
+ORM = Site("Roque de los Muchachos (MAGIC, LST-1)", 28.762, -17.892, 2200.0)
 
 
 def enu_to_uvw(enu_m, hour_angle_rad, dec_rad, lat_rad) -> np.ndarray:
