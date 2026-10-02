@@ -152,6 +152,7 @@ def make_movie(data: dict, path: str, fps: int = 8, nbin: int = 8,
     nm_b, noisy_b, sigma_b = _bin_channels(data["noisy"], sigma, nm, nbin)
     g2_b = 1.0 + noisy_b
     has_sky = "disp" in data
+    t_label = f"{float(data['t_int_s']) / 3600:g} h" if "t_int_s" in data else "1 h"
 
     if has_sky:
         fig, (ax_sky, ax) = plt.subplots(
@@ -177,11 +178,11 @@ def make_movie(data: dict, path: str, fps: int = 8, nbin: int = 8,
                          label="model", zorder=4)
     (chan_ln,) = ax.plot(nm, g2_meas[0], ".", color="tab:blue", ms=2,
                          alpha=0.25, zorder=2,
-                         label="per channel (1 h)")
+                         label=f"per channel ({t_label})")
     container = ax.errorbar(nm_b, g2_b[0], yerr=sigma_b[0], fmt="o",
                             color="tab:blue", ms=4, elinewidth=1.2,
                             capsize=0, zorder=3,
-                            label=f"{nbin}-channel bins (1 h)")
+                            label=f"{nbin}-channel bins ({t_label})")
     meas_ln, _, (bars,) = container
     ax.axhline(1.0, color="gray", lw=0.8, ls="--")
     ax.axhline(2.0, color="gray", lw=0.8, ls="--")
