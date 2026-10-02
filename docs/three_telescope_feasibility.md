@@ -177,7 +177,7 @@ previous revision under-counted by up to √N):
 
 | System | Array | Backend | SNR_amp / √h | amplitude | R = 100 bins | one channel |
 |---|---|---|---|---|---|---|
-| Spica | VLT 4×UT | current SPAD Lambda, 320 ch, time-tag link | 9×10⁻⁵ | — | — | — |
+| Spica | VLT 4×UT | current SPAD Lambda, 320 ch, time-tag link | 1.5×10⁻⁴ | — | — | — |
 | Spica | VLT 4×UT | current SPAD Lambda, 320 ch, correlator | 0.29 | 151 nights | 1.9×10⁴ nights | 8×10⁵ nights |
 | **Spica** | **VLT 4×UT** | **next-gen R = 5000, correlator** | **12.9** | **36 min** | **8.6 nights** | 1.2×10⁴ nights |
 | Spica | VLT 4×UT | next-gen R = 5000 + PBS | 28.7 | 7.3 min | 14 h | 2.5×10³ nights |
@@ -193,10 +193,10 @@ previous revision under-counted by up to √N):
 | β Aur | Subaru+Keck+Keck | next-gen R = 5000, correlator | 0.007 | 2.8×10⁵ nights | 1.4×10⁸ nights | 6×10⁹ nights |
 | β Aur, NewEra | Subaru+Keck+Keck | next-gen R = 5000, correlator | 0.0054 | 4.3×10⁵ nights | 2.1×10⁸ nights | 9×10⁹ nights |
 
-The current SPAD Lambda's time-tag link (≈10⁸ events/s per detector, an
-estimate from its two USB3 links) is 200–800× below what these stars
+The current SPAD Lambda's time-tag link (1.4 × 10⁸ events/s per detector,
+the manufacturer's 140 Mcps) is 150–600× below what these stars
 deliver to 8–10 m telescopes; with the rates attenuated to the link the
-time-tag rows are 10⁸–10¹⁵ nights on every target, i.e. no statistic is
+time-tag rows are 6 × 10⁸–4 × 10¹⁴ nights on every target, i.e. no statistic is
 reachable with the detector as delivered. The 320-channel array also
 drives single pixels to dead-time loads R·τ_dead = 1.3–5.5, outside the
 non-paralyzable model; the R = 5000 backend brings them to 0.1–0.3.

@@ -86,7 +86,7 @@ or the comparison tests conventions rather than stars.
 |---|---|---|
 | KK detector, one H filter | 0.0068 (120 m) → 1.9 h | 0.027 (245 m) → 30 h |
 | KK detector (PDE 1, 16.6 ps), 1000 ch 400–950 nm | 0.0010 (55 m) → 0.04 h | 0.0040 (115 m) → 0.65 h |
-| SPAD Lambda 320 ch, time-tag (10⁸ cps) | 0.11 → 455 h | 0.11 → 454 h |
+| SPAD Lambda 320 ch, time-tag (1.4 × 10⁸ cps) | 0.076 → 233 h | 0.11 → 454 h |
 | SPAD Lambda 320 ch, correlator | 0.026 → 28 h | 0.11 → 454 h |
 | R = 5000 (4325 ch), correlator | 0.0075 (45 m) → 2.3 h | 0.031 (95 m) → 38 h |
 | R = 5000, correlator + PBS | 0.0053 → 1.1 h | 0.022 → 19 h |
