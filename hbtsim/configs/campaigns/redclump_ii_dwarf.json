@@ -41,7 +41,14 @@
     "eonsii_case": {
       "telescope": "eonsii_4m",
       "backend": "eonsii_spad"
-    }
+    },
+    "filter_detector": "kk_ideal",
+    "chromaticity_backend": "r5000_correlator",
+    "radius_convention_models": [
+      "lte04700-4.50-0.0",
+      "lte04800-4.50-0.0",
+      "lte05000-0.00-0.0"
+    ]
   },
   "outputs": {
     "figures": true

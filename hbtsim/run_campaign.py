@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 import contextlib
 import datetime as _dt
-import io
 import json
 import os
 import subprocess
@@ -129,18 +128,25 @@ def git_revision() -> str:
         return "unknown"
 
 
-class _Tee(io.TextIOBase):
+class _Tee:
+    """Write to several streams (stdout and the log file)."""
+
     def __init__(self, *streams):
         self.streams = streams
 
     def write(self, s):
         for st in self.streams:
-            st.write(s)
+            if not st.closed:
+                st.write(s)
         return len(s)
 
     def flush(self):
         for st in self.streams:
-            st.flush()
+            if not st.closed:
+                st.flush()
+
+    def isatty(self):
+        return False
 
 
 def run(cat: Catalog, camp: Campaign, opts: RunOptions, suffix: str = "") -> dict:

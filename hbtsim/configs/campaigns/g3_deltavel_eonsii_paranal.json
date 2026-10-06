@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "campaign",
   "name": "g3_deltavel_eonsii_paranal",
-  "label": "delta Vel closure-phase campaign with three EON-SII units at Paranal (scripts/deltavel_eonsii.py)",
+  "label": "delta Vel closure-phase campaign with three EON-SII units at Paranal",
   "runner": "g3_campaign",
   "target": "deltavel",
   "array": "eonsii_triangle_paranal",
@@ -42,7 +42,10 @@
     "precision_targets": {
       "phase_rad": 0.1,
       "amplitude": 0.1
-    }
+    },
+    "side_m": null,
+    "compare_site": "teide",
+    "diagnostics_spectrograph": "eonsii_60ch"
   },
   "outputs": {
     "figures": true,

@@ -8,8 +8,8 @@ with two 4 m telescopes, reaches a scale precision σ_s < 0.007 in a
 2 h H-band exposure at ~100 m; HD 360 (V = 5.99, 0.906 mas) reaches
 σ_s < 0.03. This note reproduces their numbers on hbtsim's photon
 budget and adds what the package and the NewEra models bring:
-`hbtsim/diameter.py`, `hbtsim/single.py` (`HD_17652`, `HD_360`),
-`scripts/redclump_ii.py`; logs `output/logs/redclump_ii_{dwarf,supergiant}.txt`.
+`hbtsim/diameter.py`, `hbtsim/single.py` (targets `hd17652`, `hd360`),
+`hbtsim run redclump_ii_{dwarf,supergiant}`; logs `output/logs/redclump_ii_{dwarf,supergiant}.txt`.
 
 **Status of the models.** No NewEra model near 4800 K / log g 2.5 exists
 yet: the cool-star box holds log g ≥ 4.0 at these temperatures, and

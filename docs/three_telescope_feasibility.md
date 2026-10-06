@@ -23,7 +23,7 @@ the rotating long arms sweep through favourable geometry over the night.
 The critical systematic is the calibration of the pair-correlation
 kernel to ~10⁻³.
 
-All numbers below come from `scripts/feasibility_g3.py` (instrument model
+All numbers below come from the `g3_*` and `g2_*` campaigns (`hbtsim run g3_spica_vlt`, …; instrument model
 of `hbtsim.snr`: throughput 0.3 × 0.5 × PDE for dispersed channels,
 aperture averaging, orbits at their true sky orientation, the source at
 transit, unpolarized light unless stated).
@@ -164,7 +164,7 @@ amplitudes reach 0.3–0.6 in the red; δ Vel's 1.10/0.93 mas disks are
 resolved on the longer arms and at maximum separation its fringe is
 gone. Near conjunction (ρ ≲ 5 mas) the fringe returns: 8.2 m pupils keep
 > 50 % of the 400 nm contrast for 21 % of the orbit (uniform in phase),
-4 m pupils for 46 % (`scripts/deltavel_eonsii.py`, §5g). On Maunakea the two Subaru arms
+4 m pupils for 46 % (`hbtsim run g3_deltavel_eonsii_paranal`, §5g). On Maunakea the two Subaru arms
 (152, 226 m) sit at or beyond the disks' first nulls over most of the
 band, and the triple amplitude at transit peaks at only **0.04 (Spica,
 Algol)** and **0.01 (β Aur)**.
@@ -331,7 +331,7 @@ measured HBT pair width σ = 27.4 ps; bialkali QE assumed),
 Lambda PDE assumed) and `spectrographs/eonsii_1000ch` (1000 × 0.15 nm;
 `eonsii_r7500` for the optical resolution); `arrays/eonsii_pair_teide`
 places the pair on Teide (`load_array("eonsii_pair_teide", baseline_m=…)`);
-`scripts/feasibility_g3.py --g2 --instrument eonsii` gives the
+`hbtsim run g2_eonsii` gives the
 two-telescope table (§5f) with the baseline free (tens to hundreds of
 metres for milliarcsecond binaries). The assumptions flagged in the
 code (atmosphere 0.80, QE curves, SPAD jitter) are to be replaced by the
@@ -364,7 +364,7 @@ culminates at 45.0°), E–W 1750 m, 1000 channels, uniform-disk truth
 29.5 µas. It draws Poisson coincidence-lag histograms (3.125 ps bins,
 Gaussian pair kernel of the detector's jitter), estimates |V|² per
 channel and block, and fits a uniform disk
-(`scripts/eonsii_montecarlo.py`, `output/logs/eonsii_montecarlo.txt`,
+(`hbtsim run mc_sirius_b_eonsii`, `output/logs/eonsii_montecarlo.txt`,
 100 realizations):
 
 | Estimator | MCP-PMT: bias, scatter | SPAD: bias, scatter |
@@ -427,7 +427,7 @@ the single knob to change.
 
 ## 5f. Two-telescope g² on the four systems
 
-`scripts/feasibility_g3.py --g2 --instrument {c2pu,keck,eonsii}` scans
+`hbtsim run g2_{c2pu,keck,eonsii}` scans
 the baseline along the separation axis at quadrature and reports, at
 the baseline maximizing the first backend's total SNR, the SNR per hour
 of every backend (the tables are regenerated in §5f-tables below from
@@ -435,7 +435,7 @@ of every backend (the tables are regenerated in §5f-tables below from
 
 SNR₂ per √hour at quadrature (blackbody → **NewEra**; Spica has no models;
 Algol's NewEra column tables only its primary), from `output/logs/g2_*.txt`
-(`scripts/g2_logs_to_md.py` for the full 98-row table):
+(`hbtsim run g2_c2pu` etc. write the full table as table.md):
 
 | Instrument | Backend | β Aur (35/30 m) | Algol (10 m) | δ Vel (10–15 m) | Spica (10 m) |
 |---|---|---|---|---|---|
@@ -467,7 +467,7 @@ hour on a V = 1.9 star.
 
 ## 5g. δ Vel with three EON-SII units at Paranal
 
-`scripts/deltavel_eonsii.py` (`output/logs/deltavel_eonsii.txt`,
+`hbtsim run g3_deltavel_eonsii_paranal` (`output/logs/deltavel_eonsii.txt`,
 figures `output/g3_deltavel_eonsii_per_night.png`,
 `output/g3_cosphi_deltavel_eonsii.png`) places the EON-SII pair plus a
 third identical 4 m unit on an equilateral triangle

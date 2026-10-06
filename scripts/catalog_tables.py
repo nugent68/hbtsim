@@ -148,8 +148,16 @@ def iact_parameters() -> str:
     return "\n".join(out)
 
 
+def campaigns_table() -> str:
+    rows = ["| Campaign | Runner | What it computes |", "|---|---|---|"]
+    for n in cat.list_names("campaign"):
+        d = cat.raw("campaign", n)
+        rows.append(f"| `{n}` | {d['runner']} | {d.get('label', '')} |")
+    return "\n".join(rows)
+
+
 BLOCKS = {
-    "README.md": {"systems": systems_table, "hardware": hardware_list},
+    "README.md": {"systems": systems_table, "hardware": hardware_list, "campaigns": campaigns_table},
     "docs/three_telescope_feasibility.md": {"maunakea_baselines": maunakea_baselines},
     "docs/iact_targets.md": {"iact_parameters": iact_parameters},
 }

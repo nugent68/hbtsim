@@ -30,7 +30,9 @@
     "t_int_h": 6.0,
     "continuum_degree": 0,
     "baseline_x": 1.7,
-    "baseline_reference_nm": 486.27
+    "baseline_reference_nm": 486.27,
+    "nights": 1.0,
+    "site": "calern"
   },
   "notes": [
     "baseline_x: B = x lambda / (pi theta_drawn) at the reference wavelength, as the 1 m study chose it."

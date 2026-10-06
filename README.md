@@ -239,18 +239,18 @@ Two observing modes (`hbtsim snr --target spica --instrument keck_pair`, or
   800 --filter-width 10`).
 
 Headline numbers for Beta Aurigae at quadrature, 1 h
-(`scripts/feasibility_g3.py --g2`, docs §5f): a single 10 nm filter on
+(`hbtsim run g2_c2pu`, docs §5f): a single 10 nm filter on
 C2PU gives SNR ≈ 0.1–0.9; the 320-channel SPAD Lambda with a correlator
 readout lifts that to **≈ 15/√h at B = 35 m** (8 at 50 m) — the
 time-tag link caps it at ≈ 7 — and an R = 5000 backend to 60 (54 with
 the NewEra tables); the Keck pair at 85 m reaches 240/√h with 320
 channels (σ_|V|² ≈ 0.02 per channel-hour) and the EON-SII 4 m pair at
 30 m ≈ 570/√h with 1000 channels, both link-limited. The EON-SII
-design study quotes 10–25× shorter times; `scripts/eonsii_montecarlo.py`
+design study quotes 10–25× shorter times; `hbtsim run mc_sirius_b_eonsii`
 reruns its Sirius B Monte Carlo and shows its hours need a coincidence
 window of 2–6 ps, well below the detectors' 12–28 ps jitter (docs §5e.1).
 The matched filter stays the default. On single stars
-(`scripts/chromatic_diameters.py`, `docs/chromatic_diameters_eonsii.md`)
+(`hbtsim run chromatic_sirius_vega_eonsii`, `docs/chromatic_diameters_eonsii.md`)
 EON-SII measures Sirius's and Vega's Balmer-core diameters (+3.6 to
 +4.7 % over the continuum at Hβ–Hδ) at 5σ in 1–2 nights through its
 links, or in minutes with channel-subset tagging. Keck caveats: a
@@ -301,7 +301,7 @@ cycle.
 ∝ Δλ^(−1/2) — narrowband multiplexing is the lever).
 
 **Feasibility verdict** ([docs/three_telescope_feasibility.md](docs/three_telescope_feasibility.md),
-`scripts/feasibility_g3.py`): the Subaru arms resolve out the ~1 mas
+`hbtsim run g3_{spica,deltavel}_vlt`, `g3_{betaaur,algol}_maunakea`): the Subaru arms resolve out the ~1 mas
 disks (triple amplitude ≲ 0.04) and with the stock 320-channel SPAD
 Lambda the closure phase of Algol needs **centuries**; an R ≈ 5000
 backend with a correlator readout brings the template detection of
@@ -325,8 +325,8 @@ Algol/β Aur). δ Vel, at its correct distance of 25.1 pc, has a 4.7 m
 blue fringe period at maximum separation that 8 m pupils smear out (it
 returns near conjunction for ~21 % of the orbit). It is a 1–4 m-class g²
 target (C2PU, EON-SII). Three EON-SII units on a 12 m triangle at
-Paranal (`bispectrum.eonsii_triangle`, `snr3.campaign_g3_snr`,
-`scripts/deltavel_eonsii.py`) detect its closure-phase template in ~20
+Paranal (`arrays/eonsii_triangle_paranal`, `snr3.campaign_g3_snr`,
+`hbtsim run g3_deltavel_eonsii_paranal`) detect its closure-phase template in ~20
 nights over an orbit. The asymmetric part of its closure phase
 (φc ≠ 0, π) needs ~10⁴ nights on any array considered, because g³ sees
 only cos φc (docs §5g).
@@ -350,6 +350,39 @@ python scripts/bench_spectral.py                    # benchmark, default device
 JAX_PLATFORMS=cpu python scripts/bench_spectral.py  # force CPU
 ```
 
+## Campaigns (`hbtsim run`)
+
+Every study behind the docs and the paper is a campaign file in
+`hbtsim/configs/campaigns/`: the target(s), array or telescope, backends,
+observing window and runner-specific options, resolved through the same
+catalog as everything else. `hbtsim run <name>` (or a path to your own
+`.json`) writes `output/campaigns/<name>/{results.json, table.md,
+table.tex, log.txt, figures}`; `--set key=value` edits any field for one
+run (`--set night.block_minutes=30`, `--set atmosphere.use=false`),
+`--no-figures`, `--no-track`, `--newera-dir` / `--no-newera` as on the
+other tools. `results.json` records the resolved campaign definition, its
+content hash and the git revision, so a number in a table can always be
+traced to its inputs. `suite_phase6` runs everything (`--jobs 4`).
+
+<!-- catalog:campaigns -->
+| Campaign | Runner | What it computes |
+|---|---|---|
+| `chromatic_c2pu_regression` | chromatic | Chromatic-diameter regression: Sirius A and Vega, 2 x 1 m, 320 ch at R = 5000 around H-beta, 6 h |
+| `chromatic_sirius_vega_eonsii` | chromatic | Chromatic (wavelength-dependent) diameters of Sirius A and Vega with the EON-SII pair from Teide |
+| `g2_c2pu` | g2 | Two-telescope g2 sensitivity of the four binaries on the C2PU 1 m pair |
+| `g2_eonsii` | g2 | Two-telescope g2 sensitivity of the four binaries on the EON-SII pair |
+| `g2_keck` | g2 | Two-telescope g2 sensitivity of the four binaries on the Keck pair |
+| `g3_algol_maunakea` | g3 | Algol closure phases with Subaru + Keck I + Keck II |
+| `g3_betaaur_maunakea` | g3 | beta Aur closure phases with Subaru + Keck I + Keck II |
+| `g3_deltavel_eonsii_paranal` | g3_campaign | delta Vel closure-phase campaign with three EON-SII units at Paranal |
+| `g3_deltavel_vlt` | g3 | delta Vel closure phases with the four VLT UTs |
+| `g3_spica_vlt` | g3 | Spica closure phases with the four VLT UTs (docs/three_telescope_feasibility.md) |
+| `mc_sirius_b_eonsii` | montecarlo | Sirius B diameter Monte Carlo with the EON-SII pair (paper Table 2 cross-check) |
+| `redclump_ii_dwarf` | scale | Red-clump scale precision (Kim & Kaiser comparison) with the 4800 K / log g 4.5 dwarf stand-in |
+| `redclump_ii_supergiant` | scale | Red-clump scale precision (Kim & Kaiser comparison) with the 5000 K / log g 0 supergiant stand-in |
+| `suite_phase6` | suite | Everything behind docs/three_telescope_feasibility.md and the paper tables (output/logs/run_*.sh) |
+<!-- /catalog -->
+
 ## Running locally
 
 ```bash
@@ -372,9 +405,10 @@ uv pip install -p .venv/bin/python -e ".[test,movie]"   # + [sed] for h5py, [gpu
 # tests (analytic validation suite, ~65 s)
 .venv/bin/python -m pytest
 
-# feasibility tables with the NewEra tables (rsync data/newera/ from NERSC first)
-.venv/bin/python scripts/feasibility_g3.py --target betaaur --array maunakea --newera-dir data/newera
-.venv/bin/python scripts/feasibility_g3.py --g2 --instrument eonsii --newera-dir data/newera --allow-extrapolation
+# feasibility campaigns with the NewEra tables (rsync data/newera/ from NERSC first)
+.venv/bin/python -m hbtsim run g3_betaaur_maunakea
+.venv/bin/python -m hbtsim run g2_eonsii
+.venv/bin/python -m hbtsim run suite_phase6 --jobs 4     # everything behind the docs
 ```
 
 ## Running on NERSC Perlmutter

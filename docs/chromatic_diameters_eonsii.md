@@ -18,7 +18,7 @@ measurement is channel-to-channel systematics, not photons.
 Code: `hbtsim/single.py` (single stars, pupil-smeared uniform-disk
 inversion), `hbtsim/chromatic.py` (line masks, local continuum fits,
 Asimov significance, link-subset channel selection),
-`scripts/chromatic_diameters.py`. Logs:
+`hbtsim run chromatic_sirius_vega_eonsii` (regression: `chromatic_c2pu_regression`). Logs:
 `output/logs/chromatic_diameters_eonsii.txt`,
 `output/logs/chromatic_diameters_c2pu_regression.txt`. Figures:
 `output/chromatic_{sirius,vega}_eonsii.png` (SPAD, subset readout).

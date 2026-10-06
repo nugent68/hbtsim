@@ -30,6 +30,7 @@
       "stop": 300.0,
       "step": 5.0
     },
+    "section3_numbers": false,
     "phase": "max_separation",
     "vis2_method": "analytic"
   },
