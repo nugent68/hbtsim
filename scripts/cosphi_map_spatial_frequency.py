@@ -14,10 +14,13 @@ import warnings
 
 import numpy as np
 
-from hbtsim.bispectrum import VLT_UT, spectral_triple
+from hbtsim.bispectrum import spectral_triple
+from hbtsim.catalog import Catalog
 from hbtsim.orbit import positions_at
-from hbtsim.params import MAS, SPICA, GridConfig
+from hbtsim.params import MAS, GridConfig
 from hbtsim.sed import attach_from_cli
+
+CAT = Catalog(env=False)
 
 
 def main():
@@ -28,8 +31,8 @@ def main():
     args = ap.parse_args()
     warnings.filterwarnings("ignore")
 
-    system = attach_from_cli(SPICA, args.newera_dir, verbose=False)
-    tri = VLT_UT.triangles()[1]                       # UT1-UT2-UT4
+    system = attach_from_cli(CAT.load_target("spica"), args.newera_dir, verbose=False)
+    tri = CAT.load_array("vlt_ut").triangles()[1]     # UT1-UT2-UT4
     b_max = float(tri.baseline_lengths().max())       # 130.2 m
     nm = np.linspace(400.0, 950.0, 120)
     phases = np.linspace(0.0, 1.0, args.n_phase)

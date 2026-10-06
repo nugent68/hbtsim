@@ -16,7 +16,7 @@ KINDS = ("band", "ld_table", "target", "telescope", "detector", "spectrograph",
 SCHEMA_VERSION = 1
 
 COMMON_KEYS = {"schema_version", "kind", "name", "label", "extends", "sources",
-               "notes", "provenance", "assumptions"}
+               "notes", "provenance", "assumptions", "summary"}
 
 
 class CatalogError(Exception):
@@ -114,6 +114,9 @@ def check_common(where: str, d: dict, kind: str, name: str) -> None:
     if "provenance" in d and not (isinstance(d["provenance"], dict)
                                   and all(isinstance(v, str) for v in d["provenance"].values())):
         raise SchemaError(f"{where}: 'provenance' must map field names to strings")
+    if "summary" in d and not (isinstance(d["summary"], dict)
+                               and all(isinstance(v, str) for v in d["summary"].values())):
+        raise SchemaError(f"{where}: 'summary' must map short keys to strings")
     if "label" in d and not isinstance(d["label"], str):
         raise SchemaError(f"{where}: 'label' must be a string")
     if "extends" in d and not isinstance(d["extends"], str):

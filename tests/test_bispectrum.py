@@ -6,39 +6,39 @@ import numpy as np
 import pytest
 
 from hbtsim import hbt
-from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, BispectrumResult,
-                               Station, Triangle,
+from hbtsim.bispectrum import (BispectrumResult, Station, Triangle,
                                binary_vis_complex_analytic, closure_phase,
                                equilateral_triangle, spectral_bispectrum)
+from hbtsim.catalog import Catalog
 from hbtsim.orbit import SkyPositions, sky_positions
-from hbtsim.params import ALGOL, BETA_AUR, GridConfig
+from hbtsim.params import GridConfig
 from hbtsim.render import linear_rows_jnp, render_image, render_kernel
-from hbtsim.snr import KECK
 
+CAT = Catalog(env=False)
 GRID = GridConfig()
-TRI = MAUNAKEA_SUBARU_KECK
+TRI = CAT.load_triangle("maunakea_subaru_keck")
 
 
 def _pos(system, psi):
     return SkyPositions(*(np.asarray(v) for v in sky_positions(psi, system)))
 
 
-def test_triangle_geometry():
+def test_triangle_geometry(keck, spad_lambda):
     """Site coordinates reproduce the nominal 152/85/226 m distances and
     the baseline vectors close exactly."""
     lengths = TRI.baseline_lengths()
     assert lengths == pytest.approx([152.1, 84.9, 225.9], abs=0.5)
     assert np.allclose(TRI.baseline_vectors().sum(axis=0), 0.0, atol=1e-12)
-    eq = equilateral_triangle(85.0)
+    eq = equilateral_triangle(85.0, keck, spad_lambda)
     assert eq.baseline_lengths() == pytest.approx([85.0] * 3, rel=1e-12)
 
 
-def test_rendered_complex_vis_matches_analytic():
+def test_rendered_complex_vis_matches_analytic(beta_aur, algol):
     """Modulus to 1e-3 and phases to 0.15 deg out of eclipse, both
     systems.  Renderer-limited (soft-rim midpoint sampling): the exact
     DFT itself is good to 1e-6 / 1e-5 rad (tests/test_dft_core.py); the
     Phase 4 renderer tightens this to 0.01 deg."""
-    for system in (BETA_AUR, ALGOL):
+    for system in (beta_aur, algol):
         for phase in (0.0, 0.1):
             for lam in (450.0, 800.0):
                 rnd = closure_phase(system, TRI, lam, phase, method="render")
@@ -51,28 +51,28 @@ def test_rendered_complex_vis_matches_analytic():
                 assert np.degrees(dphic) < 0.15
 
 
-def test_analytic_vectorized_over_wavelength():
-    pos = _pos(ALGOL, 0.05)
+def test_analytic_vectorized_over_wavelength(algol):
+    pos = _pos(algol, 0.05)
     bv = TRI.baseline_vectors()
     nm = np.array([420.0, 610.0, 880.0])
-    batch = binary_vis_complex_analytic(bv, nm, ALGOL, pos)
+    batch = binary_vis_complex_analytic(bv, nm, algol, pos)
     assert batch.shape == (3, 3)
     for k, lam in enumerate(nm):
         assert np.allclose(batch[k], binary_vis_complex_analytic(bv, float(lam),
-                                                                 ALGOL, pos))
+                                                                 algol, pos))
 
 
-def test_closure_phase_translation_invariance():
+def test_closure_phase_translation_invariance(algol):
     """Shifting the whole image moves every gamma phase but leaves the
     closure phase unchanged (vector baselines close)."""
-    pos = _pos(ALGOL, 0.0)
+    pos = _pos(algol, 0.0)
     shift = 0.4  # mas
     pos_shifted = SkyPositions(x1=pos.x1 + shift, y1=pos.y1 - shift,
                                x2=pos.x2 + shift, y2=pos.y2 - shift,
                                front2=pos.front2, rho=pos.rho, pa=pos.pa)
     bvecs = TRI.baseline_vectors()
-    g0 = binary_vis_complex_analytic(bvecs, 600.0, ALGOL, pos)
-    g1 = binary_vis_complex_analytic(bvecs, 600.0, ALGOL, pos_shifted)
+    g0 = binary_vis_complex_analytic(bvecs, 600.0, algol, pos)
+    g1 = binary_vis_complex_analytic(bvecs, 600.0, algol, pos_shifted)
     # individual phases move...
     assert np.degrees(np.abs(np.angle(g1 * np.conj(g0)))).max() > 5.0
     # ...the closure phase does not
@@ -81,12 +81,12 @@ def test_closure_phase_translation_invariance():
     assert abs(np.angle(np.exp(1j * (phi1 - phi0)))) < 1e-10
 
 
-def test_station_relabeling_conjugates_only():
+def test_station_relabeling_conjugates_only(algol):
     """Reversing the station order conjugates the bispectrum (cos phi_c
     invariant)."""
     rev = Triangle(tuple(reversed(TRI.stations)))
-    a = closure_phase(ALGOL, TRI, 700.0, 0.0)
-    b = closure_phase(ALGOL, rev, 700.0, 0.0)
+    a = closure_phase(algol, TRI, 700.0, 0.0)
+    b = closure_phase(algol, rev, 700.0, 0.0)
     assert b.phi_c == pytest.approx(-a.phi_c, abs=1e-9)
     assert b.cos_phi_c == pytest.approx(a.cos_phi_c, abs=1e-12)
 
@@ -112,27 +112,27 @@ def test_point_source_and_single_disk():
     assert abs(np.sin(np.angle(g.prod()))) < 1e-4
 
 
-def test_spectral_bispectrum_matches_closure_phase_and_chunks():
-    pos = _pos(BETA_AUR, 0.0)
+def test_spectral_bispectrum_matches_closure_phase_and_chunks(beta_aur):
+    pos = _pos(beta_aur, 0.0)
     nm = np.array([450.0, 600.0, 800.0])
-    gam = np.asarray(spectral_bispectrum(pos, TRI, nm, BETA_AUR, GRID,
+    gam = np.asarray(spectral_bispectrum(pos, TRI, nm, beta_aur, GRID,
                                          chunk_size=2))
-    gam1 = np.asarray(spectral_bispectrum(pos, TRI, nm, BETA_AUR, GRID,
+    gam1 = np.asarray(spectral_bispectrum(pos, TRI, nm, beta_aur, GRID,
                                           chunk_size=1))
     assert np.allclose(gam, gam1, atol=1e-7)
     for k, lam in enumerate(nm):
-        ref = closure_phase(BETA_AUR, TRI, float(lam), 0.0, method="render")
+        ref = closure_phase(beta_aur, TRI, float(lam), 0.0, method="render")
         assert np.allclose(gam[k], ref.gammas, atol=1e-6)
 
 
-def test_spectral_bispectrum_through_eclipse():
+def test_spectral_bispectrum_through_eclipse(algol):
     """Mid primary eclipse of Algol: the analytic path refuses, the
     rendered path returns finite, bounded, smooth-in-lambda gammas."""
     with pytest.raises(ValueError, match="eclipse"):
-        closure_phase(ALGOL, TRI, 600.0, 0.25, method="analytic")
-    pos = _pos(ALGOL, np.pi / 2)
+        closure_phase(algol, TRI, 600.0, 0.25, method="analytic")
+    pos = _pos(algol, np.pi / 2)
     nm = np.linspace(450.0, 900.0, 10)
-    gam = np.asarray(spectral_bispectrum(pos, TRI, nm, ALGOL, GRID,
+    gam = np.asarray(spectral_bispectrum(pos, TRI, nm, algol, GRID,
                                          chunk_size=4))
     assert np.all(np.isfinite(gam))
     assert np.abs(gam).max() <= 1.0 + 1e-5

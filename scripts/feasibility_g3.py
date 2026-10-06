@@ -12,9 +12,9 @@ docs/three_telescope_feasibility.md and the paper's Table 3:
       single channel), and one realistic night along the uv track
   (d) the two-telescope g2 numbers of the paper's Section 3
 
-    python scripts/feasibility_g3.py --system spica --array vlt --table
-    python scripts/feasibility_g3.py --system deltavel --array vlt
-    python scripts/feasibility_g3.py --system algol --array maunakea
+    python scripts/feasibility_g3.py --target spica --array vlt --table
+    python scripts/feasibility_g3.py --target deltavel --array vlt
+    python scripts/feasibility_g3.py --target algol --array maunakea
     python scripts/feasibility_g3.py --g2
 
 Instrument model (hbtsim.snr): telescope throughput 0.3 x spectrograph
@@ -32,28 +32,38 @@ import warnings
 import numpy as np
 
 from hbtsim.aperture import fringe_smearing_factor
-from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, VLT_UT, Array, Triangle,
-                               binary_vis_complex_analytic, eonsii_triangle, spectral_triple)
+from hbtsim.bispectrum import Array, Triangle, binary_vis_complex_analytic, spectral_triple
+from hbtsim.catalog import Catalog
 from hbtsim.geometry import hour_angle_window
 from hbtsim.orbit import max_separation_phase, positions_at, sky_positions
-from hbtsim.params import MAS, SYSTEMS, GridConfig
+from hbtsim.params import MAS, GridConfig
 from hbtsim.sed import attach_from_cli
-from hbtsim.snr import (C2PU, EON_SII_TELESCOPE, EONSII_MCP_PMT, EONSII_SPAD,
-                        EONSII_SPECTROGRAPH, EONSII_SPECTROGRAPH_R7500, KECK,
-                        SPAD_LAMBDA, SPAD_LAMBDA_NG, Observation, Spectrograph,
-                        g2_snr, spectral_g2_snr, system_ab_mag)
+from hbtsim.snr import Observation, g2_snr, spectral_g2_snr, system_ab_mag
 from hbtsim.snr3 import (array_g3_snr, nights_to_precision, spectral_g3_snr,
                          time_to_precision, track_g3_snr)
 
+CAT = Catalog(env=False)
+TARGETS = ("betaaur", "algol", "spica", "deltavel")
 NIGHT_H = 8.0
-ARRAYS = {"vlt": VLT_UT, "maunakea": MAUNAKEA_SUBARU_KECK,
+ARRAYS = {"vlt": CAT.load_array("vlt_ut"), "maunakea": CAT.load_triangle("maunakea_subaru_keck"),
           # three EON-SII 4 m units (the pair plus a third) on a 20 m triangle at
           # Paranal / CTAO-South; scripts/deltavel_eonsii.py scans the side
-          "eonsii-paranal": eonsii_triangle(20.0)}
+          "eonsii-paranal": CAT.load_array("eonsii_triangle_paranal")}
+
+# hardware
+C2PU = CAT.load_telescope("c2pu_1m")
+KECK = CAT.load_telescope("keck_10m")
+EON_SII_TELESCOPE = CAT.load_telescope("eonsii_4m")
+SPAD_LAMBDA = CAT.load_detector("spad_lambda")
+SPAD_LAMBDA_NG = CAT.load_detector("spad_lambda_ng")
+EONSII_MCP_PMT = CAT.load_detector("eonsii_mcp_pmt")
+EONSII_SPAD = CAT.load_detector("eonsii_spad")
+EONSII_SPECTROGRAPH = CAT.load_spectrograph("eonsii_1000ch")
+EONSII_SPECTROGRAPH_R7500 = CAT.load_spectrograph("eonsii_r7500")
+SPEC_320 = CAT.load_spectrograph("spad_lambda_320")
+SPEC_R5000 = CAT.load_spectrograph("r5000_400_950")
 
 # backends: (label, spectrograph, detector, polarization)
-SPEC_320 = Spectrograph(n_channels=320)
-SPEC_R5000 = Spectrograph.from_resolving_power(5000.0)
 BACKENDS = [
     ("current SPAD Lambda, 320 ch, time-tag", SPEC_320, SPAD_LAMBDA, "unpolarized"),
     ("current SPAD Lambda, 320 ch, correlator", SPEC_320, SPAD_LAMBDA_NG, "unpolarized"),
@@ -65,7 +75,7 @@ EONSII_G3_BACKENDS = [
     ("EON-SII 1000 ch, MCP-PMT", EONSII_SPECTROGRAPH, EONSII_MCP_PMT, "unpolarized"),
     ("EON-SII 1000 ch, QUASAR SPAD", EONSII_SPECTROGRAPH, EONSII_SPAD, "unpolarized"),
     ("EON-SII 1000 ch, QUASAR SPAD + PBS", EONSII_SPECTROGRAPH, EONSII_SPAD, "pbs"),
-    ("EON-SII R = 7500 (2388 ch), QUASAR SPAD", EONSII_SPECTROGRAPH_R7500, EONSII_SPAD, "unpolarized"),
+    ("EON-SII R = 7500 (2389 ch), QUASAR SPAD", EONSII_SPECTROGRAPH_R7500, EONSII_SPAD, "unpolarized"),
 ]
 
 
@@ -291,7 +301,7 @@ def smearing_summary(system, arr, phase):
 
 def g2_numbers():
     """The two-telescope numbers of the paper's Section 3."""
-    from hbtsim.params import ALGOL, BETA_AUR
+    BETA_AUR, ALGOL = CAT.load_target("betaaur"), CAT.load_target("algol")
     print("\n=== Two-telescope g2 (Section 3) ===")
     pos = positions_at(BETA_AUR, 0.0)
     for lam in (400.0, 800.0):
@@ -299,7 +309,7 @@ def g2_numbers():
         from hbtsim.hbt import binary_vis2_analytic
         for b in (15.0, 50.0):
             v2 = float(binary_vis2_analytic(b, lam, BETA_AUR, float(pos.rho))[0])
-            r = g2_snr(v2, system_ab_mag(BETA_AUR, lam), obs, telescope1=C2PU)
+            r = g2_snr(v2, system_ab_mag(BETA_AUR, lam), obs, telescope1=C2PU, detector1=SPAD_LAMBDA)
             print(f"  Beta Aur, C2PU, 10 nm filter at {lam:.0f} nm, B = {b:.0f} m: "
                   f"|V|^2 = {v2:.3f}, SNR2/h = {r.snr:.2f}")
     for det, lab in ((SPAD_LAMBDA, "time-tag"), (SPAD_LAMBDA_NG, "correlator")):
@@ -339,7 +349,7 @@ G2_INSTRUMENTS = {
         ("1000 ch, MCP-PMT + PBS", EONSII_SPECTROGRAPH, EONSII_MCP_PMT, "pbs"),
         ("1000 ch, QUASAR SPAD", EONSII_SPECTROGRAPH, EONSII_SPAD, "unpolarized"),
         ("1000 ch, QUASAR SPAD + PBS", EONSII_SPECTROGRAPH, EONSII_SPAD, "pbs"),
-        ("R = 7500 (2388 ch), QUASAR SPAD", EONSII_SPECTROGRAPH_R7500, EONSII_SPAD, "unpolarized")]),
+        ("R = 7500 (2389 ch), QUASAR SPAD", EONSII_SPECTROGRAPH_R7500, EONSII_SPAD, "unpolarized")]),
 }
 
 
@@ -356,7 +366,7 @@ def g2_table(instrument: str, newera_dir=None, allow_extrapolation=False,
           f"{tel.area_m2:.1f} m^2 each, throughput {tel.throughput:.2f}) ===")
     rows = []
     for key in ("betaaur", "algol", "deltavel", "spica"):
-        system = attach_from_cli(SYSTEMS[key], newera_dir, allow_extrapolation, verbose=False)
+        system = attach_from_cli(CAT.load_target(key), newera_dir, allow_extrapolation, verbose=False)
         phase = max_separation_phase(system)
         pos = positions_at(system, phase)
         label0, spec0, det0, pol0 = backends[0]
@@ -395,7 +405,8 @@ def g2_table(instrument: str, newera_dir=None, allow_extrapolation=False,
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--system", choices=sorted(SYSTEMS), default="spica")
+    p.add_argument("--target", "--system", dest="target", choices=sorted(TARGETS), default="spica",
+                   help="binary target (--system is the old name)")
     p.add_argument("--array", choices=sorted(ARRAYS), default="vlt")
     p.add_argument("--phase", type=float, default=None,
                    help="orbital phase for the snapshot (default: max separation)")
@@ -428,7 +439,7 @@ def main():
         g2_table(args.instrument, args.newera_dir, args.allow_extrapolation, latex=args.table)
         return
 
-    system, arr = SYSTEMS[args.system], ARRAYS[args.array]
+    system, arr = CAT.load_target(args.target), ARRAYS[args.array]
     system = attach_from_cli(system, args.newera_dir, args.allow_extrapolation)
     phase = max_separation_phase(system) if args.phase is None else args.phase
     print(f"=== {system.name} on {args.array} ({len(arr.stations)} stations, "
@@ -436,14 +447,14 @@ def main():
           f"phase {phase:.3f} ===")
     smearing_summary(system, arr, phase)
     if not args.no_figures:
-        tag = f"{args.system}_{args.array}"
+        tag = f"{args.target}_{args.array}"
         fig_gammas(system, arr, f"output/g3_gammas_{tag}.png", phase)
         tri = arr.triangles()[1] if isinstance(arr, Array) else arr
         fig_cosphi_map(system, tri, f"output/g3_cosphi_{tag}.png")
     print("\n  snapshot at quadrature (per hour):")
     snap_b, track_b = backends_for(args.array)
     snapshot_rows(system, arr, phase, latex=args.table, backends=snap_b)
-    if args.system == "deltavel" and args.extra_phases:
+    if args.target == "deltavel" and args.extra_phases:
         for ph in (0.25, 0.5, 0.9):
             print(f"\n  delta Vel at phase {ph}:")
             snapshot_rows(system, arr, ph, latex=args.table, backends=snap_b)

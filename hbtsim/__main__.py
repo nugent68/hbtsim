@@ -9,6 +9,7 @@ COMMANDS = {
     "snr": ("hbtsim.snr_cli", "main", "photon budget and g2 SNR for a binary on a two-telescope instrument"),
     "g2spec": ("hbtsim.g2spec", "main", "channelized g2 spectrum movie"),
     "catalog": ("hbtsim.catalog.cli", "main", "list / show / validate / dump the JSON catalog"),
+    "run": ("hbtsim.run_campaign", "main", "run a catalog campaign (hbtsim/runners)"),
 }
 
 

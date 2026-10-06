@@ -38,7 +38,7 @@ Asimov significance, link-subset channel selection),
 - **Instrument.** EON-SII 4 m units from Teide: 5.5 h per night above
   30° for Sirius (it culminates at 45°), 8 h for Vega.
   - Backends: 1000 × 0.15 nm channels with the MCP-PMT or QUASAR SPAD
-    (± polarizing beamsplitter), and the R = 7500 (2388 ch) SPAD
+    (± polarizing beamsplitter), and the R = 7500 (2389 ch) SPAD
     variant.
   - Pupils are averaged: D/B ≈ 0.4 on Sirius. The UD inversion inverts
     the smeared model, because inverting the point model biases θ by

@@ -241,7 +241,7 @@ class GeometrySamples:
 
 
 def geometry_samples(system: BinarySystem, triangle: Triangle,
-                     spectrograph: Spectrograph = Spectrograph(),
+                     spectrograph: Spectrograph,
                      orbital_phase: float = 0.0, vis_method: str = "analytic",
                      grid=None, pupils=True, chunk_size: int | None = None) -> GeometrySamples:
     """The expensive, detector-independent half of spectral_g3_snr."""
@@ -261,7 +261,7 @@ def geometry_samples(system: BinarySystem, triangle: Triangle,
 
 
 def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
-                    spectrograph: Spectrograph = Spectrograph(),
+                    spectrograph: Spectrograph, *,
                     t_int_s: float = 3600.0, orbital_phase: float = 0.0,
                     vis_method: str = "analytic",
                     grid: GridConfig | None = None,
@@ -377,7 +377,7 @@ def time_to_precision(system: BinarySystem, target_dcos: float = 0.1, *,
                       triangle: Triangle | None = None, array=None,
                       statistic: str = "amplitude", R_bin: float = 100.0,
                       aggregate: str = "median", t_ref_s: float = 3600.0,
-                      spectrograph: Spectrograph = Spectrograph(),
+                      spectrograph: Spectrograph,
                       orbital_phase: float = 0.0, vis_method: str = "analytic",
                       **kw) -> float:
     """Integration time [s] for the chosen statistic (see the module
@@ -496,7 +496,15 @@ class Backend:
     spectrograph: Spectrograph
     detector: object = None                    # snr.Detector; None: keep the stations'
     polarization_mode: str = "unpolarized"
-    kw: dict = field(default_factory=dict)
+    kw: tuple = ()                             # ((keyword, value), ...) for spectral_g3_snr
+
+    def __post_init__(self):
+        if isinstance(self.kw, dict):
+            object.__setattr__(self, "kw", tuple(sorted(self.kw.items())))
+
+    @property
+    def kwargs(self) -> dict:
+        return dict(self.kw)
 
 
 def _with_detector(tri: Triangle, detector) -> Triangle:
@@ -587,7 +595,7 @@ def _track_backends(system, array, backends, *, block_minutes, hour_angle_window
                 if key not in cache:
                     cache[key] = geometry_samples(system, tri, be.spectrograph, phase, method,
                                                   render_grid, pupils)
-                bkw = {**kw, **be.kw}
+                bkw = {**kw, **be.kwargs}
                 res.append(spectral_g3_snr(system, _with_detector(tri, be.detector),
                                            spectrograph=be.spectrograph, t_int_s=block_s,
                                            orbital_phase=phase, pupils=pupils,
@@ -616,7 +624,7 @@ def _track_backends(system, array, backends, *, block_minutes, hour_angle_window
             for name, a in acc.items()}
 
 
-def track_g3_snr(system: BinarySystem, array, spectrograph: Spectrograph = Spectrograph(),
+def track_g3_snr(system: BinarySystem, array, spectrograph: Spectrograph | None = None,
                  *, block_minutes: float | str = 30.0,
                  hour_angle_window_h: tuple | None = None,
                  min_alt_deg: float = 30.0, phase0: float = 0.0,
@@ -641,13 +649,15 @@ def track_g3_snr(system: BinarySystem, array, spectrograph: Spectrograph = Spect
     eclipse, on a per-epoch grid (render_grid="epoch"; "orbit" or a
     GridConfig otherwise); "analytic" raises inside an eclipse.
 
-    backends=None returns one TrackResult for `spectrograph` and the
-    stations' own detectors; a sequence of Backend returns {name:
+    backends=None returns one TrackResult for `spectrograph` (required
+    then) and the stations' own detectors; a sequence of Backend returns {name:
     TrackResult}, every backend sharing one model evaluation per block
     and spectrograph.  Extra keyword arguments go to spectral_g3_snr
     (polarization_mode, coherence_broadening, ...)."""
     single = backends is None
     if single:
+        if spectrograph is None:
+            raise TypeError("track_g3_snr needs a spectrograph (or backends=, each with its own)")
         pol = kw.pop("polarization_mode", "unpolarized")
         backends = (Backend("default", spectrograph, None, pol),)
     out = _track_backends(system, array, tuple(backends), block_minutes=block_minutes,
@@ -715,11 +725,12 @@ def _night_phases(system, phases_mid, n_nights, phase_start, cadence_nights):
 
 
 def _campaign_key(system, array, backends, phase_mid, settings) -> str:
-    """Hash of everything a night depends on (the frozen dataclasses'
-    reprs carry every telescope, detector and spectrograph parameter)."""
-    blob = repr((repr(system), repr(array), [repr(b) for b in backends],
-                 round(float(phase_mid), 9), sorted(settings.items())))
-    return hashlib.sha1(blob.encode()).hexdigest()[:16]
+    """Hash of everything a night depends on: the canonical JSON of the
+    system (attached model tables included, by content), the array, the
+    backends, the phase and the settings (hbtsim.serialize.content_hash)."""
+    from .serialize import content_hash
+    return content_hash([system, array, list(backends), round(float(phase_mid), 9),
+                         sorted(settings.items())], mode="key")
 
 
 def campaign_g3_snr(system: BinarySystem, array, backends, *,

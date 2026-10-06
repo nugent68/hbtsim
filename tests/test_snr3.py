@@ -6,11 +6,9 @@ import pytest
 import warnings
 from dataclasses import replace
 
-from hbtsim.bispectrum import (MAUNAKEA_SUBARU_KECK, VLT_UT, Station, Triangle,
-                               equilateral_triangle)
-from hbtsim.params import ALGOL, BETA_AUR, C_LIGHT, SPICA
-from hbtsim.snr import (SPAD_LAMBDA_NG, Detector, Observation, Spectrograph,
-                        Telescope, g2_snr)
+from hbtsim.bispectrum import Station, Triangle, equilateral_triangle
+from hbtsim.params import C_LIGHT
+from hbtsim.snr import Detector, Observation, Spectrograph, Telescope, g2_snr
 from hbtsim.snr3 import (POL_FACTOR_TRIPLE, array_g3_snr, binned_closure_phase_snr,
                          g3_snr, spectral_g3_snr, time_to_cos_phi,
                          time_to_precision, triple_window_s2)
@@ -135,7 +133,7 @@ def test_coherence_broadening_triple():
     assert b.window_s2 == pytest.approx(4 * np.pi * np.sqrt(det_sigma), rel=1e-12)
 
 
-def test_ridge_ratio():
+def test_ridge_ratio(spica, vlt_ut):
     """Pair ridges exceed the triple term by ~(p2/2p3)|g|^2 A_2D /
     (2 sqrt(pi) sigma tau_c |ggg|): hundreds at 0.1 nm."""
     obs = Observation(wavelength_nm=600.0, filter_width_nm=0.1, t_int_s=3600.0,
@@ -147,86 +145,80 @@ def test_ridge_ratio():
     assert r.ridge_ratio == pytest.approx(expect, rel=1e-9)
     assert 50 < r.ridge_ratio < 2000
     spec = Spectrograph(lambda_min_nm=450.0, lambda_max_nm=900.0, n_channels=8)
-    res = spectral_g3_snr(SPICA, VLT_UT.triangles()[0], spectrograph=spec)
+    res = spectral_g3_snr(spica, vlt_ut.triangles()[0], spectrograph=spec)
     assert res.ridge_ratio.shape == (8,)
     assert np.all(res.required_kernel_accuracy(0.1) == 0.1 / res.ridge_ratio)
 
 
-def test_spectral_g3_quadrature_and_methods():
+def test_spectral_g3_quadrature_and_methods(beta_aur, algol, maunakea_tri):
     spec = Spectrograph(lambda_min_nm=450.0, lambda_max_nm=900.0,
                         n_channels=8)
-    ana = spectral_g3_snr(BETA_AUR, MAUNAKEA_SUBARU_KECK, spectrograph=spec,
+    ana = spectral_g3_snr(beta_aur, maunakea_tri, spectrograph=spec,
                           vis_method="analytic")
     assert ana.snr_total == pytest.approx(np.sqrt(np.sum(ana.snr**2)),
                                           rel=1e-12)
-    rnd = spectral_g3_snr(BETA_AUR, MAUNAKEA_SUBARU_KECK, spectrograph=spec,
+    rnd = spectral_g3_snr(beta_aur, maunakea_tri, spectrograph=spec,
                           vis_method="render")
     assert np.allclose(rnd.triple_amp, ana.triple_amp, atol=1e-3)
     assert rnd.snr_total == pytest.approx(ana.snr_total, rel=0.01)
     # in eclipse: analytic refuses, render works
     with pytest.raises(ValueError, match="eclipse"):
-        spectral_g3_snr(ALGOL, MAUNAKEA_SUBARU_KECK, spectrograph=spec,
+        spectral_g3_snr(algol, maunakea_tri, spectrograph=spec,
                         orbital_phase=0.25, vis_method="analytic")
 
 
-def test_vlt_array_geometry():
+def test_vlt_array_geometry(vlt_ut):
     """The published UT station coordinates reproduce the six pairwise
     separations (46.6, 56.5, 62.4, 89.3, 102.4, 130.2 m) and give four
     triangles."""
-    from hbtsim.bispectrum import VLT_UT
-
-    lengths = sorted(float(np.hypot(*b)) for _, _, b in VLT_UT.pairs())
+    lengths = sorted(float(np.hypot(*b)) for _, _, b in vlt_ut.pairs())
     assert lengths == pytest.approx([46.6, 56.5, 62.4, 89.3, 102.4, 130.2],
                                     abs=0.2)
-    tris = VLT_UT.triangles()
+    tris = vlt_ut.triangles()
     assert len(tris) == 4
     for tri in tris:
         assert np.allclose(tri.baseline_vectors().sum(axis=0), 0.0)
 
 
-def test_array_g3_quadrature_combination():
-    from hbtsim.bispectrum import VLT_UT
-    from hbtsim.params import SPICA
-    from hbtsim.snr3 import array_g3_snr
-
+def test_array_g3_quadrature_combination(spica, vlt_ut):
     spec = Spectrograph(lambda_min_nm=450.0, lambda_max_nm=900.0,
                         n_channels=6)
-    res = array_g3_snr(SPICA, VLT_UT, spectrograph=spec)
+    res = array_g3_snr(spica, vlt_ut, spectrograph=spec)
     assert len(res.per_triangle) == 4
     assert res.snr_total == pytest.approx(
         np.sqrt(sum(r.snr_total**2 for r in res.per_triangle)), rel=1e-12)
     assert res.snr_total > max(r.snr_total for r in res.per_triangle)
 
 
-def test_time_to_precision_inversions_and_ordering():
+def test_time_to_precision_inversions_and_ordering(spica, maunakea_tri):
     spec = Spectrograph(lambda_min_nm=450.0, lambda_max_nm=900.0, n_channels=16)
     kw = dict(spectrograph=spec, enforce_readout=False)
-    times = {s: time_to_precision(SPICA, 0.1, triangle=MAUNAKEA_SUBARU_KECK,
+    times = {s: time_to_precision(spica, 0.1, triangle=maunakea_tri,
                                   statistic=s, R_bin=50.0, **kw)
              for s in ("total", "amplitude", "binned", "channel")}
     # inversions
-    ref = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, t_int_s=times["total"], **kw)
+    ref = spectral_g3_snr(spica, maunakea_tri, t_int_s=times["total"], **kw)
     assert ref.snr_total == pytest.approx(10.0, rel=1e-6)
-    ref = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, t_int_s=times["amplitude"], **kw)
+    ref = spectral_g3_snr(spica, maunakea_tri, t_int_s=times["amplitude"], **kw)
     assert ref.snr_amplitude == pytest.approx(10.0, rel=1e-6)
-    ref = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, t_int_s=times["binned"], **kw)
+    ref = spectral_g3_snr(spica, maunakea_tri, t_int_s=times["binned"], **kw)
     assert np.median(binned_closure_phase_snr(ref, 50.0)[1]) == pytest.approx(10.0, rel=1e-6)
-    ref = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, t_int_s=times["channel"], **kw)
+    ref = spectral_g3_snr(spica, maunakea_tri, t_int_s=times["channel"], **kw)
     assert np.median(ref.snr) == pytest.approx(10.0, rel=1e-6)
     # ordering: a global amplitude is the easiest, a single channel the hardest
     assert times["total"] <= times["amplitude"] <= times["binned"] <= times["channel"]
     # deprecated wrappers still answer
     with pytest.warns(DeprecationWarning):
-        t_old = time_to_cos_phi(SPICA, MAUNAKEA_SUBARU_KECK, target_dcos=0.1, **kw)
+        t_old = time_to_cos_phi(spica, maunakea_tri, target_dcos=0.1, **kw)
     assert t_old == pytest.approx(times["total"])
     with pytest.raises(ValueError, match="exactly one"):
-        time_to_precision(SPICA, 0.1)
+        time_to_precision(spica, 0.1, spectrograph=spec)
 
 
-def test_readout_and_polarization_in_spectral_g3():
+def test_readout_and_polarization_in_spectral_g3(spica, vlt_ut, maunakea_tri):
     spec = Spectrograph(lambda_min_nm=450.0, lambda_max_nm=900.0, n_channels=6)
-    a = spectral_g3_snr(SPICA, VLT_UT.triangles()[0], spectrograph=spec)
-    b = spectral_g3_snr(SPICA, VLT_UT.triangles()[0], spectrograph=spec,
+    a = spectral_g3_snr(spica, vlt_ut.triangles()[0], spectrograph=spec)
+    b = spectral_g3_snr(spica, vlt_ut.triangles()[0], spectrograph=spec,
                         polarization_mode="pbs")
     assert not a.readout_limited      # next-gen correlator stations
     # six 75 nm channels: each pixel is saturated (1/tau_dead = 1e8 cps)
@@ -237,21 +229,21 @@ def test_readout_and_polarization_in_spectral_g3():
     # Maunakea's SPAD Lambda stations are time-tag limited
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        m = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, spectrograph=spec)
-        m0 = spectral_g3_snr(SPICA, MAUNAKEA_SUBARU_KECK, spectrograph=spec,
+        m = spectral_g3_snr(spica, maunakea_tri, spectrograph=spec)
+        m0 = spectral_g3_snr(spica, maunakea_tri, spectrograph=spec,
                              enforce_readout=False)
     assert m.readout_limited and m.snr_total < 0.1 * m0.snr_total
 
 
-def test_binned_statistic_is_quadrature_over_triangles():
+def test_binned_statistic_is_quadrature_over_triangles(spica):
     """Two triangles of unequal sensitivity measure the same closure-phase
     bins: the combined binned SNR is the quadrature sum per bin (the old
     code summed linearly and divided by sqrt(N))."""
     from hbtsim.snr3 import _statistic_snr
     spec = Spectrograph(lambda_min_nm=450.0, lambda_max_nm=900.0, n_channels=16)
     kw = dict(spectrograph=spec, enforce_readout=False)
-    r1 = spectral_g3_snr(SPICA, _tri(diam=1.0), **kw)
-    r2 = spectral_g3_snr(SPICA, _tri(diam=2.0), **kw)
+    r1 = spectral_g3_snr(spica, _tri(diam=1.0), **kw)
+    r2 = spectral_g3_snr(spica, _tri(diam=2.0), **kw)
     b1 = binned_closure_phase_snr(r1, 50.0)[1]
     b2 = binned_closure_phase_snr(r2, 50.0)[1]
     assert not np.allclose(b1, b2)

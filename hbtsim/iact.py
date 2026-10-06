@@ -32,33 +32,30 @@ import numpy as np
 
 from .aperture import PupilQuadrature, fringe_period_m, pupil_pair_quadrature, pupil_pair_quadrature_for
 from .bispectrum import Array, Station, binary_vis_complex_analytic
-from .geometry import FLWO, ORM, hour_angle_blocks, hour_angle_window
+from .geometry import hour_angle_blocks, hour_angle_window
 from .orbit import positions_at
 from .params import AB_ZERO_FNU, C_LIGHT, DAY, H_PLANCK, MAS
 from .snr import Detector, Telescope
 
-# ---------------------------------------------------------------------------
-# Telescopes.  diameter_m sets the pupil smearing, collecting_area_m2 the
-# photon rate; throughput is not used by the classic S/N (q is), so it is
-# set to the optical efficiency for consistency with the photon-counting path.
-# ---------------------------------------------------------------------------
-VERITAS_TELESCOPE = Telescope(diameter_m=12.0, throughput=0.3, collecting_area_m2=110.0)   # 345 facets; area ASSUMED
-MAGIC_TELESCOPE = Telescope(diameter_m=17.0, throughput=0.304, collecting_area_m2=236.0)   # Abe et al. 2024
-LST1_TELESCOPE = Telescope(diameter_m=23.0, throughput=0.304, collecting_area_m2=390.0)    # area and efficiency ASSUMED as MAGIC's
+# The VERITAS, MAGIC and LST-1 telescopes, their analog PMTs and arrays are
+# hbtsim/configs/{telescopes,detectors,arrays}/*.json; the groups' sensitivity
+# constants (IACTBackend) are configs/backends/{veritas_sii,magic_sii}.json.
 
 # Analog PMT "detectors" for the photon-counting cross-check path only: the
 # electronic bandwidth as an equivalent Gaussian pair kernel (estimators.
 # matched_filter_equivalents: sigma_pair = 1/(sqrt(pi) b_el)), no dead
 # time, no link ceiling.
-def _analog_pmt(name, qe, b_el_hz):
+def analog_pair_fwhm_ps(b_el_hz: float) -> float:
+    """Per-detector Gaussian FWHM [ps] whose pair kernel has
+    sigma_pair = 1 / (sqrt(pi) b_el)."""
     sigma_pair = 1.0 / (np.sqrt(np.pi) * b_el_hz)
-    fwhm_ps = sigma_pair / np.sqrt(2.0) * 2.3548200450309493 * 1e12
-    return Detector(name=name, pde_table_nm=((300.0, qe), (700.0, qe)), jitter_fwhm_ps=fwhm_ps,
+    return sigma_pair / np.sqrt(2.0) * 2.3548200450309493 * 1e12
+
+
+def analog_pmt(name, qe, b_el_hz) -> Detector:
+    return Detector(name=name, pde_table_nm=((300.0, qe), (700.0, qe)),
+                    jitter_fwhm_ps=analog_pair_fwhm_ps(b_el_hz),
                     dead_time_ns=0.0, dark_cps_per_pixel=0.0, readout="correlator", max_total_cps=None)
-
-
-VERITAS_PMT = _analog_pmt("VERITAS R10560 PMT + 250 MS/s (analog, 125 MHz)", 0.30, 125e6)
-MAGIC_PMT = _analog_pmt("MAGIC PMT + 500 MS/s (analog, 110 MHz)", 0.295, 110e6)
 
 
 @dataclass(frozen=True)
@@ -88,45 +85,9 @@ class IACTBackend:
     anchor: PrecisionAnchor | None = None   # for calibrated()
 
 
-# VERITAS: 416 nm / 13 nm effective passband (Abeysekara et al. 2020; 10 nm in
-# the 2025 gamma Cas paper), Hamamatsu R10560 QE ~0.30, 250 MS/s, 4 ns time
-# resolution.  q, F and sigma_spec are not published: q is calibrated from
-# their quoted precision (calibrate_q) with F = sigma_spec = 1 absorbed.
-VERITAS_SII = IACTBackend("VERITAS SII (416/13 nm)", 416.0, 13.0, alpha=0.30, q=0.25, b_el_hz=125e6,
-                          noise_factor=1.0, sigma_spec=1.0, time_resolution_ns=4.0)
-# MAGIC: Semrock 425/26, QE 0.295, q 0.304, b_el 110 MHz effective (125 MHz
-# anti-aliasing), F 1.15, sigma 0.87 (Abe et al. 2024, Table 4 and Eq. 4).
-MAGIC_SII = IACTBackend("MAGIC SII (425/26 nm)", 425.0, 26.0, alpha=0.295, q=0.304, b_el_hz=110e6,
-                        noise_factor=1.15, sigma_spec=0.87, time_resolution_ns=2.0)
-
-# Published VERITAS precision anchor: sigma(|g|^2) = 2e-8 on N0 = 1.26e-6,
-# i.e. sigma(|V|^2) = 0.016 per telescope pair over the full 4.25 h epsilon
-# Ori data set (B = 1.50; Abeysekara et al. 2020).
-VERITAS_ANCHOR = dict(star="eps Ori", mag_b=1.50, sigma_vis2=0.016, t_s=4.25 * 3600.0)
-
-# ---------------------------------------------------------------------------
-# Arrays.  VERITAS positions (E, N in m) are read from Fig. 1 of Abeysekara
-# et al. 2020 and adjusted so the separations match the published baselines
-# (81.5, 99.4, 108.8, 126.4, 172.5 m and 106 m): T1 front-centre, T2 left,
-# T3 right, T4 back-centre.  MAGIC-I to MAGIC-II is 86 m; LST-1 adds two
-# baselines of ~100 m (Raiola et al. 2025).  The ORIENTATION of the MAGIC
-# triangle on the ground is ASSUMED (MAGIC-I -> MAGIC-II due east, LST-1 to
-# the north); it affects which position angles each pair samples.
-# ---------------------------------------------------------------------------
-VERITAS_POSITIONS_M = {"T1": (134.8, -8.0), "T2": (43.4, -47.0), "T3": (28.8, 60.9), "T4": (-36.6, 12.1)}
-# -> T3T4 81.5, T1T2 99.4, T2T4 99.4, T2T3 108.8, T1T3 126.4, T1T4 172.5 m
-VERITAS = Array(tuple(Station(n, e, nn, VERITAS_TELESCOPE, VERITAS_PMT) for n, (e, nn) in VERITAS_POSITIONS_M.items()),
-                site=FLWO)
-MAGIC_LST1_POSITIONS_M = {"MAGIC-I": (0.0, 0.0), "MAGIC-II": (86.0, 0.0), "LST-1": (43.0, 90.3)}
-MAGIC_LST1 = Array((Station("MAGIC-I", 0.0, 0.0, MAGIC_TELESCOPE, MAGIC_PMT),
-                    Station("MAGIC-II", 86.0, 0.0, MAGIC_TELESCOPE, MAGIC_PMT),
-                    Station("LST-1", 43.0, 90.3, LST1_TELESCOPE, MAGIC_PMT)), site=ORM)
-
-
 # ---------------------------------------------------------------------------
 # Their sensitivity formula
 # ---------------------------------------------------------------------------
-VEGA_TO_AB_B = -0.09      # Vega -> AB in the B band (Blanton & Roweis 2007)
 
 
 def photon_spectral_flux(mag_ab, wavelength_nm):
@@ -165,14 +126,6 @@ def calibrated(backend: IACTBackend, area_m2: float) -> IACTBackend:
     if a is None:
         return backend
     return replace(backend, q=calibrate_q(backend, area_m2, a.mag_ab, a.sigma_vis2, a.t_s))
-
-
-def veritas_calibrated() -> IACTBackend:
-    """VERITAS_SII with q set by the epsilon Ori anchor."""
-    from dataclasses import replace
-    q = calibrate_q(VERITAS_SII, VERITAS_TELESCOPE.area_m2, VERITAS_ANCHOR["mag_b"] + VEGA_TO_AB_B,
-                    VERITAS_ANCHOR["sigma_vis2"], VERITAS_ANCHOR["t_s"])
-    return replace(VERITAS_SII, q=q)
 
 
 # ---------------------------------------------------------------------------

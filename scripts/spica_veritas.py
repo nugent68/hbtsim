@@ -1,7 +1,7 @@
 """Spica on the four VERITAS telescopes: what the six baselines should see
 around the 4.01-day orbit (hbtsim.iact).
 
-Model: hbtsim's SPICA (blackbody + Spica linear limb darkening, anchored
+Model: the catalog's spica (blackbody + Spica linear limb darkening, anchored
 g/i; circular-orbit approximation, a = 1.71 mas) with the analytic
 two-disk visibility on the projected VERITAS baselines, averaged over the
 12 m pupils, at 416 nm.  Sensitivity: VERITAS's own analog S/N form with
@@ -20,12 +20,18 @@ import warnings
 import numpy as np
 
 from hbtsim.aperture import fringe_smearing_factor
+from hbtsim.catalog import Catalog
 from hbtsim.geometry import hour_angle_window
-from hbtsim.iact import (FLWO, VERITAS, VERITAS_ANCHOR, VERITAS_TELESCOPE, binary_vis2_fn, pair_track,
-                         track_sigma, veritas_calibrated)
+from hbtsim.iact import binary_vis2_fn, calibrated, pair_track, track_sigma
 from hbtsim.orbit import positions_at, sky_positions
-from hbtsim.params import MAS, SPICA
+from hbtsim.params import MAS
 from hbtsim.snr import system_ab_mag
+
+CAT = Catalog(env=False)
+SPICA = CAT.load_target("spica")
+VERITAS = CAT.load_array("veritas")
+FLWO = VERITAS.site
+VERITAS_TELESCOPE = CAT.load_telescope("veritas_12m")
 
 
 def main():
@@ -37,7 +43,8 @@ def main():
     warnings.filterwarnings("ignore")
 
     lam = 416.0
-    backend = veritas_calibrated()
+    backend = calibrated(CAT.load_backend("veritas_sii"), VERITAS_TELESCOPE.area_m2)
+    anchor = backend.anchor
     mag = float(system_ab_mag(SPICA, lam))
     h0, h1 = hour_angle_window(SPICA.dec_deg, FLWO.latitude_deg)
     ph = np.linspace(0, 1, 2001)[:-1]
@@ -46,8 +53,8 @@ def main():
           f"fringe period {lam * 1e-9 / (rho.max() * MAS):.0f}-{lam * 1e-9 / (rho.min() * MAS):.0f} m; "
           f"12 m pupils keep {fringe_smearing_factor(12, 12, rho.max() * MAS, lam * 1e-9):.2f} of the contrast at maximum separation")
     print(f"  FLWO window H = {h0:+.2f}..{h1:+.2f} h ({h1 - h0:.1f} h above 30 deg); blocks of {args.block_minutes:g} min")
-    print(f"  VERITAS sensitivity: q calibrated to {backend.q:.3f} from {VERITAS_ANCHOR['star']} "
-          f"(sigma(|V|^2) = {VERITAS_ANCHOR['sigma_vis2']} per pair in {VERITAS_ANCHOR['t_s'] / 3600:.2f} h at B = {VERITAS_ANCHOR['mag_b']})")
+    print(f"  VERITAS sensitivity: q calibrated to {backend.q:.3f} from {anchor.star} "
+          f"(sigma(|V|^2) = {anchor.sigma_vis2} per pair in {anchor.t_s / 3600:.2f} h at AB mag {anchor.mag_ab:.2f})")
 
     tracks = []
     for k in range(args.nights):
@@ -63,7 +70,7 @@ def main():
         allv = np.concatenate([t.vis2[p] for t in tracks]); allb = np.concatenate([t.baseline_len_m[p] for t in tracks])
         print(f"    {name}: projected {allb.min():.0f}-{allb.max():.0f} m, |V|^2 {allv.min():.3f}-{allv.max():.3f} over the orbit, "
               f"swing / sigma(1 h) = {(allv.max() - allv.min()) / sig_h[p]:.0f}")
-    print("  (orbit: hbtsim SPICA a = 1.71 mas circular; Raiola et al. 2025 use Herbison-Evans 1971: a = 1.54 mas, "
+    print("  (orbit: hbtsim spica a = 1.71 mas circular; Raiola et al. 2025 use Herbison-Evans 1971: a = 1.54 mas, "
           "theta 0.90/0.40 mas, brightness ratio 6.4, e = 0.133)")
 
     if args.no_figure:

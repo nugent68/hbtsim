@@ -10,8 +10,8 @@ single white dwarfs with two 4 m telescopes at ~1.5 km:
 
 Here each star is a uniform disk with a mild linear limb darkening
 (u = 0.3), observed at the baseline where |V|^2 ~ 0.6 (the paper's
-1.5 km for Sirius B), with hbtsim.snr.EON_SII_TELESCOPE and the two
-detector presets over the 1000-channel spectrograph.  Diameter precision
+1.5 km for Sirius B), with the catalog's eonsii_4m telescope and the two
+EON-SII detectors over the 1000-channel spectrograph.  Diameter precision
 follows from sigma(|V|^2) through d ln|V|^2 / d ln theta.  Each row also
 evaluates the design study's photon-level Eq. 5 (hbtsim.estimators) with
 eta = p2 and dt_res = sqrt(pi) sigma_pair, which equals the matched filter,
@@ -25,17 +25,32 @@ from __future__ import annotations
 
 import numpy as np
 
+from hbtsim.catalog import Catalog
 from hbtsim.estimators import implied_dt_res, matched_filter_equivalents, photon_level_snr
 from hbtsim.limbdark import visibility_ld_disk
 from hbtsim.params import MAS
-from hbtsim.snr import (EON_SII_TELESCOPE, EONSII_MCP_PMT, EONSII_SPAD, EONSII_SPECTROGRAPH,
-                        Observation, g2_snr, incident_rate, readout_scale)
+from hbtsim.snr import Observation, g2_snr, incident_rate, readout_scale
 
-TARGETS = [  # name, V (taken as AB at 475 nm; white dwarfs are hot: B-V ~ 0), theta [uas],
-    ("Sirius B", 8.44, 28.5, {"mcp": (1.5, 6.0, 37.5), "spad": (0.33, 1.3, 8.2)}),
-    ("40 Eri B", 9.52, 24.3, {"mcp": (10.0, 40.0, np.nan), "spad": (2.0, 8.0, 50.0)}),
-    ("Procyon B", 10.70, 32.6, {"spad": (27.5, 100.0, np.nan)}),
-]
+CAT = Catalog(env=False)
+EON_SII_TELESCOPE = CAT.load_telescope("eonsii_4m")
+EONSII_MCP_PMT = CAT.load_detector("eonsii_mcp_pmt")
+EONSII_SPAD = CAT.load_detector("eonsii_spad")
+EONSII_SPECTROGRAPH = CAT.load_spectrograph("eonsii_1000ch")
+
+
+def _paper_hours(key: str) -> dict:
+    """{"mcp": (h10, h5, h2), "spad": ...} from the target's reference_results."""
+    ref = CAT.raw("target", key)["reference_results"]
+    out = {}
+    for det in ("mcp", "spad"):
+        if f"hours_{det}" in ref:
+            out[det] = tuple(np.nan if h is None else float(h) for h in ref[f"hours_{det}"])
+    return out
+
+
+# name, V (taken as AB at 475 nm; white dwarfs are hot: B-V ~ 0), theta [uas], paper hours
+TARGETS = [(t.name, t.mag_ab, t.theta_mas * 1000.0, _paper_hours(key))
+           for key, t in ((k, CAT.load_target(k)) for k in ("sirius_b", "40eri_b", "procyon_b"))]
 U_LD = 0.3
 PRECISIONS = (0.10, 0.05, 0.02)
 

@@ -40,11 +40,11 @@ from dataclasses import dataclass, replace
 import numpy as np
 
 from .aperture import TripleQuadrature, fringe_period_m, triple_quadrature_for
-from .geometry import HOUR, MAUNAKEA, PARANAL, Site, enu_to_uv
+from .geometry import HOUR, Site, enu_to_uv
 from .hbt import vis_of_baselines
 from .orbit import SkyPositions, positions_at
 from .params import MAS, BinarySystem, GridConfig, require_out_of_eclipse
-from .snr import KECK, SPAD_LAMBDA, SPAD_LAMBDA_NG, SUBARU, Detector, Telescope
+from .snr import Detector, Telescope
 from .spectral import spectral_vis
 
 
@@ -101,7 +101,7 @@ class Station:
     east_m: float
     north_m: float
     telescope: Telescope
-    detector: Detector = SPAD_LAMBDA
+    detector: Detector
     up_m: float = 0.0
 
     @property
@@ -154,17 +154,6 @@ class Triangle:
                                           hour_angle_h, dec_deg), self.site)
 
 
-# Maunakea: ENU positions relative to Subaru, from site coordinates
-# (Subaru 19d49m32s N 155d28m34s W; Keck I 19.8259465 N 155.474719 W;
-# Keck II 19.8265606 N 155.474234 W).  Pairwise: Subaru-Keck I 152.1 m,
-# Keck I-Keck II 84.9 m, Keck II-Subaru 225.9 m.
-MAUNAKEA_SUBARU_KECK = Triangle((
-    Station("Subaru", 0.0, 0.0, SUBARU),
-    Station("Keck I", 145.8, 43.3, KECK),
-    Station("Keck II", 196.6, 111.3, KECK),
-), site=MAUNAKEA)
-
-
 @dataclass(frozen=True)
 class Array:
     """N stations: all pairwise baselines and all telescope triangles.
@@ -203,73 +192,47 @@ class Array:
         return Triangle(self.stations, self.site)
 
 
-# The four VLT Unit Telescopes (8.2 m) at Paranal, published VLTI station
-# (E, N) coordinates [m]; pairwise separations 46.6 (UT2-UT3) to 130.2 m
-# (UT1-UT4).  NOTE Paranal is at latitude -24.6 deg: Algol and Beta Aur
-# (dec ~ +41/+45 deg) culminate below ~25 deg altitude and are not useful
-# targets from there; Spica (dec -11 deg) transits at ~77 deg.  The
-# stations carry the next-generation detector (correlator readout): the
-# R ~ 5000 design is a bright-star instrument whose 1e10-1e11 cps per
-# telescope no time-tag link can carry.
-VLT_UT = Array(tuple(
-    Station(name, e, n, Telescope(diameter_m=8.2, throughput=0.3),
-            SPAD_LAMBDA_NG)
-    for name, (e, n) in (("UT1", (-9.925, -20.335)),
-                         ("UT2", (14.887, 30.502)),
-                         ("UT3", (44.915, 66.183)),
-                         ("UT4", (103.306, 43.999)))), site=PARANAL)
-
-
-def eonsii_pair(baseline_m: float, detector: Detector | None = None,
-                pa_deg: float = 0.0, third: Station | None = None,
-                site: Site | None = None) -> Array:
-    """The EON-SII pair (two 4 m transportable telescopes, snr.EON_SII_TELESCOPE)
-    at the given baseline and position angle (E of N), as an Array (two
-    stations: g2 only, no triangles) -- with an optional third station for
-    closure-phase studies.  site defaults to Teide (geometry.TEIDE)."""
-    from .geometry import TEIDE
-    from .snr import EON_SII_TELESCOPE, EONSII_MCP_PMT
-    det = EONSII_MCP_PMT if detector is None else detector
+# The named arrays (Maunakea Subaru + Keck, the VLT UTs, VERITAS, MAGIC +
+# LST-1, the EON-SII pair and triangle) are hbtsim/configs/arrays/*.json,
+# built by hbtsim.catalog.load_array; the generators below are what the
+# catalog's "generator" arrays call.
+def pair_array(baseline_m: float, telescope: Telescope, detector: Detector, *,
+               site: Site | None = None, pa_deg: float = 0.0,
+               names: tuple = ("T1", "T2"), min_spacing_m: float | None = None) -> Array:
+    """Two identical telescopes at the given baseline and position angle
+    (E of N): the first at the origin, as an Array (g2 only, no triangles)."""
+    if min_spacing_m is not None and baseline_m < min_spacing_m:
+        raise ValueError(f"baseline {baseline_m} m is below the {min_spacing_m} m minimum "
+                         f"spacing of two {telescope.diameter_m:g} m telescopes")
     pa = np.radians(pa_deg)
-    stations = [Station("EON-1", 0.0, 0.0, EON_SII_TELESCOPE, det),
-                Station("EON-2", baseline_m * np.sin(pa), baseline_m * np.cos(pa),
-                        EON_SII_TELESCOPE, det)]
-    if third is not None:
-        stations.append(third)
-    return Array(tuple(stations), site=TEIDE if site is None else site)
+    stations = (Station(names[0], 0.0, 0.0, telescope, detector),
+                Station(names[1], baseline_m * np.sin(pa), baseline_m * np.cos(pa),
+                        telescope, detector))
+    return Array(stations, site=site)
 
 
-# closest centre-to-centre spacing of two 4 m transportable telescopes
-EONSII_MIN_SPACING_M = 6.0
-
-
-def eonsii_triangle(side_m: float = 20.0, detector: Detector | None = None,
-                    pa_deg: float = 0.0, site: Site | None = None,
-                    shape: str = "equilateral") -> Array:
-    """Three EON-SII 4 m units on an equilateral triangle of the given side
-    (the pair plus a hypothetical third identical unit), for closure
-    phases.  EON-1 at the origin, EON-2 at position angle pa_deg (E of N),
-    EON-3 at pa_deg + 60.  site defaults to Paranal / CTAO-South
-    (geometry.PARANAL): the southern targets (delta Vel, dec -54.7) never
-    rise usefully at Teide."""
-    from .snr import EON_SII_TELESCOPE, EONSII_MCP_PMT
-    if shape != "equilateral":
-        raise ValueError(f"only shape='equilateral' is implemented, not {shape!r}")
-    if side_m < EONSII_MIN_SPACING_M:
-        raise ValueError(f"side {side_m} m is below the {EONSII_MIN_SPACING_M} m minimum "
-                         "spacing of two 4 m units")
-    det = EONSII_MCP_PMT if detector is None else detector
+def equilateral_array(side_m: float, telescope: Telescope, detector: Detector, *,
+                      site: Site | None = None, pa_deg: float = 0.0,
+                      names: tuple = ("T1", "T2", "T3"),
+                      min_spacing_m: float | None = None) -> Array:
+    """Three identical telescopes on an equilateral triangle of the given
+    side: the first at the origin, the second at position angle pa_deg
+    (E of N), the third at pa_deg + 60."""
+    if min_spacing_m is not None and side_m < min_spacing_m:
+        raise ValueError(f"side {side_m} m is below the {min_spacing_m} m minimum "
+                         f"spacing of two {telescope.diameter_m:g} m telescopes")
     a, b = np.radians(pa_deg), np.radians(pa_deg + 60.0)
-    stations = (Station("EON-1", 0.0, 0.0, EON_SII_TELESCOPE, det),
-                Station("EON-2", side_m * np.sin(a), side_m * np.cos(a), EON_SII_TELESCOPE, det),
-                Station("EON-3", side_m * np.sin(b), side_m * np.cos(b), EON_SII_TELESCOPE, det))
-    return Array(stations, site=PARANAL if site is None else site)
+    stations = (Station(names[0], 0.0, 0.0, telescope, detector),
+                Station(names[1], side_m * np.sin(a), side_m * np.cos(a), telescope, detector),
+                Station(names[2], side_m * np.sin(b), side_m * np.cos(b), telescope, detector))
+    return Array(stations, site=site)
 
 
-def equilateral_triangle(side_m: float, telescope: Telescope = KECK,
-                         detector: Detector = SPAD_LAMBDA) -> Triangle:
+def equilateral_triangle(side_m: float, telescope: Telescope,
+                         detector: Detector) -> Triangle:
     """Hypothetical compact comparison array: three identical telescopes
-    on an equilateral triangle of the given side."""
+    on an equilateral triangle of the given side (T1 at the origin, T2 due
+    east, T3 to the north-east), as a Triangle without a site."""
     h = side_m * np.sqrt(3.0) / 2.0
     return Triangle((
         Station("T1", 0.0, 0.0, telescope, detector),

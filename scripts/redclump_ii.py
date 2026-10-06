@@ -30,21 +30,31 @@ from dataclasses import replace
 
 import numpy as np
 
-from hbtsim.diameter import BANDS, KK_DETECTOR, KK_TELESCOPE, scale_precision_scan
+from hbtsim.catalog import Catalog
+from hbtsim.diameter import scale_precision_scan
 from hbtsim.sed import load_star_tables, with_tables
-from hbtsim.single import (HD_17652, HD_360, prepare_single, single_star_vis2,
-                           ud_diameter_per_channel)
-from hbtsim.snr import (EON_SII_TELESCOPE, EONSII_SPAD, EONSII_SPECTROGRAPH, SPAD_LAMBDA,
-                        SPAD_LAMBDA_NG, Spectrograph)
+from hbtsim.single import prepare_single, single_star_vis2, ud_diameter_per_channel
+
+CAT = Catalog(env=False)
+# Kim & Kaiser instrument: two 4 m telescopes, ideal detector, one filter per band
+KK_TELESCOPE = CAT.load_telescope("kk_4m")
+KK_DETECTOR = CAT.load_detector("kk_ideal")
+BANDS = {b: CAT.load_spectrograph(f"filter_{s}_{b.lower()}")
+         for b, s in (("B", "johnson"), ("V", "johnson"), ("R", "cousins"), ("I", "cousins"),
+                      ("H", "2mass"), ("K", "2mass"))}
+EON_SII_TELESCOPE = CAT.load_telescope("eonsii_4m")
+EONSII_SPAD = CAT.load_detector("eonsii_spad")
+EONSII_SPECTROGRAPH = CAT.load_spectrograph("eonsii_1000ch")
+SPAD_LAMBDA = CAT.load_detector("spad_lambda")
+SPAD_LAMBDA_NG = CAT.load_detector("spad_lambda_ng")
 
 DATA = "data/newera_redclump"
 STAND_INS = {"dwarf": "lte04800-4.50-0.0", "supergiant": "lte05000-0.00-0.0"}
 TABLES = {"dwarf": ("newera_lte04700-4.50-0.0", "newera_lte04800-4.50-0.0"),
           "supergiant": ("newera_lte05000-0.00-0.0",)}
-SPEC_OPT_KK = Spectrograph(lambda_min_nm=400.0, lambda_max_nm=950.0, n_channels=1000, throughput=1.0,
-                           name="1000 ch 400-950 nm (KK detector)")
-SPEC_320 = Spectrograph(n_channels=320)
-SPEC_R5000 = Spectrograph.from_resolving_power(5000.0)
+SPEC_OPT_KK = CAT.load_spectrograph("kk_1000ch_400_950")
+SPEC_320 = CAT.load_spectrograph("spad_lambda_320")
+SPEC_R5000 = CAT.load_spectrograph("r5000_400_950")
 KK_TARGET_SIGMA_S = 0.007          # their HD 17652 H-band result in 2 h
 
 
@@ -87,6 +97,9 @@ def ud_over_ld(target, model, x=1.5):
 
 
 def scan(target, spec, hours, **kw):
+    """Baseline scan; the Kim & Kaiser telescope and detector unless given."""
+    kw.setdefault("telescope", KK_TELESCOPE)
+    kw.setdefault("detector", KK_DETECTOR)
     b = np.arange(20.0, 301.0, 5.0)
     bb, sig, best = scale_precision_scan(target, b, spec, t_int_s=hours * 3600.0, **kw)
     return best, sig
@@ -105,7 +118,7 @@ def main():
              "linear": "blackbody + linear law"}[args.stand_in]
 
     radius_conventions()
-    stars = {"hd17652": HD_17652, "hd360": HD_360}
+    stars = {k: CAT.load_target(k) for k in ("hd17652", "hd360")}
     keys = ("hd17652", "hd360") if args.star == "both" else (args.star,)
     for key in keys:
         t0 = stars[key]

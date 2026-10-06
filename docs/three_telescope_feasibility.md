@@ -127,11 +127,13 @@ Maunakea site coordinates (Subaru 19°49′32″ N 155°28′34″ W; Keck I
 ENU positions relative to Subaru: Keck I (145.8 E, 43.3 N) m, Keck II
 (196.6 E, 111.3 N) m, i.e. pairwise
 
+<!-- catalog:maunakea_baselines -->
 | Baseline | Length |
 |---|---|
 | Subaru – Keck I | 152.1 m |
 | Keck I – Keck II | 84.9 m |
 | Keck II – Subaru | 225.9 m |
+<!-- /catalog -->
 
 confirming the nominal 150 / 85 / 225 m. The VLT UTs (published station
 coordinates) span 46.6–130.2 m. `Triangle.projected(H, dec)` and
@@ -322,12 +324,13 @@ EON-SII (arXiv:2608.17444) is two road-transportable 4 m telescopes
 spectrograph (R ≈ 7000–8000, ~1000 effective channels, > 60 %
 throughput), picosecond time tags (CERN picoTDC) to a central
 correlator at up to ~1 GHz per telescope, and reconfigurable
-1.5–3 km baselines for compact stars. `hbtsim.snr` carries it as
-`EON_SII_TELESCOPE`, `EONSII_MCP_PMT` (Photonis MCP-PMT: measured HBT
-pair width σ = 27.4 ps; bialkali QE assumed), `EONSII_SPAD` (QUASAR
-32×32 SPAD array: 20 ps and the SPAD Lambda PDE assumed) and
-`EONSII_SPECTROGRAPH` (1000 × 0.15 nm; `_R7500` for the optical
-resolution); `bispectrum.eonsii_pair` places the pair on Teide;
+1.5–3 km baselines for compact stars. The catalog carries it as
+`telescopes/eonsii_4m`, `detectors/eonsii_mcp_pmt` (Photonis MCP-PMT:
+measured HBT pair width σ = 27.4 ps; bialkali QE assumed),
+`detectors/eonsii_spad` (QUASAR 32×32 SPAD array: 20 ps and the SPAD
+Lambda PDE assumed) and `spectrographs/eonsii_1000ch` (1000 × 0.15 nm;
+`eonsii_r7500` for the optical resolution); `arrays/eonsii_pair_teide`
+places the pair on Teide (`load_array("eonsii_pair_teide", baseline_m=…)`);
 `scripts/feasibility_g3.py --g2 --instrument eonsii` gives the
 two-telescope table (§5f) with the baseline free (tens to hundreds of
 metres for milliarcsecond binaries). The assumptions flagged in the
@@ -445,7 +448,7 @@ Algol's NewEra column tables only its primary), from `output/logs/g2_*.txt`
 | EON-SII 2 × 4 m | 1000 ch, MCP-PMT | 344 → **343** (link-limited) | 434 → **434** (link-limited) | 234 → **238** (link-limited) | 391 (link-limited) |
 | EON-SII 2 × 4 m | 1000 ch, QUASAR SPAD | 575 → **568** (link-limited) | 694 → **658** (link-limited) | 350 → **351** (link-limited) | 638 (link-limited) |
 | EON-SII 2 × 4 m | 1000 ch, QUASAR SPAD + PBS | 817 → **808** (link-limited) | 986 → **935** (link-limited) | 497 → **499** (link-limited) | 907 (link-limited) |
-| EON-SII 2 × 4 m | R = 7500 (2388 ch), QUASAR SPAD | 848 → **841** (link-limited) | 1031 → **994** (link-limited) | 524 → **528** (link-limited) | 945 (link-limited) |
+| EON-SII 2 × 4 m | R = 7500 (2389 ch), QUASAR SPAD | 848 → **841** (link-limited) | 1031 → **994** (link-limited) | 524 → **528** (link-limited) | 945 (link-limited) |
 
 Reading the table: (i) every time-tag row is pinned at ≈ 5–10 by the 1.4 × 10⁸
 cps link whatever the telescope, and the four bright binaries saturate
@@ -501,7 +504,7 @@ phase sampling until the target is reached:
 | 1000 ch, MCP-PMT | 2.3 | 708 | 0.076 | 6×10⁵ |
 | 1000 ch, QUASAR SPAD | 6.3 | 93 | 0.22 | 8×10⁴ |
 | 1000 ch, QUASAR SPAD + PBS | 12.7 | **23** | 0.44 | 2×10⁴ |
-| R = 7500 (2388 ch), QUASAR SPAD | 13.5 | **20** | 0.46 | 2×10⁴ |
+| R = 7500 (2389 ch), QUASAR SPAD | 13.5 | **20** | 0.46 | 2×10⁴ |
 
 The five eclipse-window nights carry as much template signal as the 32
 uniform ones (8.5 against 9.5 for SPAD + PBS). Near conjunction the

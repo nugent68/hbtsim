@@ -9,11 +9,11 @@ import numpy as np
 import pytest
 
 from hbtsim import hbt
-from hbtsim.bispectrum import MAUNAKEA_SUBARU_KECK, closure_phase
+from hbtsim.bispectrum import closure_phase
 from hbtsim.limbdark import visibility_ld_disk, visibility_profile
 from hbtsim.orbit import SkyPositions, sky_positions
-from hbtsim.params import (ALGOL, BETA_AUR, DELTA_VEL, LD_ALGOL_B, MAS, FluxTable,
-                           GridConfig, LDProfile, Star, linear_ld_rows)
+from hbtsim.params import (MAS, FluxTable, GridConfig, LDProfile, Star,
+                           linear_ld_rows)
 from hbtsim.render import linear_rows_jnp, render_image, render_kernel, spectral_weights
 from hbtsim.sed import (bin_to_step, linear_ld_profile, load_star_tables,
                         planck_flux_table, save_star_tables, with_tables)
@@ -36,8 +36,8 @@ def _tabled(system, n_mu=64):
                    secondary=conv(system.secondary))
 
 
-def test_star_hooks_reproduce_defaults():
-    s = ALGOL.secondary
+def test_star_hooks_reproduce_defaults(algol):
+    s = algol.secondary
     t = with_tables(s, planck_flux_table(s.teff, LAM),
                     linear_ld_profile(s.ld_table_nm, LAM, 257))
     lam = np.array([420.0, 556.0, 800.0])   # on the table grid
@@ -49,9 +49,9 @@ def test_star_hooks_reproduce_defaults():
     assert t.ld_mode == "table" and s.ld_mode == "linear"
 
 
-def test_planck_tables_reproduce_render_weights_and_magnitudes():
-    sysm = _tabled(BETA_AUR)
-    cw0 = spectral_weights(LAM[::10], BETA_AUR)
+def test_planck_tables_reproduce_render_weights_and_magnitudes(beta_aur):
+    sysm = _tabled(beta_aur)
+    cw0 = spectral_weights(LAM[::10], beta_aur)
     cw1 = spectral_weights(LAM[::10], sysm)
     assert np.allclose(cw0.w1, cw1.w1, rtol=1e-5)
     # tabled stars render on their own (padded) mu nodes: compare on the
@@ -59,24 +59,24 @@ def test_planck_tables_reproduce_render_weights_and_magnitudes():
     mu0 = np.asarray(cw0.mu1)
     i1_on_grid = np.stack([np.interp(mu0, np.asarray(cw1.mu1), row) for row in np.asarray(cw1.i1)])
     assert np.allclose(cw0.i1, i1_on_grid, atol=1e-6)
-    assert model_ab_mag(sysm, 500.0) == pytest.approx(model_ab_mag(BETA_AUR, 500.0), abs=1e-6)
+    assert model_ab_mag(sysm, 500.0) == pytest.approx(model_ab_mag(beta_aur, 500.0), abs=1e-6)
     # with tables the anchors are only a check: no offset is applied, and
     # the blackbody's ~0.4 mag miss is reported
     with pytest.warns(UserWarning, match="anchor"):
         m = system_ab_mag(sysm, 477.0)
-    assert m == pytest.approx(model_ab_mag(BETA_AUR, 477.0), abs=1e-5)
-    assert abs(m - dict(BETA_AUR.mag_anchors)["g"]) > 0.2
+    assert m == pytest.approx(model_ab_mag(beta_aur, 477.0), abs=1e-5)
+    assert abs(m - dict(beta_aur.mag_anchors)[477.0]) > 0.2
 
 
-def test_linear_table_reproduces_linear_kernel():
-    pos = _pos(ALGOL, 0.3)
+def test_linear_table_reproduces_linear_kernel(algol):
+    pos = _pos(algol, 0.3)
     grid = GridConfig()
-    a = np.asarray(render_image(pos, ALGOL, 450.0, grid))
-    b = np.asarray(render_image(pos, _tabled(ALGOL, 257), 450.0, grid))
+    a = np.asarray(render_image(pos, algol, 450.0, grid))
+    b = np.asarray(render_image(pos, _tabled(algol, 257), 450.0, grid))
     assert np.allclose(a, b, atol=2e-6)
     # a coarse profile table on the kernel's finer mu grid is still exact
     # for a linear law
-    c = np.asarray(render_image(pos, _tabled(ALGOL, 9), 450.0, grid))
+    c = np.asarray(render_image(pos, _tabled(algol, 9), 450.0, grid))
     assert np.allclose(a, c, atol=2e-6)
 
 
@@ -139,37 +139,37 @@ def test_pixel_window_correction_in_reference():
     assert np.abs(np.abs(a) / np.abs(plain) - 1).min() > 1e-4
 
 
-def test_algol_closure_phase_on_accurate_grid():
+def test_algol_closure_phase_on_accurate_grid(algol, maunakea_tri):
     """Rendered vs analytic closure phase to 0.02 deg and |gamma| to 3e-5
     on the system-adapted supersampled grid (0.15 deg / 1e-3 on the
     plain default grid)."""
-    grid = GridConfig(supersample=4).for_system(ALGOL)
+    grid = GridConfig(supersample=4).for_system(algol)
     assert grid.n == 1024 and grid.pixel_scale_mas < 0.01
     for phase in (0.05, 0.1):
         for lam in (450.0, 800.0):
-            r = closure_phase(ALGOL, MAUNAKEA_SUBARU_KECK, lam, phase,
+            r = closure_phase(algol, maunakea_tri, lam, phase,
                               method="render", grid=grid)
-            a = closure_phase(ALGOL, MAUNAKEA_SUBARU_KECK, lam, phase)
+            a = closure_phase(algol, maunakea_tri, lam, phase)
             assert np.abs(np.abs(r.gammas) - np.abs(a.gammas)).max() < 3e-5
             dphic = abs(np.angle(np.exp(1j * (r.phi_c - a.phi_c))))
             assert np.degrees(dphic) < 0.02
 
 
-def test_for_system_and_delta_vel_apoapsis():
-    grid = GridConfig().for_system(DELTA_VEL)
-    r_min = min(DELTA_VEL.angular_radius_mas(DELTA_VEL.primary),
-                DELTA_VEL.angular_radius_mas(DELTA_VEL.secondary))
+def test_for_system_and_delta_vel_apoapsis(delta_vel, algol):
+    grid = GridConfig().for_system(delta_vel)
+    r_min = min(delta_vel.angular_radius_mas(delta_vel.primary),
+                delta_vel.angular_radius_mas(delta_vel.secondary))
     assert r_min / grid.pixel_scale_mas >= 50.0
     assert grid.n in (2048, 4096)
     psi = np.linspace(0, 2 * np.pi, 2001)
-    pos_all = sky_positions(psi, DELTA_VEL)
+    pos_all = sky_positions(psi, delta_vel)
     k = int(np.argmax(pos_all.rho))
-    img = render_image(pos_all.take(k), DELTA_VEL, 500.0, grid)
+    img = render_image(pos_all.take(k), delta_vel, 500.0, grid)
     assert float(img.sum()) > 0
     with pytest.raises(ValueError, match="n_max"):
-        GridConfig().for_system(DELTA_VEL, min_radius_px=200.0)
+        GridConfig().for_system(delta_vel, min_radius_px=200.0)
     # a system that already fits keeps the default scale and size
-    g2 = GridConfig().for_system(ALGOL, min_radius_px=10.0)
+    g2 = GridConfig().for_system(algol, min_radius_px=10.0)
     assert g2 == GridConfig()
 
 
@@ -191,18 +191,18 @@ def test_bin_and_roundtrip(tmp_path):
     assert ld.source == "synthetic"
 
 
-def test_analytic_paths_with_tables():
+def test_analytic_paths_with_tables(algol, maunakea_tri):
     """The analytic binary visibility with tabulated (linear-equivalent)
     profiles and Planck tables equals the linear/blackbody path."""
-    sysm = _tabled(ALGOL, 129)
-    pos = _pos(ALGOL, 0.0)
+    sysm = _tabled(algol, 129)
+    pos = _pos(algol, 0.0)
     B = np.arange(10.0, 150.0, 10.0)
     for lam in (450.0, 800.0):
-        a = hbt.binary_vis2_analytic(B, lam, ALGOL, float(pos.rho))
+        a = hbt.binary_vis2_analytic(B, lam, algol, float(pos.rho))
         b = hbt.binary_vis2_analytic(B, lam, sysm, float(pos.rho))
         assert np.allclose(a, b, atol=3e-5)
-    ca = closure_phase(ALGOL, MAUNAKEA_SUBARU_KECK, 600.0, 0.1)
-    cb = closure_phase(sysm, MAUNAKEA_SUBARU_KECK, 600.0, 0.1)
+    ca = closure_phase(algol, maunakea_tri, 600.0, 0.1)
+    cb = closure_phase(sysm, maunakea_tri, 600.0, 0.1)
     assert np.allclose(ca.gammas, cb.gammas, atol=3e-5)
 
 
@@ -219,41 +219,39 @@ def test_newera_table_sanity():
     assert 0.3 < np.median(ratio) < 2.0
 
 
-def test_anchoring_disabled_with_sed_tables():
+def test_anchoring_disabled_with_sed_tables(algol):
     """With flux tables on both stars the synthetic lightcurve keeps its
     own zero point (as snr.system_ab_mag does); the anchor only warns
     when missed by more than ANCHOR_CHECK_MAG."""
     import warnings
     from hbtsim.photometry import anchored_mags
-    sys_t = _tabled(ALGOL)
-    assert sys_t.has_sed_tables and not ALGOL.has_sed_tables
+    sys_t = _tabled(algol)
+    assert sys_t.has_sed_tables and not algol.has_sed_tables
     m = np.array([2.10, 2.30, 2.05])
-    g = dict(ALGOL.mag_anchors)["g"]
+    g = dict(algol.mag_anchors)[477.0]
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        out = anchored_mags(m, "g", sys_t, reference_mag=g + 0.05)
+        out = anchored_mags(m, 477.0, sys_t, reference_mag=g + 0.05)
     assert np.array_equal(out, m)
     with pytest.warns(UserWarning, match="not anchoring"):
-        out = anchored_mags(m, "g", sys_t, reference_mag=g + 0.5)
+        out = anchored_mags(m, 477.0, sys_t, reference_mag=g + 0.5)
     assert np.array_equal(out, m)
     # the blackbody system is still anchored
-    anc = anchored_mags(m, "g", ALGOL, reference_mag=2.05)
+    anc = anchored_mags(m, 477.0, algol, reference_mag=2.05)
     assert anc[2] == pytest.approx(g)
 
 
-def test_rebin_to_channels_is_idempotent():
+def test_rebin_to_channels_is_idempotent(vega, spec_r5000):
     """A second pass at the same edges must not smooth the tables again."""
     import os
     import pytest
     from hbtsim.sed import load_star_tables, rebin_to_channels, with_tables
-    from hbtsim.single import VEGA
-    from hbtsim.snr import Spectrograph
     path = "data/newera/newera_lte09600-4.00-0.0_380-1000nm_0.02nm.npz"
     if not os.path.exists(path):
         pytest.skip("NewEra table not present")
     ft, ld = load_star_tables(path)
-    star = with_tables(VEGA.star, ft, ld)
-    edges = Spectrograph.from_resolving_power(5000.0, 400.0, 950.0).channel_edges_nm
+    star = with_tables(vega.star, ft, ld)
+    edges = spec_r5000.channel_edges_nm
     once = rebin_to_channels(star, edges)
     twice = rebin_to_channels(once, edges)
     assert twice.flux_table is once.flux_table and twice.ld_profile is once.ld_profile

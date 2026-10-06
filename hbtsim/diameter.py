@@ -24,33 +24,19 @@ import numpy as np
 from .single import SingleStar, prepare_single, single_star_vis2, spectral_g2_snr_single
 from .snr import Detector, Spectrograph, SpectralSNRResult, Telescope
 
-# Kim & Kaiser's fiducial instrument: two 4 m telescopes, 0.3 overall
-# throughput (atmosphere, optics, detector), sigma_t = 16.6 ps per detector
-# (their formula uses sigma_t; the "42.4 ps FWHM" they quote alongside would
-# be 18.0 ps, so we adopt the 16.6 ps that enters their numbers), no dark
-# counts, no readout ceiling
-KK_SIGMA_T_PS = 16.6
-KK_TELESCOPE = Telescope(diameter_m=4.0, throughput=0.3)
-KK_DETECTOR = Detector(name="Kim & Kaiser fiducial (sigma_t 16.6 ps, throughput in the telescope)",
-                       pde_table_nm=((300.0, 1.0), (2600.0, 1.0)),
-                       jitter_fwhm_ps=KK_SIGMA_T_PS * 2.0 * np.sqrt(2.0 * np.log(2.0)),
-                       dead_time_ns=0.0, dark_cps_per_pixel=0.0, readout="correlator",
-                       max_total_cps=None)
+# Kim & Kaiser's fiducial instrument (two 4 m telescopes, 0.3 overall
+# throughput, sigma_t = 16.6 ps, PDE 1) is telescopes/kk_4m + detectors/kk_ideal;
+# their broad filters are spectrographs/filter_*.json (hbtsim.catalog).
 
 
 def single_filter(name: str, centre_nm: float, fwhm_nm: float) -> Spectrograph:
-    """One broad filter as a one-channel 'spectrograph' (throughput 1: the
-    0.3 of KK_TELESCOPE already covers the whole chain)."""
+    """One broad filter as a one-channel 'spectrograph' (throughput 1 when
+    the telescope's throughput already covers the whole chain)."""
     return Spectrograph(lambda_min_nm=centre_nm - fwhm_nm / 2, lambda_max_nm=centre_nm + fwhm_nm / 2,
                         n_channels=1, throughput=1.0, name=name)
 
 
 # Johnson-Cousins / 2MASS-like passbands as top-hat filters (centre, FWHM)
-BANDS = {"B": single_filter("B", 445.0, 94.0), "V": single_filter("V", 551.0, 88.0),
-         "R": single_filter("R", 658.0, 138.0), "I": single_filter("I", 806.0, 149.0),
-         "H": single_filter("H", 1630.0, 300.0), "K": single_filter("K", 2190.0, 390.0)}
-
-
 def kim_kaiser_sigma_vis2(dgamma_dnu, t_s: float, sigma_t_s: float) -> float:
     """Their Eq. 8: sigma(|V|^2) for a photon spectral rate dGamma/dnu
     [photons/s/Hz] per telescope, integration T and per-detector jitter
@@ -88,7 +74,7 @@ def vis2_scale_derivative(target: SingleStar, baseline_m: float, nm, pupils=None
 
 
 def scale_precision(target: SingleStar, baseline_m: float, spectrograph: Spectrograph, *,
-                    telescope: Telescope = KK_TELESCOPE, detector: Detector = KK_DETECTOR,
+                    telescope: Telescope, detector: Detector,
                     polarization_mode: str = "unpolarized", t_int_s: float = 7200.0,
                     pupils=True, enforce_readout: bool = True, channel_mask=None) -> ScaleResult:
     """Cramer-Rao precision of the angular scale from every channel of the

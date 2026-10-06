@@ -20,41 +20,48 @@ from __future__ import annotations
 import argparse
 import os
 import warnings
+from dataclasses import replace
 
 import numpy as np
 
-from hbtsim.bispectrum import EONSII_MIN_SPACING_M
+from hbtsim.catalog import Catalog
 from hbtsim.chromatic import (BALMER_VAC_NM, chromatic_signature, line_masks,
                               night_seconds, optimal_baseline)
-from hbtsim.geometry import TEIDE
-from hbtsim.single import SINGLE_STARS, attach_newera_single
-from hbtsim.snr import (C2PU, EON_SII_TELESCOPE, EONSII_MCP_PMT, EONSII_SPAD,
-                        EONSII_SPECTROGRAPH, EONSII_SPECTROGRAPH_R7500, SPAD_LAMBDA_NG,
-                        Spectrograph)
+from hbtsim.single import attach_newera_single
 
-BACKENDS = {
-    "mcp": ("1000 ch, MCP-PMT", EONSII_SPECTROGRAPH, EONSII_MCP_PMT, "unpolarized"),
-    "spad": ("1000 ch, QUASAR SPAD", EONSII_SPECTROGRAPH, EONSII_SPAD, "unpolarized"),
-    "spad-pbs": ("1000 ch, QUASAR SPAD + PBS", EONSII_SPECTROGRAPH, EONSII_SPAD, "pbs"),
-    "r7500": ("R = 7500 (2388 ch), QUASAR SPAD", EONSII_SPECTROGRAPH_R7500, EONSII_SPAD, "unpolarized"),
-}
+CAT = Catalog(env=False)
+STARS = {"sirius": "sirius_a", "vega": "vega"}           # CLI key -> catalog target
+# (label, spectrograph, detector, polarization) read off the catalog's counting backends
+BACKENDS = {key: (b.name, b.spectrograph, b.detector, b.polarization_mode)
+            for key, b in ((k, CAT.load_backend(n)) for k, n in
+                           (("mcp", "eonsii_mcp"), ("spad", "eonsii_spad"),
+                            ("spad-pbs", "eonsii_spad_pbs"), ("r7500", "eonsii_r7500_spad")))}
+EON_SII_TELESCOPE = CAT.load_telescope("eonsii_4m")
+TEIDE = CAT.load_site("teide")
+EONSII_MIN_SPACING_M = CAT.raw("array", "eonsii_triangle_paranal")["generator"]["min_spacing_m"]
 
 
-def hbeta_window_spectrograph(n=320, R=5000.0, lam0=486.27, throughput=0.5):
-    """The 1 m study's 320 geometric channels at R centred on H-beta."""
-    q = (2 * R + 1) / (2 * R - 1)
-    lo = lam0 * q ** (-n / 2)
-    return Spectrograph(lambda_min_nm=lo, lambda_max_nm=lo * q**n, n_channels=n,
-                        resolving_power=R, throughput=throughput, name="R = 5000, H-beta window")
+def readout_config(readout: str, detector):
+    """The CLI readout strategy as (channel_selection, detector): "link"
+    reads every channel through the detector's time-tag link, "subset"
+    tags only the line and reference channels, "correlator" reads every
+    channel with an on-board correlator (no link-rate cap)."""
+    if readout == "link":
+        return "all", detector
+    if readout == "subset":
+        return "subset", detector
+    if readout == "correlator":
+        return "all", replace(detector, readout="correlator", max_total_cps=None)
+    raise ValueError(f"unknown readout {readout!r}")
 
 
 def describe(r, nights):
     s = r.significance * np.sqrt(nights)
     lines = ", ".join(f"{k} {r.line_signal_pct.get(k, np.nan):+.2f} % / {v * np.sqrt(nights):.1f} sigma"
                       for k, v in r.line_significance.items())
-    tag = f"{int(r.tagged.sum())} of {r.nm.size} ch tagged" if r.readout == "subset" else f"{r.nm.size} ch"
+    tag = f"{int(r.tagged.sum())} of {r.nm.size} ch tagged" if r.channel_selection == "subset" else f"{r.nm.size} ch"
     where = ""
-    if r.readout == "subset":
+    if r.channel_selection == "subset":
         m = line_masks(r.nm)
         on = [k for k in BALMER_VAC_NM if k in m and (r.tagged & (m[k]["core"] | m[k]["wing"])).any()]
         where = f" (lines covered: {', '.join(on) or 'none'}; continuum refs {int((r.tagged & m['continuum']).sum())})"
@@ -106,15 +113,18 @@ def main():
 
     stars = ("sirius", "vega") if args.star == "both" else (args.star,)
     for key in stars:
-        tgt, rep = attach_newera_single(SINGLE_STARS[key], args.newera_dir)
+        tgt, rep = attach_newera_single(CAT.load_target(STARS[key]), args.newera_dir)
         print(f"\n=== {tgt.name}: theta_LD {tgt.theta_ld_mas} mas, drawn {tgt.drawn_diameter_mas:.4f} mas "
               f"(r_outer {tgt.star.radius_scale:.5f}); V {tgt.v_mag:+.2f}, model AB(550) - V = "
               f"{tgt.v_check():+.3f}\n    {rep}")
         if args.instrument == "c2pu":
-            spec = hbeta_window_spectrograph()
+            spec = CAT.load_spectrograph("hbeta_window_r5000")
+            sel, det = readout_config("correlator", CAT.load_detector("spad_lambda_ng"))
+            # t_int_s is given, so the site only labels the night; C2PU is at Calern
             r = chromatic_signature(tgt, 1.7 * 486.27e-9 / (np.pi * tgt.drawn_diameter_mas * 4.8481368e-9),
-                                    spec, telescope=C2PU, detector=SPAD_LAMBDA_NG, t_int_s=6 * 3600.0,
-                                    readout="correlator", deg=0 if args.hbeta_window else args.deg)
+                                    spec, telescope=CAT.load_telescope("c2pu_1m"), detector=det,
+                                    site=CAT.load_site("calern"), t_int_s=6 * 3600.0,
+                                    channel_selection=sel, deg=0 if args.hbeta_window else args.deg)
             print(f"  2 x 1 m (C2PU), {spec.name}, SPAD Lambda correlator, 6 h: {describe(r, args.nights)}")
             continue
         print(f"  EON-SII from Teide: {night_seconds(tgt, TEIDE) / 3600:.1f} h above 30 deg per night; "
@@ -124,9 +134,10 @@ def main():
         for bk in keys:
             label, spec, det, pol = BACKENDS[bk]
             for ro in readouts:
-                b, r = optimal_baseline(tgt, spec, telescope=EON_SII_TELESCOPE, detector=det,
-                                        readout=ro, polarization_mode=pol, deg=args.deg,
-                                        min_baseline_m=EONSII_MIN_SPACING_M)
+                sel, det_ro = readout_config(ro, det)
+                b, r = optimal_baseline(tgt, spec, telescope=EON_SII_TELESCOPE, detector=det_ro,
+                                        site=TEIDE, channel_selection=sel, polarization_mode=pol,
+                                        deg=args.deg, min_baseline_m=EONSII_MIN_SPACING_M)
                 print(f"  {label:32s} {ro:10s}: {describe(r, args.nights)}")
                 if args.plot and bk == "spad" and ro == "subset":
                     os.makedirs("output", exist_ok=True)

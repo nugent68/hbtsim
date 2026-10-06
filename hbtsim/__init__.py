@@ -1,9 +1,20 @@
 """hbtsim: Hanbury Brown-Twiss intensity-interferometry simulation of
-binary stars, starting with Beta Aurigae."""
+binary and single stars.
 
-from .params import (ALGOL, BETA_AUR, SYSTEMS, BinarySystem, GridConfig,
-                     MovieConfig, Star)
+Targets, telescopes, detectors, spectrographs, backends, sites, arrays and
+campaigns are JSON definitions in hbtsim/configs, loaded through
+hbtsim.catalog:
+
+    from hbtsim import load_target, load_array
+    spica = load_target("spica")
+    vlt = load_array("vlt_ut")
+"""
+
+from .catalog import (Catalog, load_array, load_backend, load_campaign, load_detector,
+                      load_site, load_spectrograph, load_target, load_telescope, load_triangle)
+from .params import BinarySystem, DiskTarget, GridConfig, MovieConfig, Star
 from .spectral import spectral_vis2
 
-__all__ = ["ALGOL", "BETA_AUR", "SYSTEMS", "BinarySystem", "GridConfig",
-           "MovieConfig", "Star", "spectral_vis2"]
+__all__ = ["Catalog", "load_array", "load_backend", "load_campaign", "load_detector",
+           "load_site", "load_spectrograph", "load_target", "load_telescope", "load_triangle",
+           "BinarySystem", "DiskTarget", "GridConfig", "MovieConfig", "Star", "spectral_vis2"]

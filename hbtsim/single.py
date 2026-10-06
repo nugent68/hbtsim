@@ -25,9 +25,8 @@ from scipy.special import j1
 
 from .aperture import PupilQuadrature, pupil_pair_quadrature
 from .limbdark import star_disk_visibility
-from .params import AB_ZERO_FNU, C_LIGHT, LD_BETA_AUR, LD_SPICA, MAS, PARSEC, R_SUN, Star
-from .snr import (C2PU, SPAD_LAMBDA, Detector, Spectrograph, SpectralSNRResult,
-                  Telescope, _g2_budget)
+from .params import AB_ZERO_FNU, C_LIGHT, MAS, PARSEC, R_SUN, Star
+from .snr import Detector, Spectrograph, SpectralSNRResult, Telescope, _g2_budget
 
 
 @dataclass(frozen=True)
@@ -97,63 +96,9 @@ class SingleStar:
         return float(self.model_ab_mag(550.0) - self.v_mag)
 
 
-def _star(name, teff, logg, mass, theta_ld_mas, d_pc):
-    radius_rsun = 0.5 * theta_ld_mas * MAS * d_pc * PARSEC / R_SUN
-    # A0-A2 V linear law as the fallback (the beta Aur table, 9350 K);
-    # replaced by the NewEra profile when attached
-    return Star(name, mass_msun=mass, radius_rsun=radius_rsun, teff=teff,
-                ld_table_nm=LD_BETA_AUR, logg=logg)
-
-
-# Sirius A: T_eff 9940 K, log g 4.33 (Adelman 2004); theta_LD 6.039 mas
-# (Kervella et al. 2003, VINCI); d = 2.64 pc (Hipparcos); V = -1.46.
-SIRIUS_A = SingleStar("Sirius A", _star("Sirius A", 9940.0, 4.33, 2.06, 6.039, 2.637),
-                      theta_ld_mas=6.039, v_mag=-1.46, dec_deg=-16.716, ra_hours=6.7525,
-                      distance_pc=2.637)
-# Vega: pole-on rapid rotator; mean T_eff ~9550 K, log g 4.0; theta_LD 3.329
-# mas (Aufdenberg et al. 2006); d = 7.68 pc; V = 0.03.  The spherical model
-# ignores the 2000 K pole-to-equator gradient (docs/chromatic_diameters_eonsii.md).
-VEGA = SingleStar("Vega", _star("Vega", 9550.0, 4.0, 2.15, 3.329, 7.68),
-                  theta_ld_mas=3.329, v_mag=0.03, dec_deg=38.7837, ra_hours=18.6156,
-                  distance_pc=7.68)
-# Red-clump validation targets of Kim & Kaiser (2026, PASP 138, 044202):
-# theta_LD from Gallenne et al. (VLTI/PIONIER), T_eff / log g as adopted
-# there; coordinates from SIMBAD.  The linear-law fallback is a rough K-giant
-# table (replace by a NewEra profile: no 4800 K / log g 2.5 model exists yet,
-# see scripts/redclump_ii.py for the stand-ins and the model request).
-LD_K_GIANT = ((400.0, 0.85), (450.0, 0.78), (550.0, 0.68), (650.0, 0.60), (800.0, 0.50),
-              (1000.0, 0.42), (1650.0, 0.32), (2200.0, 0.28))
-
-
-def _giant(name, teff, logg, mass, theta_ld_mas, d_pc):
-    radius_rsun = 0.5 * theta_ld_mas * MAS * d_pc * PARSEC / R_SUN
-    return Star(name, mass_msun=mass, radius_rsun=radius_rsun, teff=teff,
-                ld_table_nm=LD_K_GIANT, logg=logg)
-
-
-# Vega -> AB offsets: V +0.02 (Bessell), 2MASS H +1.39, Ks +1.85 (Blanton &
-# Roweis 2007); the V, H, K magnitudes are those Kim & Kaiser adopt.
-VEGA_TO_AB = {"V": 0.02, "H": 1.39, "K": 1.85}
-HD_17652 = SingleStar("HD 17652 (beta For, G9 IIIb)", _giant("HD 17652", 4786.0, 2.5, 1.5, 1.835, 54.17),
-                      theta_ld_mas=1.835, v_mag=4.456, dec_deg=-32.4059, ra_hours=2.8182,
-                      distance_pc=54.17,
-                      mag_anchors=((551.0, 4.456 + VEGA_TO_AB["V"]), (1630.0, 2.256 + VEGA_TO_AB["H"]),
-                                   (2190.0, 2.139 + VEGA_TO_AB["K"])))
-HD_360 = SingleStar("HD 360 (HR 16, K1 II)", _giant("HD 360", 4764.0, 2.5, 1.5, 0.906, 110.97),
-                    theta_ld_mas=0.906, v_mag=5.986, dec_deg=-8.8241, ra_hours=0.1382,
-                    distance_pc=110.97,
-                    mag_anchors=((551.0, 5.986 + VEGA_TO_AB["V"]), (1630.0, 3.757 + VEGA_TO_AB["H"]),
-                                 (2190.0, 3.653 + VEGA_TO_AB["K"])))
-# gamma Cas (B0.5 IVe): T_eff 25 000 K, log g 3.5, d = 168 pc (parallax 5.94 mas),
-# V = 2.39, B = 2.29; theta_LD = 0.532 mas is the MAGIC circular fit (Abe et al.
-# 2024); VERITAS (2025) resolve an ellipse of minor axis 0.43 mas, axis ratio
-# 1.28, PA 116 deg.  Beyond the NewEra grid: blackbody with Spica's linear law.
-GAMMA_CAS = SingleStar("gamma Cas (B0.5 IVe)",
-                       Star("gamma Cas", mass_msun=13.0, radius_rsun=10.0, teff=25000.0, ld_table_nm=LD_SPICA, logg=3.5),
-                       theta_ld_mas=0.532, v_mag=2.39, dec_deg=60.7167, ra_hours=0.9451, distance_pc=168.3,
-                       mag_anchors=((445.0, 2.29 - 0.09), (551.0, 2.39 + 0.02)))
-GAMMA_CAS_ELLIPSE = dict(theta_major_mas=0.43 * 1.28, axis_ratio=1.28, pa_deg=116.0)   # VERITAS 2025
-SINGLE_STARS = {"sirius": SIRIUS_A, "vega": VEGA, "hd17652": HD_17652, "hd360": HD_360, "gammacas": GAMMA_CAS}
+# The single-star targets (Sirius A, Vega, HD 17652, HD 360, gamma Cas) are
+# hbtsim/configs/targets/*.json: load_target("vega").  Their radii follow
+# from theta_LD and the distance (0.5 theta d).
 
 
 # ---------------------------------------------------------------------------
@@ -305,11 +250,11 @@ def ud_dtheta_dvis2(theta_mas, baseline_m: float, wavelength_nm, pupils=None,
 
 
 def spectral_g2_snr_single(target: SingleStar, baseline_m: float,
-                           spectrograph: Spectrograph = Spectrograph(),
+                           spectrograph: Spectrograph, *,
                            t_int_s: float = 3600.0,
-                           telescope1: Telescope = C2PU,
+                           telescope1: Telescope,
                            telescope2: Telescope | None = None,
-                           detector1: Detector = SPAD_LAMBDA,
+                           detector1: Detector,
                            detector2: Detector | None = None,
                            polarization_mode: str = "unpolarized",
                            sky_cps_per_channel: float = 0.0,

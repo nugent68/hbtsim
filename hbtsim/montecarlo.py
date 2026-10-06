@@ -32,29 +32,31 @@ import numpy as np
 from scipy.special import j1
 
 from .estimators import box_capture_fraction, optimal_box_half_width
-from .geometry import TEIDE, Site, enu_to_uv
+from .geometry import Site, enu_to_uv
 from .limbdark import visibility_ld_disk
 from .params import MAS
-from .snr import (EON_SII_TELESCOPE, EONSII_MCP_PMT, EONSII_SPECTROGRAPH, Detector,
-                  Observation, Spectrograph, Telescope, coherence_time_s, incident_rate,
-                  pair_sigma_s, polarization_streams)
+from .snr import (Detector, Observation, Spectrograph, Telescope, coherence_time_s,
+                  incident_rate, pair_sigma_s, polarization_streams)
 
 
 @dataclass(frozen=True)
 class MCConfig:
-    theta_true_mas: float = 0.0285      # Sirius B (design study Table 2)
-    mag_ab: float = 8.44
+    """Source, geometry and instrument of one simulated measurement.  No
+    hardware or target defaults: MCConfig.from_target builds one from a
+    catalog uniform-disk target, a two-station array and a spectrograph."""
+    theta_true_mas: float               # truth (e.g. Sirius B: 0.0285 mas)
+    mag_ab: float                       # flat AB spectrum
+    dec_deg: float
+    site: Site
+    ground_baseline_m: float
+    ground_pa_deg: float                # E of N (90 = East-West)
+    spectrograph: Spectrograph
+    telescope: Telescope
+    detector: Detector
     ld_u: float = 0.0                   # truth: 0 = uniform disk
-    dec_deg: float = -16.716
-    site: Site = TEIDE
-    ground_baseline_m: float = 1750.0
-    ground_pa_deg: float = 90.0         # East-West
     zenith_angles_deg: tuple | None = (45.0, 52.5, 60.0)
     t_total_h: float = 10.0
     blocks_per_zenith: int = 1
-    spectrograph: Spectrograph = EONSII_SPECTROGRAPH
-    telescope: Telescope = EON_SII_TELESCOPE
-    detector: Detector = EONSII_MCP_PMT
     polarization_mode: str = "unpolarized"
     extinction: str | None = None       # None | "izana": k(lambda) (X - 1) beyond the zenith budget
     channel_corr: float = 0.0           # adjacent-channel correlation (gaussian mode)
@@ -65,6 +67,27 @@ class MCConfig:
     # correlator normalizes by; known to ~1e-4), "sideband" = mean of the
     # histogram beyond sideband_sigma (adds its own noise to every estimate)
     background: str = "singles"
+
+    @classmethod
+    def from_target(cls, target, array, spectrograph: Spectrograph,
+                    detector: Detector | None = None, **kw) -> "MCConfig":
+        """target a params.DiskTarget (theta_mas, mag_ab, dec_deg), array a
+        two-station bispectrum.Array whose site, first telescope and (unless
+        detector is given) first detector are used; kw overrides any field
+        (theta_true_mas defaults to the target's theta_mas, ld_u to 0)."""
+        if len(array.stations) != 2:
+            raise ValueError(f"the Monte Carlo needs a two-station array, not {len(array.stations)}")
+        if array.site is None:
+            raise ValueError("the array needs a site")
+        (_, _, bvec), = array.pairs()
+        st = array.stations[0]
+        fields = dict(theta_true_mas=target.theta_mas, mag_ab=target.mag_ab, dec_deg=target.dec_deg,
+                      site=array.site, ground_baseline_m=float(np.hypot(*bvec)),
+                      ground_pa_deg=float(np.degrees(np.arctan2(bvec[0], bvec[1]))),
+                      spectrograph=spectrograph, telescope=st.telescope,
+                      detector=st.detector if detector is None else detector)
+        fields.update(kw)
+        return cls(**fields)
 
 
 @dataclass(frozen=True)

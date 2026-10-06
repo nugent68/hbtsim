@@ -33,18 +33,17 @@ import numpy as np
 from .movie import (DISPLAY_BIN, DISPLAY_HALF_PX, render_display_rgb,
                     stretch_rgb)
 from .orbit import positions_at
-from .params import BETA_AUR, BinarySystem, GridConfig
-from .snr import (C2PU, SPAD_LAMBDA, SPAD_LAMBDA_NG, Detector, Observation,
-                  Spectrograph, Telescope, incident_rate, polarization_streams,
-                  readout_scale, system_ab_mag, vis2_noise)
+from .params import BinarySystem, GridConfig
+from .snr import (Detector, Observation, Spectrograph, Telescope, incident_rate,
+                  polarization_streams, readout_scale, system_ab_mag, vis2_noise)
 from .spectral import eclipse_dimming, spectral_vis2
 
 
-def precompute(system: BinarySystem = BETA_AUR, baseline_m: float = 50.0,
-               spectrograph: Spectrograph = Spectrograph(),
+def precompute(system: BinarySystem, baseline_m: float = 50.0, *,
+               spectrograph: Spectrograph,
+               telescope: Telescope,
+               detector: Detector,
                t_int_s: float = 3600.0,
-               telescope: Telescope = C2PU,
-               detector: Detector = SPAD_LAMBDA,
                grid: GridConfig | None = None,
                chunk_size: int | None = None,
                polarization_mode: str = "unpolarized",
@@ -228,21 +227,20 @@ def make_movie(data: dict, path: str, fps: int = 8, nbin: int = 8,
 
 
 def main(argv=None) -> None:
-    from .params import SYSTEMS
+    from .cli_common import (add_catalog_options, add_instrument_options, catalog_from,
+                             ensure_parent, output_stem, resolve_instrument, resolve_target)
 
     p = argparse.ArgumentParser(description="g2(lambda) movie with error bars")
-    p.add_argument("--system", choices=sorted(SYSTEMS), default="betaaur")
+    add_catalog_options(p)
+    add_instrument_options(p, baselines=False)
+    p.add_argument("--baseline", type=float, default=None,
+                   help="baseline in m (default: the array's first pair, else 50; C2PU: 15, Keck pair: 85)")
     p.add_argument("--npz", default=None,
-                   help="data file (default output/g2spec_<system>.npz)")
+                   help="data file (default output/g2spec_<target>_<instrument>.npz)")
     p.add_argument("--out", default=None,
-                   help="movie path (default output/g2spec_<system>.mp4)")
+                   help="movie path (default output/g2spec_<target>_<instrument>.mp4)")
     p.add_argument("--compute-only", action="store_true")
     p.add_argument("--render-only", action="store_true")
-    p.add_argument("--baseline", type=float, default=50.0,
-                   help="baseline in m (C2PU: 15, Keck pair: 85)")
-    p.add_argument("--diameter", type=float, default=C2PU.diameter_m,
-                   help="telescope diameter in m (C2PU: 1, Keck: 10)")
-    p.add_argument("--throughput", type=float, default=C2PU.throughput)
     p.add_argument("--time", type=float, default=3600.0,
                    help="integration time per frame in s")
     p.add_argument("--cadence-hours", type=float, default=1.0,
@@ -260,26 +258,28 @@ def main(argv=None) -> None:
     p.add_argument("--chunk", type=int, default=None)
     p.add_argument("--fps", type=int, default=8)
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--newera-dir", default=None,
-                   help="directory of binned NewEra tables to attach to the stars")
-    p.add_argument("--allow-extrapolation", action="store_true")
     args = p.parse_args(argv)
 
-    from .sed import attach_from_cli
-    system = attach_from_cli(SYSTEMS[args.system], args.newera_dir, args.allow_extrapolation)
-    npz = args.npz or f"output/g2spec_{args.system}.npz"
-    out = args.out or f"output/g2spec_{args.system}.mp4"
-    os.makedirs(os.path.dirname(npz) or ".", exist_ok=True)
+    cat = catalog_from(args)
+    system = resolve_target(cat, args)
+    inst = resolve_instrument(cat, args, readout=args.readout)
+    baseline = args.baseline if args.baseline is not None else (inst.baselines_m[0] if inst.baselines_m else 50.0)
+    stem = output_stem(args.target, inst.name)
+    npz = args.npz or f"output/g2spec_{stem}.npz"
+    out = args.out or f"output/g2spec_{stem}.mp4"
+    ensure_parent(npz)
     if not args.render_only:
-        spec = (Spectrograph(n_channels=args.channels) if args.resolving_power is None
-                else Spectrograph.from_resolving_power(args.resolving_power))
-        tel = Telescope(diameter_m=args.diameter, throughput=args.throughput)
-        det = SPAD_LAMBDA if args.readout == "timetag" else SPAD_LAMBDA_NG
+        if args.spectrograph:
+            spec = cat.load_spectrograph(args.spectrograph)
+        else:
+            spec = (Spectrograph(n_channels=args.channels) if args.resolving_power is None
+                    else Spectrograph.from_resolving_power(args.resolving_power))
+        tel, det = inst.telescope, inst.detector
         print(f"Computing g2(lambda) every {args.cadence_hours:g} h over one period of "
-              f"{system.name} (2 x {tel.diameter_m:.0f} m, "
-              f"B = {args.baseline:.0f} m, {spec.n_channels} channels, "
+              f"{system.name} (2 x {tel.diameter_m:.0f} m {inst.name}, "
+              f"B = {baseline:.0f} m, {spec.n_channels} channels, "
               f"{det.readout} readout) ...")
-        data = precompute(system=system, baseline_m=args.baseline,
+        data = precompute(system=system, baseline_m=baseline,
                           spectrograph=spec, t_int_s=args.time, telescope=tel,
                           detector=det, chunk_size=args.chunk,
                           polarization_mode=args.polarization,

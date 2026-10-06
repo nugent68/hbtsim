@@ -17,10 +17,13 @@ import jax
 import numpy as np
 
 from hbtsim import hbt
+from hbtsim.catalog import Catalog
 from hbtsim.orbit import positions_at
-from hbtsim.params import BETA_AUR, GridConfig
+from hbtsim.params import GridConfig
 from hbtsim.snr import Spectrograph, spectral_g2_snr
 from hbtsim.spectral import _auto_chunk, spectral_vis2
+
+CAT = Catalog(env=False)
 
 
 def main() -> None:
@@ -40,7 +43,8 @@ def main() -> None:
     print(f"estimated peak memory ~ {chunk * 0.03:.1f} GiB "
           f"({chunk} x ~30 MB/channel of render temporaries)\n")
 
-    system, grid = BETA_AUR, GridConfig()
+    system, grid = CAT.load_target("betaaur"), GridConfig()
+    telescope, detector = CAT.load_telescope("c2pu_1m"), CAT.load_detector("spad_lambda")
     pos = positions_at(system, args.phase)
     nm = np.linspace(400.0, 950.0, args.channels)
     baselines = np.arange(10.0, 151.0, 10.0)
@@ -61,9 +65,11 @@ def main() -> None:
           f"{t_best:8.2f} s  ({1e3 * t_best / args.channels:.1f} ms/channel)")
 
     # --- end-to-end SNR + cross-check ---
-    spec = Spectrograph(n_channels=args.channels)
+    spec = (CAT.load_spectrograph("spad_lambda_320") if args.channels == 320
+            else Spectrograph(n_channels=args.channels))
     t0 = time.perf_counter()
     res = spectral_g2_snr(system, args.baseline, spectrograph=spec,
+                          telescope1=telescope, detector1=detector,
                           orbital_phase=args.phase, vis2_method="render",
                           chunk_size=chunk)
     t_snr = time.perf_counter() - t0
@@ -71,6 +77,7 @@ def main() -> None:
           f"[{t_snr:.2f} s]")
     try:
         ana = spectral_g2_snr(system, args.baseline, spectrograph=spec,
+                              telescope1=telescope, detector1=detector,
                               orbital_phase=args.phase,
                               vis2_method="analytic")
         rel = abs(res.snr_total - ana.snr_total) / ana.snr_total

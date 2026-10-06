@@ -19,18 +19,30 @@ from dataclasses import replace
 
 import numpy as np
 
-from hbtsim.diameter import BANDS, KK_DETECTOR, KK_TELESCOPE, scale_precision, scale_precision_scan
+from hbtsim.catalog import Catalog
+from hbtsim.diameter import scale_precision, scale_precision_scan
 from hbtsim.sed import load_star_tables, with_tables
-from hbtsim.single import HD_17652, HD_360, prepare_single, single_star_vis2, ud_diameter_per_channel
-from hbtsim.snr import (EON_SII_TELESCOPE, EONSII_SPAD, EONSII_SPECTROGRAPH, SPAD_LAMBDA_NG,
-                        Spectrograph)
+from hbtsim.single import prepare_single, single_star_vis2, ud_diameter_per_channel
+
+CAT = Catalog(env=False)
+HD_17652 = CAT.load_target("hd17652")
+HD_360 = CAT.load_target("hd360")
+KK_TELESCOPE = CAT.load_telescope("kk_4m")
+KK_DETECTOR = CAT.load_detector("kk_ideal")
+BANDS = {b: CAT.load_spectrograph(f"filter_{s}_{b.lower()}")
+         for b, s in (("B", "johnson"), ("V", "johnson"), ("R", "cousins"), ("I", "cousins"),
+                      ("H", "2mass"), ("K", "2mass"))}
+EON_SII_TELESCOPE = CAT.load_telescope("eonsii_4m")
+EONSII_SPAD = CAT.load_detector("eonsii_spad")
+EONSII_SPECTROGRAPH = CAT.load_spectrograph("eonsii_1000ch")
+SPAD_LAMBDA_NG = CAT.load_detector("spad_lambda_ng")
 
 DATA = "data/newera_redclump"
 OUT = "docs/redclump_note"
 MODELS = {"dwarf (4800 K, log g 4.5)": "newera_lte04800-4.50-0.0",
           "supergiant (5000 K, log g 0)": "newera_lte05000-0.00-0.0"}
-SPEC_R5000 = Spectrograph.from_resolving_power(5000.0)
-SPEC_OPT_KK = Spectrograph(lambda_min_nm=400.0, lambda_max_nm=950.0, n_channels=1000, throughput=1.0)
+SPEC_R5000 = CAT.load_spectrograph("r5000_400_950")
+SPEC_OPT_KK = CAT.load_spectrograph("kk_1000ch_400_950")
 
 
 def attach(target, model, ir):
@@ -74,7 +86,8 @@ def fig_sigma_s(plt, hours=2.0):
         t_ir = attach(target, model, ir=True)
         t_opt = attach(target, model, ir=False)
         for band, c in zip("VRIHK", ("C0", "C1", "C2", "C3", "C4")):
-            _, sig, _ = scale_precision_scan(t_ir, b, BANDS[band], t_int_s=hours * 3600.0)
+            _, sig, _ = scale_precision_scan(t_ir, b, BANDS[band], t_int_s=hours * 3600.0,
+                                             telescope=KK_TELESCOPE, detector=KK_DETECTOR)
             ax.plot(b, sig, color=c, lw=1.2, label=f"{band} filter (KK instrument)")
         cases = [("R = 5000 SPAD Lambda, correlator", SPEC_R5000, KK_TELESCOPE, SPAD_LAMBDA_NG, "k", "-"),
                  ("EON-SII 1000 ch, QUASAR SPAD, 1 GHz link", EONSII_SPECTROGRAPH, EON_SII_TELESCOPE,

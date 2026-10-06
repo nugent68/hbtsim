@@ -21,12 +21,19 @@ from functools import partial
 
 import numpy as np
 
+from hbtsim.catalog import Catalog
 from hbtsim.geometry import hour_angle_window
-from hbtsim.iact import MAGIC_LST1, MAGIC_SII, ORM, pair_track, single_vis2_fn, track_sigma
+from hbtsim.iact import pair_track, single_vis2_fn, track_sigma
 from hbtsim.params import MAS
-from hbtsim.single import GAMMA_CAS, GAMMA_CAS_ELLIPSE, composite_vis, ud_vis2
+from hbtsim.single import composite_vis, ud_vis2
 
 LAM = 425.0
+CAT = Catalog(env=False)
+GAMMA_CAS = CAT.load_target("gammacas")
+GAMMA_CAS_ELLIPSE = GAMMA_CAS.ellipse          # single.Ellipse (VERITAS 2025)
+MAGIC_LST1 = CAT.load_array("magic_lst1")
+MAGIC_SII = CAT.load_backend("magic_sii")
+ORM = MAGIC_LST1.site
 
 
 def model_fn(theta_major, axis_ratio, pa, f):
@@ -62,10 +69,10 @@ def main():
     print(f"gamma Cas on MAGIC + LST-1 at {LAM:.0f} nm: AB {mag:.2f} (B = 2.29); window H = {h0:+.2f}..{h1:+.2f} h "
           f"({h1 - h0:.1f} h above 30 deg); blocks of {args.block_minutes:g} min")
     print(f"  models: circular theta_LD = {GAMMA_CAS.theta_ld_mas} mas (MAGIC 2024: 0.532 +/- 0.039 +/- 0.023); "
-          f"ellipse major {E['theta_major_mas']:.3f} mas, axis ratio {E['axis_ratio']}, PA {E['pa_deg']} deg (VERITAS 2025)")
+          f"ellipse major {E.theta_major_mas:.3f} mas, axis ratio {E.axis_ratio}, PA {E.pa_deg} deg (VERITAS 2025)")
     circ = pair_track(MAGIC_LST1, GAMMA_CAS.dec_deg, LAM, model_fn(GAMMA_CAS.theta_ld_mas, 1.0, 0.0, 0.0),
                       block_minutes=args.block_minutes)
-    ell = pair_track(MAGIC_LST1, GAMMA_CAS.dec_deg, LAM, model_fn(E["theta_major_mas"], E["axis_ratio"], E["pa_deg"], 0.0),
+    ell = pair_track(MAGIC_LST1, GAMMA_CAS.dec_deg, LAM, model_fn(E.theta_major_mas, E.axis_ratio, E.pa_deg, 0.0),
                      block_minutes=args.block_minutes)
     sig_blk = track_sigma(circ, mag, MAGIC_SII)
     sig_h = track_sigma(circ, mag, MAGIC_SII, 3600.0)
@@ -87,7 +94,7 @@ def main():
         g = np.stack(grads)                                   # (n_par, n_pair, n_blk)
         w = (1.0 / sig_blk**2)[None, :, None]
         return np.einsum("ipk,jpk,pk->ij", g, g, np.broadcast_to(w[0], g.shape[1:]))
-    F = fisher([E["theta_major_mas"], E["axis_ratio"], E["pa_deg"]])
+    F = fisher([E.theta_major_mas, E.axis_ratio, E.pa_deg])
     cov = np.linalg.inv(F)
     s_th, s_r, s_pa = np.sqrt(np.diag(cov))
     print(f"  one night, three parameters free (major axis, axis ratio, PA): sigma(theta_major) = {s_th:.3f} mas, "

@@ -3,7 +3,7 @@
 delta Vel (A2 IV + A4 V, P = 45.15 d, a = 16.6 mas at 25.1 pc, disks
 1.10 / 0.93 mas) never rises usefully at Teide (dec -54.7), so the
 EON-SII pair plus a third identical unit is placed at Paranal on an
-equilateral triangle (bispectrum.eonsii_triangle).  The script prints
+equilateral triangle (the catalog's eonsii_triangle_paranal array).  The script prints
 
   (1) diagnostics: rho(phase), the conjunctions, the eclipse windows,
       the Paranal hour-angle window, and the fraction of the orbit
@@ -43,23 +43,27 @@ import warnings
 import numpy as np
 
 from hbtsim.aperture import fringe_smearing_factor
-from hbtsim.bispectrum import eonsii_triangle
-from hbtsim.geometry import PARANAL, TEIDE, hour_angle_window
+from hbtsim.catalog import Catalog
+from hbtsim.geometry import hour_angle_window
 from hbtsim.orbit import max_separation_phase, positions_at, sky_positions
-from hbtsim.params import DAY, DELTA_VEL, MAS, in_eclipse_rho
+from hbtsim.params import DAY, MAS, in_eclipse_rho
 from hbtsim.sed import attach_from_cli
-from hbtsim.snr import (EONSII_MCP_PMT, EONSII_SPAD, EONSII_SPECTROGRAPH,
-                        EONSII_SPECTROGRAPH_R7500, Spectrograph)
-from hbtsim.snr3 import (Backend, campaign_g3_snr, campaign_nights_to_precision,
+from hbtsim.snr3 import (campaign_g3_snr, campaign_nights_to_precision,
                          geometry_samples, spectral_g3_snr)
 
-BACKENDS = (
-    Backend("1000 ch, MCP-PMT", EONSII_SPECTROGRAPH, EONSII_MCP_PMT),
-    Backend("1000 ch, QUASAR SPAD", EONSII_SPECTROGRAPH, EONSII_SPAD),
-    Backend("1000 ch, QUASAR SPAD + PBS", EONSII_SPECTROGRAPH, EONSII_SPAD, "pbs"),
-    Backend("R = 7500 (2388 ch), QUASAR SPAD", EONSII_SPECTROGRAPH_R7500, EONSII_SPAD),
-)
+CAT = Catalog(env=False)
+DELTA_VEL = CAT.load_target("deltavel")
+PARANAL = CAT.load_site("paranal")
+TEIDE = CAT.load_site("teide")
+BACKENDS = tuple(CAT.load_backend(n) for n in
+                 ("eonsii_mcp", "eonsii_spad", "eonsii_spad_pbs", "eonsii_r7500_spad"))
 SCAN_BACKEND = BACKENDS[2]
+
+
+def eonsii_triangle(side_m, detector=None):
+    """Three EON-SII 4 m units on an equilateral triangle at Paranal."""
+    kw = {} if detector is None else {"detector": detector}
+    return CAT.load_array("eonsii_triangle_paranal", side_m=float(side_m), **kw)
 TARGETS = (("phase", 0.1, "rad on a closure-phase shift"),
            ("amplitude", 0.1, "on cos phi_c (template)"))
 
@@ -205,7 +209,7 @@ def figures(res, system, side, out_dir="output"):
     print(f"  wrote {f1}")
 
     (tri,) = eonsii_triangle(side).projected(0.0, system.dec_deg).triangles()
-    spec = Spectrograph(lambda_min_nm=400.0, lambda_max_nm=550.0, n_channels=60, throughput=0.6)
+    spec = CAT.load_spectrograph("eonsii_60ch")
     phases = np.linspace(0.0, 1.0, 121)
     cmap = np.array([geometry_samples(system, tri, spec, p, "auto", "epoch").ts.cos_phi_c
                      for p in phases])

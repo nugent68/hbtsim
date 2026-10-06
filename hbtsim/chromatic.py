@@ -34,7 +34,7 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
-from .geometry import TEIDE, Site, hour_angle_window
+from .geometry import Site, hour_angle_window
 from .single import (SingleStar, prepare_single, single_star_vis2, spectral_g2_snr_single,
                      ud_diameter_per_channel, ud_dtheta_dvis2)
 from .snr import Detector, Observation, Spectrograph, Telescope, incident_rate, polarization_streams
@@ -147,7 +147,7 @@ def select_channels_for_link(rate_cps, info, link_cps: float, continuum_mask, si
 class ChromaticResult:
     target: str
     baseline_m: float
-    readout: str
+    channel_selection: str          # "all" | "subset"
     t_int_s: float
     nm: np.ndarray
     vis2: np.ndarray
@@ -168,7 +168,7 @@ class ChromaticResult:
         return np.inf if self.significance <= 0 else (n_sigma / self.significance) ** 2
 
 
-def night_seconds(target: SingleStar, site: Site = TEIDE, min_alt_deg: float = 30.0,
+def night_seconds(target: SingleStar, site: Site, min_alt_deg: float = 30.0,
                   max_night_h: float = 8.0) -> float:
     """Time above min_alt_deg per night, capped at max_night_h."""
     h0, h1 = hour_angle_window(target.dec_deg, site.latitude_deg, min_alt_deg)
@@ -177,14 +177,20 @@ def night_seconds(target: SingleStar, site: Site = TEIDE, min_alt_deg: float = 3
 
 def chromatic_signature(target: SingleStar, baseline_m: float,
                         spectrograph: Spectrograph, *, telescope: Telescope,
-                        detector: Detector, polarization_mode: str = "unpolarized",
-                        t_int_s: float | None = None, readout: str = "link",
-                        site: Site = TEIDE, deg: int = 1, pupils=True,
+                        detector: Detector, site: Site, polarization_mode: str = "unpolarized",
+                        t_int_s: float | None = None, channel_selection: str = "all",
+                        deg: int = 1, pupils=True,
                         ref_frac: float = 0.25, lines=None) -> ChromaticResult:
     """The chromatic-diameter signature and its detectability in one
-    night (t_int_s; default: the time above 30 deg at `site`, <= 8 h)."""
-    if readout not in ("link", "subset", "correlator"):
-        raise ValueError(f"readout must be 'link', 'subset' or 'correlator', not {readout!r}")
+    night (t_int_s; default: the time above 30 deg at `site`, <= 8 h).
+
+    channel_selection "all" tags every channel (a time-tag detector is
+    attenuated to its link ceiling, detector.max_total_cps; a correlator
+    detector has none), "subset" tags only the channels that fit the link
+    at full rate: continuum references first (ref_frac of the link), then
+    the channels with the most signal per photon."""
+    if channel_selection not in ("all", "subset"):
+        raise ValueError(f"channel_selection must be 'all' or 'subset', not {channel_selection!r}")
     t_int_s = night_seconds(target, site) if t_int_s is None else float(t_int_s)
     tgt = prepare_single(target, spectrograph)
     nm = spectrograph.channel_centers_nm
@@ -206,10 +212,7 @@ def chromatic_signature(target: SingleStar, baseline_m: float,
         with np.errstate(divide="ignore"):
             return np.where(res.snr > 0, dth * v2 / res.snr, np.inf)
 
-    if readout == "correlator":
-        res = spectral_g2_snr_single(tgt, baseline_m, enforce_readout=False, **kw)
-        tagged = np.ones(nm.size, bool)
-    elif readout == "link":
+    if channel_selection == "all":
         res = spectral_g2_snr_single(tgt, baseline_m, enforce_readout=True, **kw)
         tagged = np.ones(nm.size, bool)
     else:
@@ -259,7 +262,8 @@ def chromatic_signature(target: SingleStar, baseline_m: float,
     smooth_all = continuum_fit(nm, th, np.ones(nm.size), cont, min(deg, 2))
     chroma = 100.0 * (smooth_all[-1] / smooth_all[0] - 1.0)
     return ChromaticResult(
-        target=target.name, baseline_m=float(baseline_m), readout=readout, t_int_s=t_int_s,
+        target=target.name, baseline_m=float(baseline_m), channel_selection=channel_selection,
+        t_int_s=t_int_s,
         nm=nm, vis2=v2, theta_ud=th, sigma_theta=sig, continuum=continuum, tagged=tagged,
         readout_scale=res.readout_scale, significance=total, line_significance=per_line,
         line_signal_pct=signal, continuum_chromaticity_pct=float(chroma), deg=d_eff,
@@ -267,19 +271,19 @@ def chromatic_signature(target: SingleStar, baseline_m: float,
 
 
 def optimal_baseline(target: SingleStar, spectrograph: Spectrograph, *, telescope: Telescope,
-                     detector: Detector, readout: str = "link",
+                     detector: Detector, site: Site, channel_selection: str = "all",
                      x_grid=np.arange(1.0, 3.61, 0.2), min_baseline_m: float = 0.0,
                      **kw) -> tuple:
     """(baseline, ChromaticResult) maximizing the total significance over
     first-lobe baselines x = pi theta B / lambda_mid in x_grid, never
-    below min_baseline_m (e.g. bispectrum.EONSII_MIN_SPACING_M)."""
+    below min_baseline_m (e.g. the array generator's min_spacing_m)."""
     from .params import MAS
     lam_mid = 0.5 * (spectrograph.lambda_min_nm + spectrograph.lambda_max_nm) * 1e-9
     best = None
     for x in x_grid:
         b = max(float(x) * lam_mid / (np.pi * target.drawn_diameter_mas * MAS), min_baseline_m)
         r = chromatic_signature(target, b, spectrograph, telescope=telescope, detector=detector,
-                                readout=readout, **kw)
+                                site=site, channel_selection=channel_selection, **kw)
         if best is None or r.significance > best[1].significance:
             best = (b, r)
     return best

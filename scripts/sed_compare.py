@@ -19,9 +19,12 @@ import warnings
 
 import numpy as np
 
-from hbtsim.params import SYSTEMS, MAS
+from hbtsim.catalog import Catalog
+from hbtsim.params import MAS
 from hbtsim.sed import NewEraGrid, with_newera
 from hbtsim.snr import model_ab_mag
+
+CAT = Catalog(env=False)
 
 LAM = np.array([400.0, 420.0, 450.0, 486.27, 500.0, 550.0, 650.0, 800.0, 900.0])  # vacuum nm; 486.27 = H-beta core
 
@@ -49,7 +52,7 @@ def main():
     grid = NewEraGrid.scan(args.newera_dir)
     print(f"NewEra grid: {grid.coverage()}")
     for key in ("betaaur", "deltavel", "algol"):
-        sys0 = SYSTEMS[key]
+        sys0 = CAT.load_target(key)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             sys1, rep = with_newera(sys0, grid, allow_extrapolation=True)
@@ -76,9 +79,9 @@ def main():
             warnings.simplefilter("ignore")
             m0 = model_ab_mag(sys0, np.array([477.0, 763.0]))
             m1 = model_ab_mag(sys1, np.array([477.0, 763.0]))
-        anc = dict(sys0.mag_anchors)
+        anc = dict(sys0.mag_anchors)                 # {wavelength_nm: mag_ab}
         print(f"  g, i: blackbody {m0[0]:.3f}, {m0[1]:.3f}; NewEra {m1[0]:.3f}, {m1[1]:.3f}; "
-              f"anchors {anc['g']:.2f}, {anc['i']:.2f}")
+              f"anchors {anc[477.0]:.2f}, {anc[763.0]:.2f}")
 
 
 if __name__ == "__main__":

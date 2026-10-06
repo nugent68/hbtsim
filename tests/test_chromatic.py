@@ -5,12 +5,14 @@ import os
 import numpy as np
 import pytest
 
+from hbtsim.catalog import Catalog
 from hbtsim.chromatic import (BALMER_VAC_NM, asimov_significance, chromatic_signature,
                               continuum_fit, line_masks, select_channels_for_link)
-from hbtsim.single import SIRIUS_A, VEGA, attach_newera_single
-from hbtsim.snr import EON_SII_TELESCOPE, EONSII_SPAD, EONSII_SPECTROGRAPH, Spectrograph
+from hbtsim.single import attach_newera_single
+from hbtsim.snr import Spectrograph
 
-NM = EONSII_SPECTROGRAPH.channel_centers_nm
+CAT = Catalog(env=False)
+NM = CAT.load_spectrograph("eonsii_1000ch").channel_centers_nm
 has_newera = pytest.mark.skipif(not os.path.isdir("data/newera"), reason="NewEra tables not present")
 
 
@@ -53,23 +55,26 @@ def test_select_channels_fits_link_and_matches_brute_force():
     assert info[tag & ~cont].sum() >= 0.7 * best
 
 
-def test_significance_scales_as_sqrt_time():
+def test_significance_scales_as_sqrt_time(vega, eonsii_tel, eonsii_spad_correlator, teide):
     spec = Spectrograph(lambda_min_nm=480.0, lambda_max_nm=492.0, n_channels=80, throughput=0.6)
-    kw = dict(telescope=EON_SII_TELESCOPE, detector=EONSII_SPAD, readout="correlator", deg=1)
-    a = chromatic_signature(VEGA, 18.0, spec, t_int_s=3600.0, **kw)
-    b = chromatic_signature(VEGA, 18.0, spec, t_int_s=4 * 3600.0, **kw)
+    # the former readout="correlator": every channel on a correlator detector
+    kw = dict(telescope=eonsii_tel, detector=eonsii_spad_correlator, site=teide,
+              channel_selection="all", deg=1)
+    a = chromatic_signature(vega, 18.0, spec, t_int_s=3600.0, **kw)
+    b = chromatic_signature(vega, 18.0, spec, t_int_s=4 * 3600.0, **kw)
     assert b.significance == pytest.approx(2.0 * a.significance, rel=1e-9)
     with pytest.raises(ValueError):
-        chromatic_signature(VEGA, 18.0, spec, readout="bogus", **{k: v for k, v in kw.items()
-                                                                  if k != "readout"})
+        chromatic_signature(vega, 18.0, spec, **{**kw, "channel_selection": "bogus"})
 
 
 @has_newera
-def test_sirius_subset_beats_link_and_signal_sign():
-    s, _ = attach_newera_single(SIRIUS_A, "data/newera")
-    kw = dict(telescope=EON_SII_TELESCOPE, detector=EONSII_SPAD)
-    link = chromatic_signature(s, 10.0, EONSII_SPECTROGRAPH, readout="link", **kw)
-    sub = chromatic_signature(s, 10.0, EONSII_SPECTROGRAPH, readout="subset", **kw)
+def test_sirius_subset_beats_link_and_signal_sign(sirius_a, eonsii_tel, eonsii_spad, eonsii_spec,
+                                                  teide):
+    s, _ = attach_newera_single(sirius_a, "data/newera")
+    # the time-tag SPAD: "all" channels share the link (the former readout="link")
+    kw = dict(telescope=eonsii_tel, detector=eonsii_spad, site=teide)
+    link = chromatic_signature(s, 10.0, eonsii_spec, channel_selection="all", **kw)
+    sub = chromatic_signature(s, 10.0, eonsii_spec, channel_selection="subset", **kw)
     assert link.readout_scale < 0.05 and sub.readout_scale > 0.9
     assert sub.significance > 3 * link.significance
     for k in BALMER_VAC_NM:

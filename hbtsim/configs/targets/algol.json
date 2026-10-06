@@ -60,5 +60,13 @@
     "primary.teff_k": "[K15]",
     "secondary.teff_k": "[K15]",
     "node_pa_deg": "[B12] Table 6"
+  },
+  "summary": {
+    "short": "Algol A–B",
+    "components": "B8V dwarf + K0IV subgiant",
+    "eclipses": "deep primary, **1.48 mag in g**",
+    "anchor_note": "C-corrected",
+    "newera": "A (clamped to 12 000 K); B blackbody",
+    "sources": "Baron et al. 2012 (CHARA); Zavala et al. 2010; Kolbas et al. 2015"
   }
 }

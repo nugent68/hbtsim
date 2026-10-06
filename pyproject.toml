@@ -21,6 +21,7 @@ hbtsim-movie = "hbtsim.cli:main"
 hbtsim-g2spec = "hbtsim.g2spec:main"
 hbtsim-snr = "hbtsim.snr_cli:main"
 hbtsim-catalog = "hbtsim.catalog.cli:main"
+hbtsim-run = "hbtsim.run_campaign:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -35,7 +36,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["hbtsim", "hbtsim.catalog"]
+packages = ["hbtsim", "hbtsim.catalog", "hbtsim.runners"]
 
 [tool.setuptools.package-data]
 hbtsim = ["configs/*/*.json"]

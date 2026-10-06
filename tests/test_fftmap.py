@@ -8,24 +8,24 @@ import pytest
 
 from hbtsim import fftmap, hbt
 from hbtsim.orbit import SkyPositions, sky_positions
-from hbtsim.params import BETA_AUR, GridConfig, MovieConfig
+from hbtsim.params import GridConfig, MovieConfig
 from hbtsim.render import linear_rows_jnp, render_image, render_kernel
 
 GRID = GridConfig()
 
 
-def _pos(psi):
-    return SkyPositions(*(np.asarray(v) for v in sky_positions(psi, BETA_AUR)))
+def _pos(system, psi):
+    return SkyPositions(*(np.asarray(v) for v in sky_positions(psi, system)))
 
 
-def test_bilinear_interpolation_vs_exact_dft():
+def test_bilinear_interpolation_vs_exact_dft(beta_aur):
     """FFT + bilinear interpolation agrees with the exact DFT only to a
     few 1e-3 in |V|^2 (the fringe is damped by the interpolation) -- the
     old science-path tolerance, kept here as a record."""
     cfg = MovieConfig()
-    pos = _pos(0.3)
+    pos = _pos(beta_aur, 0.3)
     lam = 400e-9
-    img = render_image(pos, BETA_AUR, 400.0, GRID)
+    img = render_image(pos, beta_aur, 400.0, GRID)
     v2map = fftmap.vis2_map(img, GRID.pad)
     b = np.asarray(cfg.baselines_m)
     v2_interp = np.asarray(fftmap.vis2_of_baseline(v2map, b, lam, float(pos.pa), GRID))
@@ -34,20 +34,18 @@ def test_bilinear_interpolation_vs_exact_dft():
     assert not np.allclose(v2_interp, v2_exact, atol=1e-5)
 
 
-def test_complex_map_modulus_equals_vis2_map():
-    img = render_image(_pos(0.0), BETA_AUR, 500.0, GRID)
+def test_complex_map_modulus_equals_vis2_map(beta_aur):
+    img = render_image(_pos(beta_aur, 0.0), beta_aur, 500.0, GRID)
     v2 = np.asarray(fftmap.vis2_map(img, GRID.pad))
     vc = np.asarray(fftmap.vis_complex_map(img, GRID.n, GRID.pad))
     assert np.allclose(np.abs(vc) ** 2, v2, atol=1e-6)
 
 
-def test_complex_map_phase_vs_exact_dft():
+def test_complex_map_phase_vs_exact_dft(beta_aur, maunakea_tri):
     """The demodulated complex map, sampled bilinearly, tracks the exact
     DFT phase to ~0.2 deg on the Maunakea triangle."""
-    from hbtsim.bispectrum import MAUNAKEA_SUBARU_KECK
-
-    img = render_image(_pos(0.0), BETA_AUR, 500.0, GRID)
-    bv = MAUNAKEA_SUBARU_KECK.baseline_vectors()
+    img = render_image(_pos(beta_aur, 0.0), beta_aur, 500.0, GRID)
+    bv = maunakea_tri.baseline_vectors()
     vmap = fftmap.vis_complex_map(img, GRID.n, GRID.pad)
     f = np.asarray(fftmap.uv_bins_of_baseline(bv, 500e-9, GRID))
     g = np.asarray(fftmap.vis_complex_of_uv(vmap, f[:, 0], f[:, 1]))

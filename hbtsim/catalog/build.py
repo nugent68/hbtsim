@@ -20,9 +20,6 @@ from ..params import MAS, PARSEC, R_SUN, BinarySystem, DiskTarget, Star
 from ..snr import FWHM_TO_SIGMA, Detector, Spectrograph, Telescope
 from .schema import CatalogError, SchemaError, check_kind
 
-GAUSS_FWHM_OVER_SIGMA = 2.3548200450309493
-
-
 # ---------------------------------------------------------------------------
 # Small runtime records that have no home in the physics modules
 # ---------------------------------------------------------------------------
@@ -154,8 +151,8 @@ def jitter_fwhm_ps(timing: dict) -> float:
     if "electronic_bandwidth_hz" in timing:
         # analog photomultiplier + digitizer: the pair response of a
         # bandwidth-limited correlator (hbtsim.iact)
-        sigma_pair = 1.0 / (np.sqrt(np.pi) * timing["electronic_bandwidth_hz"])
-        return sigma_pair / np.sqrt(2.0) * GAUSS_FWHM_OVER_SIGMA * 1e12
+        from ..iact import analog_pair_fwhm_ps
+        return analog_pair_fwhm_ps(timing["electronic_bandwidth_hz"])
     raise SchemaError(f"timing needs one of jitter_fwhm_ps / jitter_sigma_ps / "
                       f"pair_sigma_ps / electronic_bandwidth_hz, got {sorted(timing)}")
 
@@ -267,6 +264,7 @@ def build_array(cat, d: dict, **overrides):
                                  _ref(cat, "detector", s["detector"], where),
                                  up_m=s.get("up_m", 0.0)) for s in d["stations"])
         return Array(stations, site=site)
+    from ..bispectrum import equilateral_array, pair_array
     g = dict(d["generator"])
     bad = sorted(set(overrides) - set(GENERATOR_KEYS) - {"type"})
     if bad:
@@ -275,30 +273,16 @@ def build_array(cat, d: dict, **overrides):
     g.update(overrides)
     tel = g["telescope"] if isinstance(g["telescope"], Telescope) else _ref(cat, "telescope", g["telescope"], where)
     det = g["detector"] if isinstance(g["detector"], Detector) else _ref(cat, "detector", g["detector"], where)
-    pa = np.radians(g.get("pa_deg", 0.0))
+    common = dict(site=site, pa_deg=g.get("pa_deg", 0.0), min_spacing_m=g.get("min_spacing_m"))
     if g["type"] == "equilateral":
-        side = float(g["side_m"])
         names = tuple(g.get("station_names", ("T1", "T2", "T3")))
         if len(names) != 3:
             raise CatalogError(f"{where}: an equilateral generator needs three station_names")
-        if "min_spacing_m" in g and side < g["min_spacing_m"]:
-            raise ValueError(f"{where}: side {side} m is below the {g['min_spacing_m']} m minimum "
-                             f"spacing of two {tel.diameter_m:g} m telescopes")
-        a, b = pa, np.radians(g.get("pa_deg", 0.0) + 60.0)
-        stations = (Station(names[0], 0.0, 0.0, tel, det),
-                    Station(names[1], side * np.sin(a), side * np.cos(a), tel, det),
-                    Station(names[2], side * np.sin(b), side * np.cos(b), tel, det))
-    else:
-        base = float(g["baseline_m"])
-        names = tuple(g.get("station_names", ("T1", "T2")))
-        if len(names) != 2:
-            raise CatalogError(f"{where}: a pair generator needs two station_names")
-        if "min_spacing_m" in g and base < g["min_spacing_m"]:
-            raise ValueError(f"{where}: baseline {base} m is below the {g['min_spacing_m']} m "
-                             f"minimum spacing")
-        stations = (Station(names[0], 0.0, 0.0, tel, det),
-                    Station(names[1], base * np.sin(pa), base * np.cos(pa), tel, det))
-    return Array(stations, site=site)
+        return equilateral_array(float(g["side_m"]), tel, det, names=names, **common)
+    names = tuple(g.get("station_names", ("T1", "T2")))
+    if len(names) != 2:
+        raise CatalogError(f"{where}: a pair generator needs two station_names")
+    return pair_array(float(g["baseline_m"]), tel, det, names=names, **common)
 
 
 def build_resource(cat, d: dict) -> Resource:

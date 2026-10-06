@@ -60,5 +60,13 @@
     "distance_pc": "[M11] orbital parallax",
     "semimajor_au": "Kepler, [M11] masses",
     "node_pa_deg": "[M11] Table 2"
+  },
+  "summary": {
+    "short": "δ Velorum Aa–Ab",
+    "components": "A2 IV + A4 V rapid rotators",
+    "eclipses": "grazing",
+    "anchor_note": "B-corrected",
+    "newera": "both stars (interpolated)",
+    "sources": "Mérand et al. 2011"
   }
 }

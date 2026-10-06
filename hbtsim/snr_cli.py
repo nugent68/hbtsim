@@ -4,17 +4,18 @@ Default: spectral mode -- the light is dispersed over the SPAD Lambda's
 320-pixel linear array (400-950 nm, ~1.7 nm channels), each pixel pair
 measuring g2 independently; channel SNRs add in quadrature.
 
-    python -m hbtsim.snr_cli                          # C2PU: B = 50 m, 2 x 1 m
-    python -m hbtsim.snr_cli --baseline 15 50 100     # several baselines
-    python -m hbtsim.snr_cli --mode narrowband --baseline 15 \
+    hbtsim snr                                        # beta Aur, C2PU 1 m, B = 50 m
+    hbtsim snr --target spica --instrument keck_pair  # an array: its telescopes and baselines
+    hbtsim snr --telescope keck_10m --detector spad_lambda_ng --baseline 15 50 100
+    hbtsim snr --mode narrowband --baseline 15 \
         --wavelengths 400 800 --filter-width 10       # the old filter setup
 
 In spectral mode each channel's |V|^2 comes from the batched render +
 exact-DFT pipeline (hbtsim.spectral, GPU-accelerated under JAX; ~10 ms
 per channel on CPU) -- pass --vis2-method analytic for the instant
 out-of-eclipse approximation.  Narrowband mode renders once per filter.
-Source brightness is the anchored blackbody model of the chosen --system
-in both modes.
+Source brightness is the anchored blackbody (or NewEra) model of the
+chosen --target in both modes.
 """
 
 from __future__ import annotations
@@ -25,11 +26,12 @@ from dataclasses import replace
 import numpy as np
 
 from . import hbt
+from .cli_common import (add_catalog_options, add_instrument_options, catalog_from,
+                         resolve_instrument, resolve_target)
 from .orbit import positions_at, sky_positions
-from .params import SYSTEMS, GridConfig
+from .params import GridConfig
 from .render import render_image
-from .snr import (C2PU, DISPERSED_BACKEND, FILTER_BACKEND, SPAD_LAMBDA,
-                  SPAD_LAMBDA_NG, Observation, Spectrograph, Telescope,
+from .snr import (DISPERSED_THROUGHPUT, FILTER_THROUGHPUT, Observation, Spectrograph,
                   g2_snr, spectral_g2_snr, system_ab_mag)
 
 
@@ -37,7 +39,7 @@ def narrowband(args, system, grid, tel, det) -> None:
     pos = positions_at(system, args.phase)
     print(f"Filter    : {args.filter_width:.1f} nm rectangular full width at "
           f"{', '.join(f'{w:.0f}' for w in args.wavelengths)} nm "
-          f"(backend throughput {FILTER_BACKEND.throughput:.2f})\n")
+          f"(backend throughput {FILTER_THROUGHPUT:.2f})\n")
 
     hdr = (f"{'lam[nm]':>8} {'B[m]':>7} {'mag(AB)':>8} {'rate[Mcps]':>11} "
            f"{'tau_c[fs]':>10} {'|V|^2':>7} {'N_sig':>10} {'N_bkg':>12} {'SNR':>8}")
@@ -61,8 +63,11 @@ def narrowband(args, system, grid, tel, det) -> None:
                   f"{r.snr:8.2f}")
 
 
-def spectral(args, system, tel, det) -> None:
-    if args.resolving_power is None:
+def spectral(args, system, tel, det, spec=None) -> None:
+    if spec is not None:
+        chan = (f"{spec.name}: {spec.n_channels} channels"
+                + (f" x {spec.channel_width_nm:.2f} nm" if spec.is_uniform else f", R = {spec.resolving_power:g}"))
+    elif args.resolving_power is None:
         spec = Spectrograph(lambda_min_nm=args.lambda_min,
                             lambda_max_nm=args.lambda_max,
                             n_channels=args.channels,
@@ -110,16 +115,13 @@ def spectral(args, system, tel, det) -> None:
 
 
 def main(argv=None) -> None:
-    p = argparse.ArgumentParser(description="g2(B) SNR for a telescope pair")
-    p.add_argument("--system", choices=sorted(SYSTEMS), default="betaaur")
+    p = argparse.ArgumentParser(description="g2(B) SNR for a telescope pair",
+                                formatter_class=argparse.RawDescriptionHelpFormatter,
+                                epilog=__doc__)
+    add_catalog_options(p)
+    add_instrument_options(p)
     p.add_argument("--mode", choices=("spectral", "narrowband"),
                    default="spectral")
-    p.add_argument("--baseline", type=float, nargs="+", default=[50.0],
-                   help="baseline(s) in m")
-    p.add_argument("--diameter", type=float, default=C2PU.diameter_m,
-                   help="telescope diameter in m (C2PU: 1.0)")
-    p.add_argument("--throughput", type=float, default=C2PU.throughput,
-                   help="optics+atmosphere throughput, excl. detector PDE")
     p.add_argument("--time", type=float, default=3600.0,
                    help="integration time in s")
     p.add_argument("--phase", type=float, default=0.0,
@@ -140,7 +142,7 @@ def main(argv=None) -> None:
     p.add_argument("--resolving-power", type=float, default=None,
                    help="constant-R channel grid instead of --channels")
     p.add_argument("--backend-throughput", type=float,
-                   default=DISPERSED_BACKEND.throughput,
+                   default=DISPERSED_THROUGHPUT,
                    help="spectrograph + coupling throughput (spectral mode)")
     p.add_argument("--readout", choices=("timetag", "correlator"),
                    default="timetag",
@@ -154,52 +156,33 @@ def main(argv=None) -> None:
                    help="rectangular filter full width in nm")
     p.add_argument("--n-pixels", type=int, default=1,
                    help="pixels the light is spread over per channel")
-    p.add_argument("--instrument", choices=("custom", "c2pu", "keck", "eonsii"), default="custom",
-                   help="preset telescope/detector/spectrograph (eonsii: 2 x 4 m, 400-550 nm, "
-                        "1000 channels, --detector picks MCP-PMT or SPAD); custom uses the "
-                        "--diameter/--throughput/--channels/... options")
-    p.add_argument("--detector", choices=("spad", "mcp"), default="spad",
-                   help="EON-SII detector case (QUASAR SPAD array or Photonis MCP-PMT)")
-    p.add_argument("--newera-dir", default=None,
-                   help="directory of binned NewEra tables to attach to the stars")
-    p.add_argument("--allow-extrapolation", action="store_true")
     p.add_argument("--mag", type=float, default=None,
                    help="override source AB magnitude (narrowband mode)")
     args = p.parse_args(argv)
 
-    from .sed import attach_from_cli
-    system = attach_from_cli(SYSTEMS[args.system], args.newera_dir, args.allow_extrapolation)
+    cat = catalog_from(args)
+    system = resolve_target(cat, args)
     grid = GridConfig().fit_orbit(system)
-    tel = Telescope(diameter_m=args.diameter, throughput=args.throughput)
-    base = SPAD_LAMBDA if args.readout == "timetag" else SPAD_LAMBDA_NG
-    if args.instrument == "eonsii":
-        from .snr import EON_SII_TELESCOPE, EONSII_MCP_PMT, EONSII_SPAD, EONSII_SPECTROGRAPH
-        tel = EON_SII_TELESCOPE
-        base = EONSII_SPAD if args.detector == "spad" else EONSII_MCP_PMT
-        args.channels = EONSII_SPECTROGRAPH.n_channels
-        args.lambda_min, args.lambda_max = EONSII_SPECTROGRAPH.lambda_min_nm, EONSII_SPECTROGRAPH.lambda_max_nm
-        args.backend_throughput = EONSII_SPECTROGRAPH.throughput
-        args.resolving_power = None
-        print("Instrument: EON-SII pair (arXiv:2608.17444) -- 2 x 4 m (9 m^2), 400-550 nm, "
-              "1000 effective channels, 1 GHz time-tag link")
-    elif args.instrument == "keck":
-        from .snr import KECK
-        tel = KECK
-    elif args.instrument == "c2pu":
-        tel = C2PU
-    det = replace(base, n_pixels=args.n_pixels)
+    inst = resolve_instrument(cat, args, readout=args.readout)
+    tel = inst.telescope
+    det = replace(inst.detector, n_pixels=args.n_pixels)
+    if args.baseline is None:
+        args.baseline = list(inst.baselines_m) or [50.0]
+    spec = cat.load_spectrograph(args.spectrograph) if args.spectrograph else None
+    print(f"Instrument: {inst.name}" + (f" ({', '.join(f'{b:.1f}' for b in inst.baselines_m)} m)"
+                                        if inst.baselines_m else ""))
 
     pos = sky_positions(2.0 * np.pi * args.phase, system)
     print(f"Source    : {system.name}, orbital phase {args.phase:.3f} "
           f"(projected separation {float(pos.rho):.3f} mas)")
-    print(f"Telescopes: 2 x {tel.diameter_m:.2f} m, throughput {tel.throughput:.2f}")
+    print(f"Telescopes: 2 x {tel.diameter_m:.2f} m ({tel.name}), throughput {tel.throughput:.2f}")
     print(f"Detectors : {det.name} (jitter {det.jitter_fwhm_ps:.0f} ps FWHM, "
           f"dead time {det.dead_time_ns:.0f} ns, {det.dark_cps_per_pixel:.0f} cps "
           f"dark/pixel)")
     print(f"Integration: {args.time:.0f} s")
 
     if args.mode == "spectral":
-        spectral(args, system, tel, det)
+        spectral(args, system, tel, det, spec)
     else:
         narrowband(args, system, grid, tel, det)
 

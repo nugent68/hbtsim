@@ -14,8 +14,7 @@ import pytest
 from hbtsim.limbdark import (DiskVisibilityCache, hankel_nodes, visibility_ld_disk,
                              visibility_profile, visibility_profile_batch)
 from hbtsim.orbit import positions_at
-from hbtsim.params import (ALGOL, BETA_AUR, DELTA_VEL, MAS, FluxTable, GridConfig,
-                           LDProfile, Star, planck)
+from hbtsim.params import MAS, FluxTable, GridConfig, LDProfile, Star, planck
 from hbtsim.render import render_image
 from hbtsim.sed import (NewEraGrid, band_average_flux, band_average_profile,
                         limb_edge, planck_flux_table, prepare_system,
@@ -65,19 +64,19 @@ def test_limb_edge_and_extension():
     assert limb_edge(flat.mu, flat.intensity[0]) == 0.0
 
 
-def test_drawn_radius_and_first_null_shift():
+def test_drawn_radius_and_first_null_shift(beta_aur):
     """radius_rsun is the tau = 1 radius: the disk is drawn out to
     R_outer = r_outer R, and the first null of |V|^2 moves inward by the
     same factor."""
     lam = np.array([450.0, 500.0])
     prof = spherical_profile(lam, mu_edge=0.10)
-    star = with_tables(BETA_AUR.primary, planck_flux_table(9350.0, lam), prof)
+    star = with_tables(beta_aur.primary, planck_flux_table(9350.0, lam), prof)
     assert star.radius_scale == pytest.approx(prof.r_outer)
     assert replace(star, radius_ref="outer").radius_scale == 1.0
-    sysm = replace(BETA_AUR, primary=star)
+    sysm = replace(beta_aur, primary=star)
     assert sysm.drawn_radius_mas(star) == pytest.approx(
         sysm.angular_radius_mas(star) * prof.r_outer)
-    assert sysm.sum_of_radii_mas > BETA_AUR.sum_of_radii_mas
+    assert sysm.sum_of_radii_mas > beta_aur.sum_of_radii_mas
     # the tabulated profile's own V(x): the null of the inner (linear-law)
     # disk of radius R_edge = R_outer/r_outer sits at x_null(u) * r_outer
     # in units of the drawn radius
@@ -89,14 +88,14 @@ def test_drawn_radius_and_first_null_shift():
     assert x_null == pytest.approx(x_null_lin * prof.r_outer, rel=1e-3)
 
 
-def test_native_mu_kernel_flux_matches_disk_factor():
+def test_native_mu_kernel_flux_matches_disk_factor(algol):
     """The renderer draws the table's own piecewise-linear profile out
     to the outer boundary: the rendered flux equals pi r_drawn^2 dff."""
     lam = np.array([500.0])
     prof = spherical_profile(lam, mu_edge=0.12)
-    star = with_tables(ALGOL.primary, planck_flux_table(12550.0, lam), prof)
-    sysm = replace(ALGOL, primary=star, secondary=with_tables(
-        ALGOL.secondary, planck_flux_table(4900.0, lam), prof))
+    star = with_tables(algol.primary, planck_flux_table(12550.0, lam), prof)
+    sysm = replace(algol, primary=star, secondary=with_tables(
+        algol.secondary, planck_flux_table(4900.0, lam), prof))
     grid = GridConfig(supersample=4).for_system(sysm)
     pos = positions_at(sysm, 0.0)
     img = np.asarray(render_image(pos, sysm, 500.0, grid), dtype=float)
@@ -107,7 +106,7 @@ def test_native_mu_kernel_flux_matches_disk_factor():
     # 0.5, i.e. the outer 13 % of the drawn radius) pixels inside the drawn
     # rim but outside the limb are dark, and the flux still matches
     wide = spherical_profile(lam, mu_edge=0.5)
-    star_w = with_tables(ALGOL.primary, planck_flux_table(12550.0, lam), wide)
+    star_w = with_tables(algol.primary, planck_flux_table(12550.0, lam), wide)
     sysw = replace(sysm, primary=star_w)
     gridw = GridConfig(supersample=4).for_system(sysw)
     posw = positions_at(sysw, 0.0)
@@ -169,14 +168,14 @@ def test_disk_visibility_cache():
 
 
 @pytest.mark.slow
-def test_tabulated_analytic_path_is_fast():
+def test_tabulated_analytic_path_is_fast(beta_aur, spec_r5000):
     import time
     from hbtsim.hbt import binary_vis2_analytic
-    lam = Spectrograph.from_resolving_power(5000.0).channel_centers_nm
+    lam = spec_r5000.channel_centers_nm
     prof = spherical_profile(lam)
-    sysm = replace(BETA_AUR,
-                   primary=with_tables(BETA_AUR.primary, planck_flux_table(9350.0, lam), prof),
-                   secondary=with_tables(BETA_AUR.secondary, planck_flux_table(9200.0, lam), prof))
+    sysm = replace(beta_aur,
+                   primary=with_tables(beta_aur.primary, planck_flux_table(9350.0, lam), prof),
+                   secondary=with_tables(beta_aur.secondary, planck_flux_table(9200.0, lam), prof))
     pos = positions_at(sysm, 0.0)
     b = np.linspace(20.0, 200.0, 591)
     t0 = time.perf_counter()
@@ -201,11 +200,11 @@ def test_band_average_flux_exact_for_linear_table():
     assert narrow[0] == pytest.approx(2.0 + 0.01 * 440.025, rel=1e-9)
 
 
-def test_rebin_recovers_channel_means_and_changes_rates():
+def test_rebin_recovers_channel_means_and_changes_rates(beta_aur, c2pu, spad_lambda):
     lam = LAM
     flux = line_flux(lam, 9350.0)
     prof = spherical_profile(lam)
-    star = with_tables(BETA_AUR.primary, FluxTable(lam, flux), prof)
+    star = with_tables(beta_aur.primary, FluxTable(lam, flux), prof)
     spec = Spectrograph(lambda_min_nm=480.0, lambda_max_nm=492.0, n_channels=6)
     edges = spec.channel_edges_nm
     rb = rebin_to_channels(star, edges)
@@ -223,14 +222,15 @@ def test_rebin_recovers_channel_means_and_changes_rates():
     j = np.argmin(np.abs(prof.mu - 0.3))
     assert min(core[j], cont[j]) <= rows[k, j] <= max(core[j], cont[j])
     # through the SNR entry point the rates differ from centre sampling
-    sysm = replace(BETA_AUR, primary=star,
-                   secondary=with_tables(BETA_AUR.secondary, FluxTable(lam, line_flux(lam, 9200.0)), prof))
+    sysm = replace(beta_aur, primary=star,
+                   secondary=with_tables(beta_aur.secondary, FluxTable(lam, line_flux(lam, 9200.0)), prof))
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        r = spectral_g2_snr(sysm, 40.0, spectrograph=spec, vis2_method="analytic")
+        r = spectral_g2_snr(sysm, 40.0, spectrograph=spec, vis2_method="analytic",
+                            telescope1=c2pu, detector1=spad_lambda)
         m_centre = system_ab_mag(sysm, spec.channel_centers_nm)
     assert not np.allclose(r.mag_ab, m_centre)
-    assert prepare_system(BETA_AUR, spec) is BETA_AUR
+    assert prepare_system(beta_aur, spec) is beta_aur
 
 
 # ---------------------------------------------------------------------------
@@ -306,24 +306,24 @@ def test_grid_refuses_and_clamps(synthetic_grid):
         grid.interpolate(9300.0, 5.0, allow_extrapolation=True)
 
 
-def test_with_newera_report(synthetic_grid):
+def test_with_newera_report(synthetic_grid, beta_aur, algol, delta_vel):
     grid, lam = synthetic_grid
-    sysm, report = with_newera(BETA_AUR, grid)
+    sysm, report = with_newera(beta_aur, grid)
     assert sysm.has_sed_tables
     assert all("interpolated" in v for v in report.values())
     # log g from mass and radius: 3.93 / 3.98 -> inside the grid
-    assert 3.5 < BETA_AUR.primary.log_g < 4.0
+    assert 3.5 < beta_aur.primary.log_g < 4.0
     # a star outside the grid keeps its defaults and is reported
-    sysm2, rep2 = with_newera(ALGOL, grid)
-    assert sysm2.secondary.flux_table is None and "no NewEra coverage" in rep2[ALGOL.secondary.name]
+    sysm2, rep2 = with_newera(algol, grid)
+    assert sysm2.secondary.flux_table is None and "no NewEra coverage" in rep2[algol.secondary.name]
     assert sysm2.primary.flux_table is None
     # Algol A (12 550 K) is > 1000 K beyond this grid's 9400 K edge: never clamped
-    sysm3, rep3 = with_newera(ALGOL, grid, which=("primary",), allow_extrapolation=True)
-    assert sysm3.primary.flux_table is None and "not clamped" in rep3[ALGOL.primary.name]
+    sysm3, rep3 = with_newera(algol, grid, which=("primary",), allow_extrapolation=True)
+    assert sysm3.primary.flux_table is None and "not clamped" in rep3[algol.primary.name]
     # delta Vel Ab (9830 K) is 430 K beyond: clamped with a warning when allowed
     with pytest.warns(UserWarning, match="clamped"):
-        sysm4, rep4 = with_newera(DELTA_VEL, grid, allow_extrapolation=True)
-    assert sysm4.secondary.flux_table is not None and "clamped" in rep4[DELTA_VEL.secondary.name]
+        sysm4, rep4 = with_newera(delta_vel, grid, allow_extrapolation=True)
+    assert sysm4.secondary.flux_table is not None and "clamped" in rep4[delta_vel.secondary.name]
 
 
 # ---------------------------------------------------------------------------
@@ -334,9 +334,9 @@ needs_data = pytest.mark.skipif(not glob.glob(os.path.join(NEWERA_DIR, "newera_l
 
 
 @needs_data
-def test_real_grid_covers_beta_aur_and_delta_vel():
+def test_real_grid_covers_beta_aur_and_delta_vel(beta_aur, delta_vel, algol):
     grid = NewEraGrid.scan(NEWERA_DIR)
-    for sysm in (BETA_AUR, DELTA_VEL):
+    for sysm in (beta_aur, delta_vel):
         s2, rep = with_newera(sysm, grid)
         assert s2.has_sed_tables, rep
         for star in (s2.primary, s2.secondary):
@@ -350,12 +350,12 @@ def test_real_grid_covers_beta_aur_and_delta_vel():
             warnings.simplefilter("ignore")
             m = model_ab_mag(s2, np.array([477.0, 763.0]))
         anchors = dict(sysm.mag_anchors)
-        tol = 0.2 if sysm is BETA_AUR else 0.3
-        assert abs(m[0] - anchors["g"]) < tol and abs(m[1] - anchors["i"]) < tol
-    s3, rep3 = with_newera(ALGOL, grid)
+        tol = 0.2 if sysm == beta_aur else 0.3
+        assert abs(m[0] - anchors[477.0]) < tol and abs(m[1] - anchors[763.0]) < tol
+    s3, rep3 = with_newera(algol, grid)
     assert s3.primary.flux_table is None and s3.secondary.flux_table is None
     with pytest.warns(UserWarning, match="clamped"):
-        s4, rep4 = with_newera(ALGOL, grid, allow_extrapolation=True)
+        s4, rep4 = with_newera(algol, grid, allow_extrapolation=True)
     assert s4.primary.flux_table is not None and s4.secondary.flux_table is None
 
 
@@ -370,12 +370,12 @@ def test_real_tables_edge_definitions_agree():
         assert abs(r_tau - r_drop) < 1e-4
 
 
-def test_rebin_is_memoized():
+def test_rebin_is_memoized(beta_aur):
     """Repeated channel averaging of the same tables returns the same
     objects (so the disk-visibility cache keyed on them keeps hitting)."""
     lam = LAM
     prof = spherical_profile(lam)
-    star = with_tables(BETA_AUR.primary, FluxTable(lam, line_flux(lam, 9350.0)), prof)
+    star = with_tables(beta_aur.primary, FluxTable(lam, line_flux(lam, 9350.0)), prof)
     spec = Spectrograph(lambda_min_nm=480.0, lambda_max_nm=492.0, n_channels=6)
     a = rebin_to_channels(star, spec.channel_edges_nm)
     b = rebin_to_channels(star, spec.channel_edges_nm)

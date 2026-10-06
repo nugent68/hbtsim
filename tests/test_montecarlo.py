@@ -6,25 +6,40 @@ import numpy as np
 import pytest
 from scipy.special import erf
 
+from hbtsim.catalog import Catalog
 from hbtsim.montecarlo import (MCConfig, box_estimate, expected_counts, fit_ud,
                                matched_filter_estimate, observing_blocks, run_mc,
                                simulate_histograms)
 from hbtsim.snr import Spectrograph
 
-SMALL = MCConfig(mag_ab=3.0, spectrograph=Spectrograph(lambda_min_nm=450.0, lambda_max_nm=480.0,
-                                                       n_channels=12, throughput=0.6),
-                 t_total_h=1.0, zenith_angles_deg=(45.0, 52.5, 60.0))
+CAT = Catalog(env=False)
+
+
+def _config(**overrides) -> MCConfig:
+    """Sirius B on the 1750 m east-west EON-SII pair at Teide with the
+    1000-channel spectrograph and the MCP-PMT (the former MCConfig() defaults)."""
+    spectrograph = overrides.pop("spectrograph", None)
+    if spectrograph is None:
+        spectrograph = CAT.load_spectrograph("eonsii_1000ch")
+    return MCConfig.from_target(CAT.load_target("sirius_b"),
+                                CAT.load_array("eonsii_pair_teide", baseline_m=1750.0, pa_deg=90.0),
+                                spectrograph, detector=CAT.load_detector("eonsii_mcp_pmt"), **overrides)
+
+
+SMALL = _config(mag_ab=3.0, spectrograph=Spectrograph(lambda_min_nm=450.0, lambda_max_nm=480.0,
+                                                      n_channels=12, throughput=0.6),
+                t_total_h=1.0, zenith_angles_deg=(45.0, 52.5, 60.0))
 
 
 def test_observing_blocks_zenith_and_projection():
-    b = observing_blocks(MCConfig())
+    b = observing_blocks(_config())
     assert np.allclose(b.zenith_deg, (45.0, 52.5, 60.0))
     assert abs(b.hour_angle_h[0]) < 0.05                 # Sirius B transits at z = 45 from Teide
     assert np.all(b.b_proj_m <= 1750.0 + 1e-6)
     assert b.b_proj_m[0] == pytest.approx(1750.0, rel=1e-3)   # E-W baseline at transit
     assert b.t_s.sum() == pytest.approx(10 * 3600.0)
     with pytest.raises(ValueError):
-        observing_blocks(replace(MCConfig(), zenith_angles_deg=(30.0,)))
+        observing_blocks(replace(_config(), zenith_angles_deg=(30.0,)))
 
 
 def test_expected_counts_normalisation():

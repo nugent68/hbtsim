@@ -60,5 +60,12 @@
     "semimajor_au": "Kepler, [T16] masses",
     "eccentricity": "circular approximation of e = 0.108",
     "node_pa_deg": "[HE71]"
+  },
+  "summary": {
+    "short": "Spica",
+    "components": "B1 III-IV + B2 V",
+    "eclipses": "none",
+    "newera": "blackbody",
+    "sources": "Herbison-Evans et al. 1971; Tkachenko et al. 2016"
   }
 }

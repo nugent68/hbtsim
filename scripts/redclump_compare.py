@@ -16,10 +16,19 @@ from dataclasses import replace
 
 import numpy as np
 
-from hbtsim.diameter import BANDS, KK_DETECTOR, KK_TELESCOPE, kim_kaiser_sigma_vis2, scale_precision_scan
+from hbtsim.catalog import Catalog
+from hbtsim.diameter import kim_kaiser_sigma_vis2, scale_precision_scan
 from hbtsim.sed import load_star_tables, with_tables
-from hbtsim.single import HD_17652, HD_360
 from hbtsim.snr import AB_ZERO_FNU, C_LIGHT, H_PLANCK, Observation, g2_snr
+
+CAT = Catalog(env=False)
+HD_17652 = CAT.load_target("hd17652")
+HD_360 = CAT.load_target("hd360")
+KK_TELESCOPE = CAT.load_telescope("kk_4m")
+KK_DETECTOR = CAT.load_detector("kk_ideal")
+BANDS = {b: CAT.load_spectrograph(f"filter_{s}_{b.lower()}")
+         for b, s in (("B", "johnson"), ("V", "johnson"), ("R", "cousins"), ("I", "cousins"),
+                      ("H", "2mass"), ("K", "2mass"))}
 
 # their Table 1: 1/sigma(|V|^2) in 2 h (V, R, I, H, K)
 KK_TABLE1 = {"HD 17652": dict(V=28.93, R=40.37, I=69.70, H=188.53, K=168.63),
@@ -68,7 +77,8 @@ def main():
         b = np.arange(20.0, 301.0, 5.0)
         print(f"  sigma_s in 2 h, anchored model, baseline scanned:")
         for band in "VRIHK":
-            _, sig, best = scale_precision_scan(anchored, b, BANDS[band], t_int_s=7200.0)
+            _, sig, best = scale_precision_scan(anchored, b, BANDS[band], t_int_s=7200.0,
+                                                telescope=KK_TELESCOPE, detector=KK_DETECTOR)
             note = ""
             if band == "H":
                 note = f"   <- paper: {KK_SIGMA_S[key][1]}"

@@ -187,7 +187,7 @@ def precompute_frames(system: BinarySystem, grid: GridConfig, cfg: MovieConfig,
                           / planck(lam_nm * 1e-9, WHITE_REF_TEFF))
 
     mags = {band: anchored_mags(apparent_ab_mag(flux[:, j], lam_nm, system, grid),
-                                band, system, max_light_mag(system, lam_nm, grid))
+                                lam_nm, system, max_light_mag(system, lam_nm, grid))
             for j, (band, lam_nm) in enumerate(cfg.bands)}
     extent = DISPLAY_HALF_PX * DISPLAY_BIN * grid.pixel_scale_mas
     return FrameData(system, grid, cfg, psi / (2 * np.pi), disp, extent,

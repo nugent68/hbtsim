@@ -19,9 +19,11 @@ from dataclasses import replace
 
 import numpy as np
 
+from hbtsim.catalog import Catalog
 from hbtsim.estimators import implied_dt_res, optimal_box_half_width
 from hbtsim.montecarlo import MCConfig, expected_counts, fit_ud, run_mc
-from hbtsim.snr import EONSII_MCP_PMT, EONSII_SPAD
+
+CAT = Catalog(env=False)
 
 PAPER_MC = dict(theta=0.02955, sigma=0.0014)                  # MCP-PMT, 10 h
 PAPER_H10 = {"mcp": 1.5, "spad": 0.33}                        # hours to 10 %
@@ -53,8 +55,11 @@ def main():
     args = ap.parse_args()
 
     for key in ((args.detector,) if args.detector else ("mcp", "spad")):
-        det = EONSII_MCP_PMT if key == "mcp" else EONSII_SPAD
-        cfg = MCConfig(theta_true_mas=args.theta, detector=det)
+        det = CAT.load_detector("eonsii_mcp_pmt" if key == "mcp" else "eonsii_spad")
+        cfg = MCConfig.from_target(CAT.load_target("sirius_b"),
+                                   CAT.load_array("eonsii_pair_teide", baseline_m=1750.0, pa_deg=90.0),
+                                   CAT.load_spectrograph("eonsii_1000ch"),
+                                   detector=det, theta_true_mas=args.theta)
         e = expected_counts(cfg)
         sig = float(np.median(e.sigma_pair))
         print(f"\n=== {det.name}: Sirius B, theta {args.theta} mas, 10 h at zenith "

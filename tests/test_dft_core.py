@@ -16,7 +16,7 @@ import pytest
 
 from hbtsim import hbt
 from hbtsim.orbit import SkyPositions, sky_positions
-from hbtsim.params import ALGOL, BETA_AUR, MAS, GridConfig, MovieConfig
+from hbtsim.params import MAS, GridConfig, MovieConfig
 from hbtsim.render import linear_rows_jnp, render_image, render_kernel
 
 GRID = GridConfig()
@@ -33,9 +33,9 @@ def _f32(img):
     return jnp.asarray(img, dtype=jnp.float32)
 
 
-def test_matches_float64_reference_at_movie_baselines():
-    pos = _pos(BETA_AUR, 0.3)
-    img = _f32(render_image(pos, BETA_AUR, 400.0, GRID))
+def test_matches_float64_reference_at_movie_baselines(beta_aur):
+    pos = _pos(beta_aur, 0.3)
+    img = _f32(render_image(pos, beta_aur, 400.0, GRID))
     b = np.asarray(MovieConfig().baselines_m)
     lam = 400e-9
     bv = hbt.baseline_vectors_along_pa(b, float(pos.pa))
@@ -48,11 +48,11 @@ def test_matches_float64_reference_at_movie_baselines():
     assert np.abs(np.angle(v[ok] * np.conj(ref[ok]))).max() < 1e-5
 
 
-def test_matches_float64_reference_on_longest_maunakea_arm():
+def test_matches_float64_reference_on_longest_maunakea_arm(algol):
     """226 m at 400 nm, arbitrary orientation: the largest phase the
     package ever asks for."""
-    pos = _pos(ALGOL, 0.7)
-    img = _f32(render_image(pos, ALGOL, 400.0, GRID))
+    pos = _pos(algol, 0.7)
+    img = _f32(render_image(pos, algol, 400.0, GRID))
     lam = 400e-9
     bv = np.array([[LONGEST_ARM_M * np.cos(0.4), LONGEST_ARM_M * np.sin(0.4)],
                    [-LONGEST_ARM_M, 0.0], [0.0, LONGEST_ARM_M]])
@@ -62,14 +62,14 @@ def test_matches_float64_reference_on_longest_maunakea_arm():
     assert np.abs(np.angle(v * np.conj(ref))).max() < 1e-5
 
 
-def test_zero_frequency_is_exactly_one():
-    img = _f32(render_image(_pos(BETA_AUR, 1.0), BETA_AUR, 800.0, GRID))
+def test_zero_frequency_is_exactly_one(beta_aur):
+    img = _f32(render_image(_pos(beta_aur, 1.0), beta_aur, 800.0, GRID))
     v = hbt.vis_points(img, [0.0], [0.0], GRID)
     assert complex(v[0]) == pytest.approx(1.0 + 0.0j, abs=1e-6)  # f32 rounding
 
 
-def test_hermitian_symmetry():
-    img = _f32(render_image(_pos(ALGOL, 0.2), ALGOL, 600.0, GRID))
+def test_hermitian_symmetry(algol):
+    img = _f32(render_image(_pos(algol, 0.2), algol, 600.0, GRID))
     u = np.array([50.0, -120.0, 200.0]) / 600e-9
     v = np.array([-30.0, 80.0, 10.0]) / 600e-9
     a = np.asarray(hbt.vis_points(img, u, v, GRID))
@@ -95,10 +95,10 @@ def test_displaced_point_source_phase():
     assert np.abs(got - expect).max() < 2e-6
 
 
-def test_origin_shift():
+def test_origin_shift(beta_aur):
     """origin_rad applies the plane-wave factor of the grid centre's sky
     position."""
-    img = _f32(render_image(_pos(BETA_AUR, 0.0), BETA_AUR, 500.0, GRID))
+    img = _f32(render_image(_pos(beta_aur, 0.0), beta_aur, 500.0, GRID))
     u = np.array([40.0, 90.0]) / 500e-9
     v = np.array([10.0, -70.0]) / 500e-9
     x0, y0 = 1.3 * MAS, -0.7 * MAS
@@ -116,9 +116,9 @@ def test_frequency_guard():
         hbt.vis_points(img, [0.4 / GRID.pixel_scale_rad], [0.0], GRID)
 
 
-def test_vis2_along_pa_and_g2():
-    pos = _pos(BETA_AUR, 0.0)
-    img = _f32(render_image(pos, BETA_AUR, 400.0, GRID))
+def test_vis2_along_pa_and_g2(beta_aur):
+    pos = _pos(beta_aur, 0.0)
+    img = _f32(render_image(pos, beta_aur, 400.0, GRID))
     b = np.array([0.0, 30.0, 60.0])
     v2 = np.asarray(hbt.vis2_along_pa(img, b, 400e-9, float(pos.pa), GRID))
     g2 = np.asarray(hbt.g2_along_pa(img, b, 400e-9, float(pos.pa), GRID))
@@ -127,15 +127,15 @@ def test_vis2_along_pa_and_g2():
     assert np.all((v2 >= -1e-7) & (v2 <= 1.0 + 1e-6))
 
 
-def test_speed_vs_padded_fft(monkeypatch):
+def test_speed_vs_padded_fft(monkeypatch, beta_aur):
     """The DFT at 176 points must be far cheaper than one padded FFT
     (soft check: >= 5x on any machine; it is 50-100x in practice)."""
     import time
 
     from hbtsim import fftmap
 
-    pos = _pos(BETA_AUR, 0.3)
-    img = _f32(render_image(pos, BETA_AUR, 400.0, GRID))
+    pos = _pos(beta_aur, 0.3)
+    img = _f32(render_image(pos, beta_aur, 400.0, GRID))
     b = np.arange(0.0, 176.0)
     # warm up both
     hbt.vis2_along_pa(img, b, 400e-9, 0.3, GRID).block_until_ready()

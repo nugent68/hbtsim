@@ -56,9 +56,9 @@ no link ceiling, the next-generation design).  Dead time is applied
 per pixel (non-paralyzable, r -> r / (1 + r tau_dead)); the model is
 only trustworthy for r tau_dead <~ 1, which dead_time_load reports.
 
-All defaults describe the C2PU pair (Centre Pedagogique Planete Univers,
-Calern plateau): two 1 m telescopes on a 15 m baseline, with Pi Imaging
-SPAD Lambda detectors (datasheet: background/general/SPADlambdadatasheet.pdf).
+Telescopes and detectors are passed explicitly; the named ones (the C2PU
+1 m pair with Pi Imaging SPAD Lambda detectors, Keck, Subaru, EON-SII, ...)
+are hbtsim/configs/{telescopes,detectors}/*.json, hbtsim.catalog.
 """
 
 from __future__ import annotations
@@ -114,16 +114,11 @@ class Telescope:
         return np.pi * (self.diameter_m / 2.0) ** 2
 
 
-@dataclass(frozen=True)
-class Backend:
-    """The optics between the telescope focus and the detector."""
-    name: str
-    throughput: float
-    kind: str = "filter"   # "filter" | "dispersed"
-
-
-FILTER_BACKEND = Backend("narrow-band filter", 0.9, "filter")
-DISPERSED_BACKEND = Backend("cross-dispersed spectrograph", 0.5, "dispersed")
+# Throughput of the optics between the telescope focus and the detector:
+# a narrow-band filter, or a cross-dispersed spectrograph (the defaults of
+# Observation.backend_throughput and Spectrograph.throughput).
+FILTER_THROUGHPUT = 0.9
+DISPERSED_THROUGHPUT = 0.5
 
 
 @dataclass(frozen=True)
@@ -173,78 +168,8 @@ class Detector:
         return float(out) if np.ndim(out) == 0 else out
 
 
-# Pi Imaging SPAD Lambda (datasheet v2.3, 01.2026).  PDE read from the
-# "Photon detection probability" curve (peak 50% at 520 nm); median DCR
-# 250 cps/pixel; dead time 10 ns; timing jitter 120 ps FWHM typical.
-# Time tags leave the camera over two USB3 links (6 Gbps system
-# bandwidth): the manufacturer quotes a maximum photon throughput of
-# 140 Mcps in time-tagging mode (piimaging.com/spad-lambda, read
-# 2026-10-02), which is max_total_cps = 1.4e8 for the array -- well below
-# the 1e10-1e11 cps a bright star delivers to a 10 m telescope.
-SPAD_LAMBDA = Detector(
-    name="Pi Imaging SPAD Lambda",
-    pde_table_nm=((400.0, 0.22), (450.0, 0.40), (500.0, 0.49), (520.0, 0.50),
-                  (550.0, 0.48), (600.0, 0.44), (650.0, 0.36), (700.0, 0.28),
-                  (750.0, 0.20), (800.0, 0.14), (850.0, 0.09), (900.0, 0.06),
-                  (950.0, 0.04)),
-    jitter_fwhm_ps=120.0,
-    dead_time_ns=10.0,
-    dark_cps_per_pixel=250.0,
-    n_pixels=1,
-    readout="timetag",
-    max_total_cps=1.4e8,
-)
-
-# The next-generation design assumed for the R ~ 5000 studies: the same
-# SPAD pixel performance with no rate ceiling between photon detection and
-# the coincidence histogram -- a real-time correlator (both beams on one
-# sensor with coincidences counted in its FPGA, or separate detectors
-# streaming tags to a central FPGA/GPU correlator over fast links), so the
-# rate is limited only by dead time.  An idealization: no such system
-# exists yet for multi-channel photon counting at >= 1e9 cps.
-SPAD_LAMBDA_NG = replace(SPAD_LAMBDA, name="next-gen SPAD Lambda (correlator readout)",
-                         readout="correlator", max_total_cps=None)
-
-C2PU = Telescope(diameter_m=1.0, throughput=0.3)
-
-# EON-SII (arXiv:2608.17444): two road-transportable 4 m telescopes (18-panel
-# primaries, ~9 m^2 geometric area each, 80 % reflectivity in the paper's
-# performance model), a fibre-free R ~ 7000-8000 spectrograph over 400-550
-# nm with > 60 % downstream throughput and "~1000 effective channels",
-# picosecond time tags (CERN picoTDC, 3.125 ps bins) over optical links to
-# a central correlator (up to ~1 GHz per telescope), reconfigurable
-# baselines (nominally 1.5-3 km for its compact-star targets; any length
-# here).  Throughput 0.64 = 0.80 mirror x 0.80 ASSUMED blue atmosphere
-# at 2400 m.  Two detector cases: the Photonis FT18 MCP-PMT (32.4 ps FWHM
-# transit-time spread, measured HBT pair width sigma = 27.4 +/- 1.1 ps,
-# which is what jitter_fwhm_ps reproduces pairwise; ASSUMED bialkali QE)
-# and the QUASAR 32x32 SPAD array (12-30 ps target jitter, "higher QE";
-# the SPAD Lambda PDE curve is ASSUMED).  Flagged assumptions are to be
-# replaced by the instrument team's numbers.
-EON_SII_TELESCOPE = Telescope(diameter_m=4.0, throughput=0.64, collecting_area_m2=9.0)
-EONSII_MCP_PMT = Detector(
-    name="EON-SII Photonis FT18 MCP-PMT (assumed bialkali QE)",
-    pde_table_nm=((400.0, 0.22), (450.0, 0.24), (500.0, 0.20), (550.0, 0.15)),
-    jitter_fwhm_ps=27.4 / np.sqrt(2.0) / FWHM_TO_SIGMA,   # per detector, so the pair sigma is 27.4 ps
-    dead_time_ns=1.0, dark_cps_per_pixel=1.0, n_pixels=1,
-    readout="timetag", max_total_cps=1e9)
-EONSII_SPAD = Detector(
-    name="EON-SII QUASAR SPAD array (assumed SPAD Lambda PDE, 20 ps)",
-    pde_table_nm=((400.0, 0.22), (450.0, 0.40), (500.0, 0.49), (520.0, 0.50), (550.0, 0.48)),
-    jitter_fwhm_ps=20.0, dead_time_ns=10.0, dark_cps_per_pixel=250.0, n_pixels=1,
-    readout="timetag", max_total_cps=1e9)
-
-# The two 10 m Keck telescopes on Maunakea, ~85 m apart.  At this scale
-# the photon rate per channel drives a single SPAD pixel deep into
-# dead-time saturation (spread the light over more pixels), the total
-# rate exceeds any time-tag link (see Detector.readout), and the 10 m
-# pupils average |V|^2 over B +/- 10 m -- the spectral SNR functions
-# apply that aperture smearing (hbtsim.aperture) by default.
-KECK = Telescope(diameter_m=10.0, throughput=0.3)
-
-# Subaru (8.2 m), ~152 m from Keck I and ~226 m from Keck II -- the third
-# vertex of the Maunakea triangle (bispectrum.MAUNAKEA_SUBARU_KECK).
-SUBARU = Telescope(diameter_m=8.2, throughput=0.3)
+# The detector and telescope presets (SPAD Lambda, C2PU, Keck, Subaru, EON-SII,
+# ...) are hbtsim/configs/{detectors,telescopes}/*.json (hbtsim.catalog).
 
 
 @dataclass(frozen=True)
@@ -256,7 +181,7 @@ class Observation:
     t_int_s: float = 3600.0
     sky_cps: float = 0.0               # detected sky background per telescope
     polarization_mode: str = "unpolarized"
-    backend_throughput: float = FILTER_BACKEND.throughput
+    backend_throughput: float = FILTER_THROUGHPUT
     coherence_broadening: bool = True
 
 
@@ -270,12 +195,12 @@ class Spectrograph:
     Channels are uniform in wavelength (the default: the SPAD Lambda's
     320 pixels over 400-950 nm, 1.72 nm each) or, via
     from_resolving_power, geometric with a constant lambda/dlambda = R.
-    throughput is the backend's (DISPERSED_BACKEND, 0.5)."""
+    throughput is the backend's (DISPERSED_THROUGHPUT, 0.5)."""
     lambda_min_nm: float = 400.0   # SPAD Lambda sensitivity range
     lambda_max_nm: float = 950.0
     n_channels: int = 320          # SPAD Lambda: 320 x 1 pixels
     resolving_power: float | None = None
-    throughput: float = DISPERSED_BACKEND.throughput
+    throughput: float = DISPERSED_THROUGHPUT
     name: str = ""
     # wavelength frame of the channel grid: model tables are in vacuum
     # (NewEra); an "air" grid is converted before channel averaging
@@ -285,7 +210,7 @@ class Spectrograph:
     @classmethod
     def from_resolving_power(cls, R: float, lambda_min_nm: float = 400.0,
                              lambda_max_nm: float = 950.0,
-                             throughput: float = DISPERSED_BACKEND.throughput,
+                             throughput: float = DISPERSED_THROUGHPUT,
                              name: str = "") -> "Spectrograph":
         """Geometric channel edges e_k = lambda_min q^k with
         q = (2R + 1)/(2R - 1), so every channel has centre/width = R
@@ -326,17 +251,6 @@ class Spectrograph:
     @property
     def is_uniform(self) -> bool:
         return self.resolving_power is None
-
-
-# EON-SII spectrograph: the paper's "~1000 effective channels after
-# spillover" over 400-550 nm (0.15 nm each; the statistically independent
-# count) is the default; the optical resolution R ~ 7500 (2388 channels of
-# lambda/7500) is the alternative preset.
-EONSII_SPECTROGRAPH = Spectrograph(lambda_min_nm=400.0, lambda_max_nm=550.0,
-                                   n_channels=1000, throughput=0.6,
-                                   name="EON-SII fibre-free, 1000 effective channels")
-EONSII_SPECTROGRAPH_R7500 = Spectrograph.from_resolving_power(
-    7500.0, 400.0, 550.0, throughput=0.6, name="EON-SII R = 7500 (2388 channels)")
 
 
 # ---------------------------------------------------------------------------
@@ -402,10 +316,9 @@ class SNRResult:
     dead_time_load: object = 0.0   # max over the two telescopes
 
 
-def g2_snr(vis2, mag_ab, obs: Observation,
-           telescope1: Telescope = C2PU, telescope2: Telescope | None = None,
-           detector1: Detector = SPAD_LAMBDA,
-           detector2: Detector | None = None) -> SNRResult:
+def g2_snr(vis2, mag_ab, obs: Observation, *,
+           telescope1: Telescope, telescope2: Telescope | None = None,
+           detector1: Detector, detector2: Detector | None = None) -> SNRResult:
     """SNR of the g2 bump for one baseline (see module docstring);
     array-capable over channels when obs carries arrays."""
     telescope2 = telescope1 if telescope2 is None else telescope2
@@ -437,11 +350,9 @@ def g2_snr(vis2, mag_ab, obs: Observation,
                      obs=obs, n_streams=n_streams, dead_time_load=f(load))
 
 
-def vis2_noise(mag_ab, obs: Observation,
-               telescope1: Telescope = C2PU,
-               telescope2: Telescope | None = None,
-               detector1: Detector = SPAD_LAMBDA,
-               detector2: Detector | None = None):
+def vis2_noise(mag_ab, obs: Observation, *,
+               telescope1: Telescope, telescope2: Telescope | None = None,
+               detector1: Detector, detector2: Detector | None = None):
     """1-sigma uncertainty of a |V|^2 measurement over obs.t_int_s (the
     noise-equivalent squared visibility): SNR = |V|^2 / vis2_noise."""
     r = g2_snr(1.0, mag_ab, obs, telescope1=telescope1, telescope2=telescope2,
@@ -488,11 +399,11 @@ class SpectralSNRResult:
 
 
 def spectral_g2_snr(system: BinarySystem, baseline_m: float,
-                    spectrograph: Spectrograph = Spectrograph(),
+                    spectrograph: Spectrograph, *,
                     t_int_s: float = 3600.0,
-                    telescope1: Telescope = C2PU,
+                    telescope1: Telescope,
                     telescope2: Telescope | None = None,
-                    detector1: Detector = SPAD_LAMBDA,
+                    detector1: Detector,
                     detector2: Detector | None = None,
                     polarization_mode: str = "unpolarized",
                     sky_cps_per_channel: float = 0.0,
@@ -638,15 +549,6 @@ def _g2_budget(vis2, mag, spectrograph: Spectrograph, baseline_m: float, *,
 # ---------------------------------------------------------------------------
 # Source model: out-of-eclipse magnitude of the binary at any wavelength
 # ---------------------------------------------------------------------------
-BAND_LAMBDA_NM = {"g": 477.0, "i": 763.0}
-
-
-def anchor_wavelength_nm(key) -> float:
-    """The wavelength of a magnitude anchor: a band name (legacy
-    ("g", mag) anchors) or the wavelength itself [nm]."""
-    if isinstance(key, str):
-        return BAND_LAMBDA_NM[key]
-    return float(key)
 
 
 def model_ab_mag(system: BinarySystem, wavelength_nm):
@@ -676,11 +578,10 @@ def _has_sed_tables(system: BinarySystem) -> bool:
 
 @lru_cache(maxsize=None)
 def _anchor_offsets(system: BinarySystem):
-    """(log10 lambda_nm, offset) at the anchor bands, sorted."""
+    """(log10 lambda_nm, offset) at the anchor wavelengths, sorted."""
     lams, offs = [], []
-    for band, m_obs in system.mag_anchors:
-        lam_b = anchor_wavelength_nm(band)
-        lams.append(np.log10(lam_b))
+    for lam_b, m_obs in system.mag_anchors:
+        lams.append(np.log10(float(lam_b)))
         offs.append(m_obs - float(model_ab_mag(system, lam_b)))
     order = np.argsort(lams)
     return np.asarray(lams)[order], np.asarray(offs)[order]
@@ -702,6 +603,8 @@ def system_ab_mag(system: BinarySystem, wavelength_nm):
     (477-763 nm) that is an extrapolation and a warning says so."""
     lam_nm = np.asarray(wavelength_nm, dtype=float)
     loglam, offs = _anchor_offsets(system)
+    if offs.size == 0:
+        return model_ab_mag(system, lam_nm)        # unanchored model
     if _has_sed_tables(system):
         worst = float(np.max(np.abs(offs)))
         if worst > ANCHOR_CHECK_MAG:

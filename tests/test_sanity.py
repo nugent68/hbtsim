@@ -9,12 +9,14 @@ import numpy as np
 import pytest
 
 from hbtsim import hbt
+from hbtsim.catalog import Catalog
 from hbtsim.limbdark import disk_flux_factor, visibility_ld_disk
 from hbtsim.orbit import SkyPositions, sky_positions
-from hbtsim.params import BETA_AUR, MAS, GridConfig
+from hbtsim.params import MAS, GridConfig
 from hbtsim.render import linear_rows_jnp, render_image, render_kernel
 
-SYSTEM = BETA_AUR
+# module-level: THETA1_MAS below is derived from the system at import time
+SYSTEM = Catalog(env=False).load_target("betaaur")
 GRID = GridConfig()
 THETA1_MAS = 2 * SYSTEM.angular_radius_mas(SYSTEM.primary)   # angular diameter
 
@@ -150,16 +152,16 @@ def test_apparent_magnitudes_reasonable():
     from hbtsim.photometry import anchored_mags, apparent_ab_mag
 
     anchors = dict(SYSTEM.mag_anchors)
-    for band, lam_nm in (("g", 477.0), ("i", 763.0)):
+    for lam_nm in (477.0, 763.0):
         synth = np.empty(2)
         for k, psi in enumerate((0.0, np.pi / 2)):  # max light, mid-eclipse
             pos = SkyPositions(*(np.asarray(v) for v in sky_positions(psi, SYSTEM)))
             flux = float(render_image(pos, SYSTEM, lam_nm, GRID).sum())
             synth[k] = float(apparent_ab_mag(flux, lam_nm, SYSTEM, GRID))
         # blackbody zero point is within ~0.6 mag of the observed anchor
-        assert abs(synth[0] - anchors[band]) < 0.6
-        anchored = anchored_mags(synth, band, SYSTEM)
-        assert anchored[0] == pytest.approx(anchors[band], abs=1e-12)
+        assert abs(synth[0] - anchors[lam_nm]) < 0.6
+        anchored = anchored_mags(synth, lam_nm, SYSTEM)
+        assert anchored[0] == pytest.approx(anchors[lam_nm], abs=1e-12)
         # anchoring is a constant shift: eclipse depth unchanged
         assert (anchored[1] - anchored[0]) == pytest.approx(synth[1] - synth[0],
                                                             abs=1e-9)

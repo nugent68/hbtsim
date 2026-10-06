@@ -105,7 +105,7 @@ def _merge(base: dict, child: dict) -> dict:
             continue
         if k in ("sources", "notes", "assumptions") and k in base:
             out[k] = list(base[k]) + [x for x in v if x not in base[k]]
-        elif k == "provenance" and k in base:
+        elif k in ("provenance", "summary") and k in base:
             out[k] = {**base[k], **v}
         else:
             out[k] = v

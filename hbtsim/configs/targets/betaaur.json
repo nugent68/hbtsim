@@ -61,5 +61,12 @@
     "primary.radius_rsun": "[S07]",
     "secondary.radius_rsun": "[S07]",
     "node_pa_deg": "Jonak et al. 2026"
+  },
+  "summary": {
+    "short": "Beta Aurigae",
+    "components": "A1m IV + A1m IV near-twins",
+    "eclipses": "partial, ~0.08 mag",
+    "newera": "both stars (interpolated)",
+    "sources": "Southworth et al. 2007; Hipparcos; Jonak et al. 2026 (Ω)"
   }
 }

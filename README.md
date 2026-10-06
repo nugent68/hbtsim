@@ -9,13 +9,13 @@ image at the sampled baselines (JAX, GPU-batched for spectral work),
 predicts the signal-to-noise of real photon-counting
 observations, and produces movies:
 
-1. **Orbit movie** (`python -m hbtsim --system {betaaur,algol}`) — three
+1. **Orbit movie** (`hbtsim movie --target {betaaur,algol,spica,deltavel}`) — three
    panels over one orbital period: the stars on the sky (false-color RGB
    from renders at 700/550/440 nm, Planck-weighted and white-balanced to
    7500 K, so hot stars look blue and cool ones orange; to-scale mas
    axes), the apparent g/i lightcurves anchored to observed photometry,
    and g²(B) at 400 and 800 nm for baselines 10–150 m.
-2. **g²(λ) measurement movie** (`python -m hbtsim.g2spec`) — the stars on
+2. **g²(λ) measurement movie** (`hbtsim g2spec`) — the stars on
    the sky beside the g² *spectrum* a real telescope pair would measure
    each hour: 320 spectral channels (400–950 nm) with 1σ error bars from
    the full photon budget, simulated noisy data over the true curve.
@@ -26,21 +26,24 @@ follow the baseline along the projected separation axis by default
 
 ## The four systems
 
-|  | **Beta Aurigae** (`betaaur`, default) | **Algol A–B** (`algol`) | **Spica** (`spica`) | **δ Velorum Aa–Ab** (`deltavel`) |
+<!-- catalog:systems -->
+|  | **Beta Aurigae** (`betaaur`) | **Algol A–B** (`algol`) | **Spica** (`spica`) | **δ Velorum Aa–Ab** (`deltavel`) |
 |---|---|---|---|---|
 | Components | A1m IV + A1m IV near-twins | B8V dwarf + K0IV subgiant | B1 III-IV + B2 V | A2 IV + A4 V rapid rotators |
-| Masses | 2.376 / 2.291 M☉ | 3.17 / 0.70 M☉ | 11.43 / 7.21 M☉ | 2.43 / 2.27 M☉ |
+| Masses | 2.376 / 2.291 M☉ | 3.17 / 0.7 M☉ | 11.43 / 7.21 M☉ | 2.43 / 2.27 M☉ |
 | Radii | 2.762 / 2.568 R☉ | 2.73 / 3.48 R☉ | 7.47 / 3.74 R☉ | 2.97 / 2.52 R☉ |
 | T_eff | 9350 / 9200 K | 12550 / 4900 K | 25300 / 20900 K | 9450 / 9830 K |
 | Period | 3.96004 d | 2.867328 d | 4.0145 d | 45.1503 d, e = 0.29 |
-| Inclination | 76.8° | 98.70° | 63.1° | 89.0° |
+| Inclination | 76.8° | 98.7° | 63.1° | 89.0° |
 | Distance | 24.87 pc | 28.82 pc | 76.6 pc | 25.13 pc (orbital parallax) |
-| Angular semi-major axis | 3.303 mas | 2.151 mas | 1.71 mas | 16.56 mas |
-| Angular diameters | 1.033 / 0.960 mas | 0.881 / 1.123 mas | 0.91 / 0.45 mas | 1.10 / 0.93 mas |
+| Angular semi-major axis | 3.29 mas | 2.15 mas | 1.71 mas | 16.54 mas |
+| Angular diameters | 1.03 / 0.96 mas | 0.88 / 1.12 mas | 0.91 / 0.45 mas | 1.10 / 0.93 mas |
+| Ω (ascending node) | 295.15° | 43.43° | 131.6° | 65° |
 | Eclipses | partial, ~0.08 mag | deep primary, **1.48 mag in g** | none | grazing |
 | Anchored photometry | g 1.80, i 2.10 | g 2.07, i 2.58 (C-corrected) | g 0.71, i 1.06 | g 1.90, i 2.25 (B-corrected) |
 | NewEra tables | both stars (interpolated) | A (clamped to 12 000 K); B blackbody | blackbody | both stars (interpolated) |
-| Sources | Southworth et al. 2007; Hipparcos | Baron et al. 2012 (CHARA); Zavala et al. 2010; Kolbas et al. 2015 | Herbison-Evans et al. 1971; Tkachenko et al. 2016 | Mérand et al. 2011 |
+| Sources | Southworth et al. 2007; Hipparcos; Jonak et al. 2026 (Ω) | Baron et al. 2012 (CHARA); Zavala et al. 2010; Kolbas et al. 2015 | Herbison-Evans et al. 1971; Tkachenko et al. 2016 | Mérand et al. 2011 |
+<!-- /catalog -->
 
 The two systems probe complementary regimes. Beta Aurigae is the clean
 textbook case: equal stars, equal colors, fringes of period λ/ρ ≈ 25 m
@@ -74,8 +77,24 @@ telescopes, not for the VLT. Its NewEra photometry comes out 0.24 mag
 brighter than the observed A-only V, a tension in the published
 parameters recorded in `tests/test_newera.py`.
 
-Adding another binary is one `BinarySystem` instance in
-`hbtsim/params.py` (registered in `SYSTEMS`).
+Every target, telescope, detector, spectrograph, backend, site, array and
+campaign is a JSON file under `hbtsim/configs/<kind>s/` (the table above
+is rendered from them by `scripts/catalog_tables.py`). Adding a binary
+is one file: copy `hbtsim/configs/targets/betaaur.json` to
+`my_target.json` in a directory of your own, edit the numbers and the
+`sources` / `notes`, and point the tools at it:
+
+```bash
+export HBTSIM_CONFIG_PATH=/path/to/my_configs      # or --config-dir on every command
+hbtsim catalog validate                            # schema + build check, names the field on error
+hbtsim snr --target my_target --instrument keck_pair
+```
+
+Files on the search path override shipped ones of the same name;
+`extends` derives a definition from another (`spad_lambda_ng` is
+`spad_lambda` with a correlator readout). `hbtsim catalog show target
+deltavel` prints a definition with its provenance; `hbtsim catalog list`
+the names; `from hbtsim import load_target, load_array` the Python side.
 
 ## Physics
 
@@ -161,9 +180,9 @@ accidental floor (dark and sky counts included),
     SNR = ½ |V|² τ_c R₁ R₂ √T / √(b₁ b₂ · 2√π σ_pair),
 
 with per-pixel non-paralyzable dead time. Everything is parameterized
-via `Telescope`, `Backend`, `Detector`, `Observation` and `Spectrograph`
-dataclasses. The instrument model carries the effects a real
-implementation cannot escape:
+via `Telescope`, `Detector`, `Observation` and `Spectrograph` dataclasses,
+built from the catalog (`load_telescope("keck_10m")`). The instrument
+model carries the effects a real implementation cannot escape:
 
 - **Throughput** is telescope (atmosphere + optics, 0.3) × backend
   (0.9 for a narrow-band filter, **0.5 for a cross-dispersed
@@ -178,7 +197,7 @@ implementation cannot escape:
   SPAD Lambda as delivered, USB3, `max_total_cps` = 1.4 × 10⁸, the
   manufacturer's 140 Mcps — the spectral functions scale the rates
   down to the ceiling and flag `readout_limited`) or `"correlator"`
-  (the next-generation design, `SPAD_LAMBDA_NG`: a real-time correlator
+  (the next-generation design, `spad_lambda_ng`: a real-time correlator
   with no link limit, either both beams on one sensor or tags streamed
   to a central FPGA/GPU; an idealization, not an existing system). A
   per-pixel dead-time load r·τ_dead > 1 raises a warning (the
@@ -192,16 +211,19 @@ implementation cannot escape:
 - **Coherence broadening** of the correlation kernel (σ_c = 0.376 τ_c)
   — a ~1 % loss at 0.1 nm in the red, on by default.
 
-Built-in hardware: the **C2PU pair** (Calern, 2 × 1 m, 15 m apart), the
-**Keck pair** (2 × 10 m, ~85 m), the **EON-SII pair** (arXiv:2608.17444:
-two transportable 4 m telescopes of 9 m², a 400–550 nm spectrograph with
-1000 effective channels, Photonis MCP-PMT or QUASAR SPAD detectors,
-1 GHz time-tag links; `EON_SII_TELESCOPE`, `EONSII_*`,
-`bispectrum.eonsii_pair`, `--instrument eonsii`), and the Pi Imaging
-**SPAD Lambda** detector (320×1 pixels, PDE 22%/14% at 400/800 nm,
-120 ps FWHM jitter, 10 ns dead time, 250 cps dark).
+<!-- catalog:hardware -->
+Telescopes, detectors, spectrographs, sites and arrays are JSON files in
+`hbtsim/configs/` (`hbtsim catalog list`); the shipped ones:
 
-Two observing modes (`python -m hbtsim.snr_cli --system {betaaur,algol}`):
+- **Telescopes**: `c2pu_1m` (1 m, throughput 0.3); `eonsii_4m` (4 m, 9 m², throughput 0.64); `keck_10m` (10 m, throughput 0.3); `kk_4m` (4 m, throughput 0.3); `lst1_23m` (23 m, 390 m², throughput 0.304); `magic_17m` (17 m, 236 m², throughput 0.304); `subaru_8p2m` (8.2 m, throughput 0.3); `veritas_12m` (12 m, 110 m², throughput 0.3); `vlt_ut_8p2m` (8.2 m, throughput 0.3).
+- **Detectors**: `eonsii_mcp_pmt` (46 ps FWHM, 1 ns dead, 1 cps dark, timetag, link ≤ 1e+09 cps); `eonsii_spad` (20 ps FWHM, 10 ns dead, 250 cps dark, timetag, link ≤ 1e+09 cps); `eonsii_spad_correlator` (20 ps FWHM, 10 ns dead, 250 cps dark, correlator); `kk_ideal` (39 ps FWHM, 0 ns dead, 0 cps dark, correlator); `magic_pmt` (8540 ps FWHM, 0 ns dead, 0 cps dark, correlator); `spad_lambda` (120 ps FWHM, 10 ns dead, 250 cps dark, timetag, link ≤ 1.4e+08 cps); `spad_lambda_ng` (120 ps FWHM, 10 ns dead, 250 cps dark, correlator); `veritas_pmt` (7515 ps FWHM, 0 ns dead, 0 cps dark, correlator).
+- **Spectrographs**: `eonsii_1000ch` (400–550 nm, 1000 ch, 0.15 nm channels, throughput 0.6); `eonsii_60ch` (400–550 nm, 60 ch, 2.50 nm channels, throughput 0.6); `eonsii_r7500` (400–550 nm, 2389 ch, R = 7500, throughput 0.6); `filter_2mass_h` (1480–1780 nm, 1 ch, 300.00 nm channels, throughput 1); `filter_2mass_k` (1995–2385 nm, 1 ch, 390.00 nm channels, throughput 1); `filter_cousins_i` (732–880 nm, 1 ch, 149.00 nm channels, throughput 1); `filter_cousins_r` (589–727 nm, 1 ch, 138.00 nm channels, throughput 1); `filter_johnson_b` (398–492 nm, 1 ch, 94.00 nm channels, throughput 1); `filter_johnson_v` (507–595 nm, 1 ch, 88.00 nm channels, throughput 1); `hbeta_window_r5000` (471–502 nm, 320 ch, R = 5000, throughput 0.5); `kk_1000ch_400_950` (400–950 nm, 1000 ch, 0.55 nm channels, throughput 1); `r5000_400_950` (400–950 nm, 4325 ch, R = 5000, throughput 0.5); `spad_lambda_320` (400–950 nm, 320 ch, 1.72 nm channels, throughput 0.5).
+- **Arrays**: `c2pu_pair` (2 stations, 15 m at Calern (C2PU)) (generator: `load_array(name, side_m=…)`); `eonsii_pair_teide` (2 stations, 100 m at Teide (Izana)) (generator: `load_array(name, side_m=…)`); `eonsii_triangle_paranal` (3 stations, 20–20 m at Paranal) (generator: `load_array(name, side_m=…)`); `keck_pair` (2 stations, 85 m at Maunakea); `magic_lst1` (3 stations, 86–100 m at Roque de los Muchachos (MAGIC, LST-1)); `maunakea_subaru_keck` (3 stations, 85–226 m at Maunakea); `veritas` (4 stations, 82–173 m at Fred Lawrence Whipple Observatory (VERITAS)); `vlt_ut` (4 stations, 47–130 m at Paranal).
+- **Sites**: `calern` (Calern (C2PU)); `flwo` (Fred Lawrence Whipple Observatory (VERITAS)); `maunakea` (Maunakea); `orm` (Roque de los Muchachos (MAGIC, LST-1)); `paranal` (Paranal); `teide` (Teide (Izana)).
+<!-- /catalog -->
+
+Two observing modes (`hbtsim snr --target spica --instrument keck_pair`, or
+`--telescope keck_10m --detector spad_lambda_ng --baseline 85`):
 
 - **Spectral (default)** — the light is dispersed along the SPAD
   Lambda's 320-pixel array: each pixel pair is an independent ~1.7 nm
@@ -238,7 +260,7 @@ single SPAD pixel saturates at Keck count rates (`--n-pixels`), and a
 
 ## g²(λ) movies with error bars
 
-`python -m hbtsim.g2spec --system algol --diameter 10 --baseline 85`
+`hbtsim g2spec --target algol --instrument keck_pair`
 computes one frame per hour over a full orbit (69 epochs for Algol, 96
 for Beta Aur): per-channel simulated measurements with 1σ error bars
 (inverse-variance 8-channel bins highlighted) over the true model curve,
@@ -256,8 +278,8 @@ and source translation), the entry point to image reconstruction.
 `hbtsim/bispectrum.py` samples complex visibilities from the rendered
 image by the same exact DFT (validated against the analytic binary to
 <0.1° in closure phase, renderer-limited), defines
-telescope triangles (built in: `MAUNAKEA_SUBARU_KECK` — Subaru + Keck I
-+ Keck II at 152/85/226 m, from site coordinates; `VLT_UT`), projects
+telescope triangles (catalog arrays: `maunakea_subaru_keck` — Subaru +
+Keck I + Keck II at 152/85/226 m, from site coordinates; `vlt_ut`), projects
 them onto the (u, v) plane for a real hour angle and declination
 (`Triangle.projected`, `hbtsim.geometry`), and computes closure phases
 through eclipses via a GPU-batched spectral path.
@@ -336,18 +358,22 @@ brew install ffmpeg
 uv venv --python 3.13 .venv
 uv pip install -p .venv/bin/python -e ".[test,movie]"   # + [sed] for h5py, [gpu] for CUDA
 
+# what is in the catalog
+.venv/bin/python -m hbtsim catalog list
+.venv/bin/python -m hbtsim catalog show target spica
+
 # orbit movies (240 frames, ~1 min each on CPU); also installed as hbtsim-movie
-.venv/bin/python -m hbtsim --system betaaur
-.venv/bin/python -m hbtsim --system algol
+.venv/bin/python -m hbtsim movie --target betaaur
+.venv/bin/python -m hbtsim movie --target algol
 
 # SNR tables (hbtsim-snr)
-.venv/bin/python -m hbtsim.snr_cli --system algol --baseline 50 85
+.venv/bin/python -m hbtsim snr --target algol --instrument keck_pair --baseline 50 85
 
 # tests (analytic validation suite, ~65 s)
 .venv/bin/python -m pytest
 
 # feasibility tables with the NewEra tables (rsync data/newera/ from NERSC first)
-.venv/bin/python scripts/feasibility_g3.py --system betaaur --array maunakea --newera-dir data/newera
+.venv/bin/python scripts/feasibility_g3.py --target betaaur --array maunakea --newera-dir data/newera
 .venv/bin/python scripts/feasibility_g3.py --g2 --instrument eonsii --newera-dir data/newera --allow-extrapolation
 ```
 
@@ -370,7 +396,7 @@ can OOM you. For real work use a dedicated GPU:
 # interactive (account: your _g allocation)
 salloc -N 1 -C gpu -G 1 -c 32 -q interactive -t 30 -A m2218_g
 module load python && conda activate jax-gpu-env
-cd ~/binary && srun -n 1 python -m hbtsim.g2spec --system algol \
+cd ~/binary && srun -n 1 python -m hbtsim g2spec --target algol \
     --compute-only --diameter 10 --baseline 85 \
     --npz $SCRATCH/hbt/g2spec_algol_keck.npz
 # (note: standalone srun needs an explicit -n 1)
@@ -386,14 +412,24 @@ movie locally with `--render-only`.
 
 ## Package layout
 
-- `hbtsim/params.py` — constants, `Star`/`BinarySystem`/`GridConfig`/
-  `MovieConfig`, per-star LD tables, the `BETA_AUR`, `ALGOL`, `SPICA`
-  and `DELTA_VEL` instances and the `SYSTEMS` registry (single source
-  of truth)
+- `hbtsim/configs/` — the catalog: one JSON file per band table,
+  limb-darkening table, target, telescope, detector, spectrograph,
+  backend, site, array, data resource and campaign (single source of
+  truth; `sources` / `notes` / `provenance` / `assumptions` carry the
+  literature trail)
+- `hbtsim/catalog/` — loads and validates the catalog (`Catalog`,
+  `load_target`, `load_array`, …; `extends`, search path, `hbtsim catalog`
+  CLI); `hbtsim/serialize.py` — canonical JSON / content hashes of the
+  built objects (the campaign cache key)
+- `hbtsim/params.py` — constants, `Star`/`BinarySystem`/`DiskTarget`/
+  `GridConfig`/`MovieConfig`
+- `hbtsim/cli_common.py`, `hbtsim/__main__.py` — the shared `--target` /
+  `--instrument` / `--config-dir` options and the `hbtsim <command>`
+  dispatcher
 - `hbtsim/orbit.py` — Keplerian sky geometry, oriented on the sky by Ω
 - `hbtsim/aperture.py` — finite-aperture (pupil) averaging of |V|² and
   of the three-pupil bispectrum
-- `hbtsim/geometry.py` — sites, hour angle, uv projection, fringe drift
+- `hbtsim/geometry.py` — `Site`, hour angle, uv projection, fringe drift
 - `hbtsim/limbdark.py` — linear LD law, analytic and numeric (tabulated
   profile) disk visibilities
 - `hbtsim/sed.py`, `scripts/prepare_newera.py` — model-atmosphere flux
@@ -420,14 +456,16 @@ movie locally with `--render-only`.
   Balmer-core vs continuum (chromatic) diameters
 - `hbtsim/movie.py`, `hbtsim/cli.py` — the 3-panel orbit movie
 - `hbtsim/g2spec.py` — the g²(λ)-with-error-bars movie
-- `scripts/` — `feasibility_g3.py` (every number in the docs),
+- `scripts/` — `catalog_tables.py` (renders the parameter tables of this
+  README and the docs from the catalog), `feasibility_g3.py` (every number in the docs),
   `sed_compare.py` (blackbody vs NewEra), `eonsii_crosscheck.py` and
   `eonsii_montecarlo.py` (the EON-SII sensitivity gap),
   `deltavel_eonsii.py` (δ Vel closure phases with three EON-SII units),
   `chromatic_diameters.py` (Sirius/Vega Balmer-core diameters),
   benchmark + Perlmutter setup/sbatch
-- `tests/` — analytic validation tests (`pytest tests/`, ~255 tests,
-  ~90 s; the NewEra-data tests skip without `data/newera/`)
+- `tests/` — analytic validation tests (`pytest tests/`, ~330 tests,
+  ~75 s; the NewEra-data tests skip without `data/newera/`); the objects
+  come from the catalog through the fixtures of `tests/conftest.py`
 
 ## References
 

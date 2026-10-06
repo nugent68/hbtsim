@@ -22,17 +22,19 @@ dish apertures. Sites, layouts and the per-pair hour-angle loop are new (`iact.p
 
 ## Parameters and sources
 
-| | VERITAS | MAGIC | LST-1 |
+<!-- catalog:iact_parameters -->
+|  | VERITAS | MAGIC | LST-1 |
 |---|---|---|---|
-| dishes | 4 × 12 m, Davies-Cotton, 345 facets | 2 × 17 m, 236 m² | 23 m, ≈ 390 m² (assumed) |
-| site | FLWO, Amado AZ (31.675°, −110.952°, 1268 m) | ORM, La Palma (28.762°, −17.892°, 2200 m) | same |
-| layout | fitted to the published baselines 81.5, 99.4, 99.4, 108.8, 126.4, 172.5 m, starting from Fig. 1 of Abeysekara et al. 2020 | MAGIC-I–II 86 m | two ≈ 100 m baselines (Raiola et al. 2025); **orientation assumed** (I→II east, LST-1 north) |
-| filter | 416 nm, 13 nm effective (10 nm in 2025) | Semrock 425/26 (400–440 nm) | as MAGIC (assumed) |
-| QE α | 0.30 (Hamamatsu R10560) | 0.295 | as MAGIC |
-| optical q | **calibrated: 0.093** (see below) | 0.304 | as MAGIC |
-| b_el | 125 MHz (250 MS/s; 4 ns time resolution) | 110 MHz effective | as MAGIC |
+| dishes | 4 × 12 m, 110 m² (**assumed**) | 2 × 17 m, 236 m² | 23 m, 390 m² (**assumed**) |
+| site | Fred Lawrence Whipple Observatory (VERITAS) (31.675°, -110.952°, 1268 m) | Roque de los Muchachos (MAGIC, LST-1) (28.762°, -17.892°, 2200 m) | same |
+| baselines | 81.6, 99.4, 99.5, 108.9, 126.4, 172.6 m (fitted to the published values) | MAGIC-I–II 86 m | 100, 100 m to LST-1; **orientation assumed** |
+| filter | 416 nm, 13 nm effective | 425 nm / 26 nm | as MAGIC (assumed) |
+| QE α | 0.3 | 0.295 | as MAGIC |
+| optical q | **calibrated: 0.093** (file: 0.25) | 0.304 | as MAGIC |
+| b_el | 125 MHz; 4 ns time resolution | 110 MHz effective; 2 ns | as MAGIC |
 | F, σ_spec | absorbed into q | 1.15, 0.87 | as MAGIC |
-| mirror area | 110 m² (**assumed**) | 236 m² | 390 m² (**assumed**) |
+| precision anchor | eps Ori: σ(|V|²) = 0.016 per pair in 4.25 h at AB 1.41 | — | — |
+<!-- /catalog -->
 
 Sources: Abeysekara et al. 2020, Nat. Astron. (arXiv:2007.10295); VERITAS γ Cas 2025, ApJ 995,
 191 (arXiv:2506.15027); Abe et al. 2024, MNRAS 529, 4387 (arXiv:2402.04755); Raiola et al.
@@ -51,7 +53,7 @@ B = 4.0 star, consistent with their statement that stars to ∼4 B mag are reali
 
 ## Spica on VERITAS (`scripts/spica_veritas.py`)
 
-hbtsim's `SPICA` (blackbody + Spica linear limb darkening, anchored g and i; circular
+hbtsim's `spica` target (blackbody + Spica linear limb darkening, anchored g and i; circular
 orbit, a = 1.71 mas, θ = 0.91 / 0.45 mas) at 416 nm, AB = 0.64, averaged over the 12 m
 pupils, for eight nights spread over the 4.01-day orbit; FLWO sees Spica for 5.9 h above
 30° (H = ±2.93 h); 21 blocks of 17 min per night.
