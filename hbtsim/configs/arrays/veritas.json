@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "veritas",
+  "label": "VERITAS T1-T4 (FLWO)",
+  "site": "flwo",
+  "stations": [
+    {
+      "name": "T1",
+      "east_m": 134.8,
+      "north_m": -8.0,
+      "telescope": "veritas_12m",
+      "detector": "veritas_pmt"
+    },
+    {
+      "name": "T2",
+      "east_m": 43.4,
+      "north_m": -47.0,
+      "telescope": "veritas_12m",
+      "detector": "veritas_pmt"
+    },
+    {
+      "name": "T3",
+      "east_m": 28.8,
+      "north_m": 60.9,
+      "telescope": "veritas_12m",
+      "detector": "veritas_pmt"
+    },
+    {
+      "name": "T4",
+      "east_m": -36.6,
+      "north_m": 12.1,
+      "telescope": "veritas_12m",
+      "detector": "veritas_pmt"
+    }
+  ],
+  "sources": [
+    "Abeysekara et al. 2020, Fig. 1 (positions read off and adjusted to the published baselines 81.5, 99.4, 108.8, 126.4, 172.5 m and 106 m)"
+  ],
+  "notes": [
+    "T1 front-centre, T2 left, T3 right, T4 back-centre. Resulting baselines: T3T4 81.5, T1T2 99.4, T2T4 99.4, T2T3 108.8, T1T3 126.4, T1T4 172.5 m."
+  ]
+}

@@ -341,6 +341,19 @@ class BinarySystem:
                 + self.drawn_radius_mas(self.secondary))
 
 
+@dataclass(frozen=True)
+class DiskTarget:
+    """A compact single source modelled as a (linearly limb-darkened)
+    uniform disk of angular diameter theta_mas and a flat AB spectrum
+    (the EON-SII white-dwarf targets, hbtsim.montecarlo)."""
+    name: str
+    theta_mas: float
+    mag_ab: float
+    dec_deg: float
+    ld_u: float = 0.0
+    ra_hours: float | None = None
+
+
 # ---------------------------------------------------------------------------
 # Eclipse test shared by every analytic (non-overlapping disks) path
 # ---------------------------------------------------------------------------

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "eonsii_r7500",
+  "label": "EON-SII R = 7500 (2388 channels)",
+  "lambda_min_nm": 400.0,
+  "lambda_max_nm": 550.0,
+  "resolving_power": 7500.0,
+  "throughput": 0.6,
+  "sources": [
+    "EON-SII design study (arXiv:2608.17444): optical resolution R ~ 7000-8000"
+  ],
+  "notes": [
+    "2388 channels of lambda/7500."
+  ]
+}

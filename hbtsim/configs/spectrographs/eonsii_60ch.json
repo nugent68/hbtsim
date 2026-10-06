@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "eonsii_60ch",
+  "label": "EON-SII 400-550 nm, 60 channels (diagnostics)",
+  "lambda_min_nm": 400.0,
+  "lambda_max_nm": 550.0,
+  "n_channels": 60,
+  "throughput": 0.6,
+  "sources": [],
+  "notes": [
+    "Coarse channelization used by the delta Vel diagnostics figures."
+  ]
+}

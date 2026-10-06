@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "magic_17m",
+  "label": "MAGIC 17 m",
+  "diameter_m": 17.0,
+  "throughput": 0.304,
+  "collecting_area_m2": 236.0,
+  "sources": [
+    "Abe et al. 2024, MNRAS 529, 4387: 236 m^2, optical efficiency 0.304"
+  ],
+  "notes": []
+}

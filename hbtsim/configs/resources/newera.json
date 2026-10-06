@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "kind": "resource",
+  "name": "newera",
+  "label": "Binned NewEra (PHOENIX) tables for the hot-star grid",
+  "path": "data/newera",
+  "env_override": "HBTSIM_NEWERA_DIR",
+  "pattern": "newera_lte*.npz",
+  "contents": "prepare_newera / bin_rf_standalone .npz (flux table + I(mu) profile per model)",
+  "notes": [
+    "Scanned by sed.NewEraGrid.scan: files are keyed by (T_eff, log g, [M/H]); the finest wavelength step wins when several ranges exist.",
+    "Mirror and provenance: /Users/nugent/phoenix/HANDOFF.md."
+  ]
+}

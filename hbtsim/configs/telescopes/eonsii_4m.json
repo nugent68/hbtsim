@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "eonsii_4m",
+  "label": "EON-SII 4 m transportable telescope",
+  "diameter_m": 4.0,
+  "throughput": 0.64,
+  "collecting_area_m2": 9.0,
+  "sources": [
+    "EON-SII design study (arXiv:2608.17444): 18-panel primaries, ~9 m^2 geometric area, 80 % reflectivity"
+  ],
+  "notes": [
+    "Throughput 0.64 = 0.80 mirror x 0.80 blue atmosphere at 2400 m."
+  ],
+  "assumptions": [
+    "throughput (the 0.80 atmospheric factor)"
+  ]
+}

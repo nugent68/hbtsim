@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "kind": "ld_table",
+  "name": "claret11_algol_a",
+  "label": "Claret & Bloemen 2011 linear law for Algol A (12 550 K, B8 V)",
+  "law": "linear",
+  "table_nm": [
+    [
+      400.0,
+      0.42
+    ],
+    [
+      445.0,
+      0.4
+    ],
+    [
+      477.0,
+      0.38
+    ],
+    [
+      551.0,
+      0.34
+    ],
+    [
+      623.0,
+      0.3
+    ],
+    [
+      763.0,
+      0.24
+    ],
+    [
+      806.0,
+      0.23
+    ],
+    [
+      913.0,
+      0.21
+    ]
+  ],
+  "sources": [
+    "[C11] Claret & Bloemen 2011, A&A 529, A75 (VizieR J/A+A/529/A75): linear u(lambda), ATLAS, [M/H] = 0"
+  ],
+  "notes": []
+}

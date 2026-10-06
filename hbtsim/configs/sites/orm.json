@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "kind": "site",
+  "name": "orm",
+  "label": "Roque de los Muchachos (MAGIC, LST-1)",
+  "latitude_deg": 28.762,
+  "longitude_deg": -17.892,
+  "elevation_m": 2200.0,
+  "sources": [],
+  "notes": []
+}

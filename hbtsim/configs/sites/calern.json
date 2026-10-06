@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "kind": "site",
+  "name": "calern",
+  "label": "Calern (C2PU)",
+  "latitude_deg": 43.7538,
+  "longitude_deg": 6.923,
+  "elevation_m": 1270.0,
+  "sources": [
+    "Observatoire de la Cote d'Azur, plateau de Calern (approximate)"
+  ],
+  "notes": [
+    "TO BE CONFIRMED: coordinates entered 2026-10-06 from general references, not from the C2PU station file."
+  ]
+}

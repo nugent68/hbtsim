@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "spad_lambda_320",
+  "label": "SPAD Lambda, 320 uniform channels 400-950 nm",
+  "lambda_min_nm": 400.0,
+  "lambda_max_nm": 950.0,
+  "n_channels": 320,
+  "throughput": 0.5,
+  "sources": [
+    "Pi Imaging SPAD Lambda: 320 x 1 pixels"
+  ],
+  "notes": [
+    "1.72 nm per channel; throughput 0.5 is the cross-dispersed backend."
+  ]
+}

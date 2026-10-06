@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "spica",
+  "label": "Spica (alpha Virginis)",
+  "type": "binary",
+  "primary": {
+    "label": "Spica A (B1 III-IV)",
+    "mass_msun": 11.43,
+    "radius_rsun": 7.47,
+    "teff_k": 25300.0,
+    "ld_table": "claret11_spica"
+  },
+  "secondary": {
+    "label": "Spica B (B2 V)",
+    "mass_msun": 7.21,
+    "radius_rsun": 3.74,
+    "teff_k": 20900.0,
+    "ld_table": "claret11_spica"
+  },
+  "period_days": 4.0145,
+  "inclination_deg": 63.1,
+  "distance_pc": 76.6,
+  "semimajor_au": 0.1311,
+  "eccentricity": 0.0,
+  "arg_periastron_deg": 0.0,
+  "mag_anchors": [
+    {
+      "band": "g",
+      "mag_ab": 0.71
+    },
+    {
+      "band": "i",
+      "mag_ab": 1.06
+    }
+  ],
+  "node_pa_deg": 131.6,
+  "dec_deg": -11.161319,
+  "ra_hours": 13.41989,
+  "atmosphere": {
+    "resource": "newera"
+  },
+  "sources": [
+    "[HE71] Herbison-Evans, Hanbury Brown, Davis & Allen 1971, MNRAS 151, 161: Narrabri intensity-interferometer orbit (theta_A = 0.90 +/- 0.04 mas, a, i, Omega = 131.6 +/- 2.1)",
+    "[T16] Tkachenko et al. 2016, MNRAS 458, 1964: masses, radii, Teffs, i = 63.1",
+    "van Leeuwen 2007: parallax 13.06 mas (76.6 pc)",
+    "Bailey et al. 2019 (polarimetric orbit): Omega 130.4 +/- 6.8 confirms the retrograde sense",
+    "V = 0.97, B-V = -0.235 -> g ~ 0.71 (Jester et al. 2005)"
+  ],
+  "notes": [
+    "TRUE eccentricity 0.108 (with apsidal motion) approximated as circular: fine for visibility / SNR forecasts, not for timing work.",
+    "The primary is a beta Cep pulsator and tidally distorted (ellipsoidal, non-eclipsing at i = 63): rendered as a static sphere.",
+    "The i-band anchor is the anchored-blackbody colour of a ~25 kK photosphere (+/- ~0.1 mag; only shifts the red zero point).",
+    "semimajor_au from Kepler's third law with the [T16] masses."
+  ],
+  "provenance": {
+    "period_days": "[HE71]/[T16]",
+    "inclination_deg": "[T16]",
+    "distance_pc": "van Leeuwen 2007",
+    "semimajor_au": "Kepler, [T16] masses",
+    "eccentricity": "circular approximation of e = 0.108",
+    "node_pa_deg": "[HE71]"
+  }
+}

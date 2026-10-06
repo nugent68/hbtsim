@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "kind": "site",
+  "name": "maunakea",
+  "label": "Maunakea",
+  "latitude_deg": 19.826,
+  "longitude_deg": -155.4747,
+  "elevation_m": 4150.0,
+  "sources": [],
+  "notes": []
+}

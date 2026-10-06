@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "suite_phase6",
+  "label": "Everything behind docs/three_telescope_feasibility.md and the paper tables (output/logs/run_*.sh)",
+  "runner": "suite",
+  "jobs": 4,
+  "members": [
+    {
+      "campaign": "g3_spica_vlt",
+      "suffix": "newera"
+    },
+    {
+      "campaign": "g3_deltavel_vlt",
+      "suffix": "newera"
+    },
+    {
+      "campaign": "g3_betaaur_maunakea",
+      "suffix": "newera"
+    },
+    {
+      "campaign": "g3_algol_maunakea",
+      "suffix": "newera"
+    },
+    {
+      "campaign": "g3_spica_vlt",
+      "suffix": "bb",
+      "set": {
+        "atmosphere.use": false
+      }
+    },
+    {
+      "campaign": "g3_deltavel_vlt",
+      "suffix": "bb",
+      "set": {
+        "atmosphere.use": false
+      }
+    },
+    {
+      "campaign": "g3_betaaur_maunakea",
+      "suffix": "bb",
+      "set": {
+        "atmosphere.use": false
+      }
+    },
+    {
+      "campaign": "g3_algol_maunakea",
+      "suffix": "bb",
+      "set": {
+        "atmosphere.use": false
+      }
+    },
+    {
+      "campaign": "g2_c2pu",
+      "suffix": "newera"
+    },
+    {
+      "campaign": "g2_keck",
+      "suffix": "newera"
+    },
+    {
+      "campaign": "g2_eonsii",
+      "suffix": "newera"
+    },
+    {
+      "campaign": "g2_c2pu",
+      "suffix": "bb",
+      "set": {
+        "atmosphere.use": false
+      }
+    },
+    {
+      "campaign": "g2_keck",
+      "suffix": "bb",
+      "set": {
+        "atmosphere.use": false
+      }
+    },
+    {
+      "campaign": "g2_eonsii",
+      "suffix": "bb",
+      "set": {
+        "atmosphere.use": false
+      }
+    },
+    "g3_deltavel_eonsii_paranal",
+    "chromatic_sirius_vega_eonsii",
+    "mc_sirius_b_eonsii",
+    "redclump_ii_dwarf",
+    "redclump_ii_supergiant"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "gammacas",
+  "label": "gamma Cas (B0.5 IVe)",
+  "type": "single",
+  "star": {
+    "label": "gamma Cas",
+    "mass_msun": 13.0,
+    "teff_k": 25000.0,
+    "ld_table": "claret11_spica",
+    "logg": 3.5
+  },
+  "theta_ld_mas": 0.532,
+  "v_mag": 2.39,
+  "dec_deg": 60.7167,
+  "ra_hours": 0.9451,
+  "distance_pc": 168.3,
+  "mag_anchors": [
+    {
+      "band": "B",
+      "mag_vega": 2.29
+    },
+    {
+      "band": "V",
+      "mag_vega": 2.39
+    }
+  ],
+  "ellipse": {
+    "theta_minor_mas": 0.43,
+    "axis_ratio": 1.28,
+    "pa_deg": 116.0,
+    "sources": [
+      "VERITAS 2025"
+    ]
+  },
+  "sources": [
+    "Abe et al. 2024, MNRAS 529, 4387 (MAGIC): theta_LD = 0.532 mas circular fit",
+    "VERITAS 2025: ellipse of minor axis 0.43 mas, axis ratio 1.28, PA 116 deg",
+    "T_eff 25 000 K, log g 3.5; parallax 5.94 mas (168.3 pc); V = 2.39, B = 2.29"
+  ],
+  "notes": [
+    "Beyond the NewEra grid: blackbody with Spica's linear law.",
+    "The radius is derived from theta_LD and the distance (9.63 Rsun; the former Python preset carried an inconsistent 10 Rsun)."
+  ]
+}

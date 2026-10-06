@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "r5000_400_950",
+  "label": "R = 5000 spectrograph",
+  "lambda_min_nm": 400.0,
+  "lambda_max_nm": 950.0,
+  "resolving_power": 5000.0,
+  "throughput": 0.5,
+  "sources": [],
+  "notes": [
+    "Geometric channels at constant lambda/dlambda = 5000 over 400-950 nm (4325 channels); the next-generation correlator design."
+  ]
+}

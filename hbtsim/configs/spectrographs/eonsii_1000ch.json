@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "eonsii_1000ch",
+  "label": "EON-SII fibre-free, 1000 effective channels",
+  "lambda_min_nm": 400.0,
+  "lambda_max_nm": 550.0,
+  "n_channels": 1000,
+  "throughput": 0.6,
+  "sources": [
+    "EON-SII design study (arXiv:2608.17444): fibre-free spectrograph, 400-550 nm, > 60 % downstream throughput, '~1000 effective channels after spillover'"
+  ],
+  "notes": [
+    "0.15 nm per channel: the statistically independent count."
+  ]
+}

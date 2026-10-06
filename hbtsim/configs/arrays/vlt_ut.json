@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "vlt_ut",
+  "label": "VLT Unit Telescopes UT1-UT4 (Paranal)",
+  "site": "paranal",
+  "stations": [
+    {
+      "name": "UT1",
+      "east_m": -9.925,
+      "north_m": -20.335,
+      "telescope": "vlt_ut_8p2m",
+      "detector": "spad_lambda_ng"
+    },
+    {
+      "name": "UT2",
+      "east_m": 14.887,
+      "north_m": 30.502,
+      "telescope": "vlt_ut_8p2m",
+      "detector": "spad_lambda_ng"
+    },
+    {
+      "name": "UT3",
+      "east_m": 44.915,
+      "north_m": 66.183,
+      "telescope": "vlt_ut_8p2m",
+      "detector": "spad_lambda_ng"
+    },
+    {
+      "name": "UT4",
+      "east_m": 103.306,
+      "north_m": 43.999,
+      "telescope": "vlt_ut_8p2m",
+      "detector": "spad_lambda_ng"
+    }
+  ],
+  "sources": [
+    "Published VLTI station (E, N) coordinates"
+  ],
+  "notes": [
+    "Pairwise separations 46.6 (UT2-UT3) to 130.2 m (UT1-UT4).",
+    "The stations carry the next-generation detector (correlator readout): the R ~ 5000 design is a bright-star instrument whose 1e10-1e11 cps per telescope no time-tag link can carry."
+  ]
+}

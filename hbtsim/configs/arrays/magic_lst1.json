@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "magic_lst1",
+  "label": "MAGIC-I + MAGIC-II + LST-1 (ORM)",
+  "site": "orm",
+  "stations": [
+    {
+      "name": "MAGIC-I",
+      "east_m": 0.0,
+      "north_m": 0.0,
+      "telescope": "magic_17m",
+      "detector": "magic_pmt"
+    },
+    {
+      "name": "MAGIC-II",
+      "east_m": 86.0,
+      "north_m": 0.0,
+      "telescope": "magic_17m",
+      "detector": "magic_pmt"
+    },
+    {
+      "name": "LST-1",
+      "east_m": 43.0,
+      "north_m": 90.3,
+      "telescope": "lst1_23m",
+      "detector": "magic_pmt"
+    }
+  ],
+  "sources": [
+    "MAGIC-I to MAGIC-II 86 m; LST-1 adds two baselines of ~100 m (Raiola et al. 2025)"
+  ],
+  "notes": [
+    "The ORIENTATION of the triangle on the ground is ASSUMED (MAGIC-I -> MAGIC-II due east, LST-1 to the north); it affects which position angles each pair samples."
+  ],
+  "assumptions": [
+    "stations (orientation)"
+  ]
+}

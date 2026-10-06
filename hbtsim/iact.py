@@ -62,6 +62,17 @@ MAGIC_PMT = _analog_pmt("MAGIC PMT + 500 MS/s (analog, 110 MHz)", 0.295, 110e6)
 
 
 @dataclass(frozen=True)
+class PrecisionAnchor:
+    """A published precision used to calibrate the optical efficiency q:
+    sigma(|V|^2) per pair after t_s seconds on a star of AB magnitude
+    mag_ab in the backend's passband."""
+    star: str
+    mag_ab: float
+    sigma_vis2: float
+    t_s: float
+
+
+@dataclass(frozen=True)
 class IACTBackend:
     """One group's filter and sensitivity constants (their Eq. 4)."""
     name: str
@@ -74,6 +85,7 @@ class IACTBackend:
     sigma_spec: float = 1.0   # normalized spectral factor of the passband
     beta: float = 0.0         # background-to-starlight ratio
     time_resolution_ns: float = 4.0
+    anchor: PrecisionAnchor | None = None   # for calibrated()
 
 
 # VERITAS: 416 nm / 13 nm effective passband (Abeysekara et al. 2020; 10 nm in
@@ -142,6 +154,17 @@ def calibrate_q(backend: IACTBackend, area_m2, mag_ab, sigma_vis2, t_s) -> float
     """The optical efficiency q for which vis2_sigma reproduces a published
     precision (S/N is linear in q)."""
     return float(backend.q * vis2_sigma(mag_ab, area_m2, area_m2, backend, t_s) / sigma_vis2)
+
+
+def calibrated(backend: IACTBackend, area_m2: float) -> IACTBackend:
+    """backend with q set so that vis2_sigma reproduces backend.anchor on
+    telescopes of the given area; a backend without an anchor is returned
+    unchanged."""
+    from dataclasses import replace
+    a = backend.anchor
+    if a is None:
+        return backend
+    return replace(backend, q=calibrate_q(backend, area_m2, a.mag_ab, a.sigma_vis2, a.t_s))
 
 
 def veritas_calibrated() -> IACTBackend:

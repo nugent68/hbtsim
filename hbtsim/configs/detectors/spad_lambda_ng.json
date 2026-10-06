@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "spad_lambda_ng",
+  "extends": "spad_lambda",
+  "label": "next-gen SPAD Lambda (correlator readout)",
+  "readout": "correlator",
+  "max_total_cps": null,
+  "sources": [],
+  "notes": [
+    "Next-generation design assumed for the R ~ 5000 studies: the same SPAD pixel performance with no rate ceiling between photon detection and the coincidence histogram (a real-time correlator), so the rate is limited only by dead time. An idealization: no such multi-channel system exists yet at >= 1e9 cps."
+  ]
+}

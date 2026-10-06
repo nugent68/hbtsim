@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g3_algol_maunakea",
+  "label": "Algol closure phases with Subaru + Keck I + Keck II",
+  "runner": "g3",
+  "target": "algol",
+  "array": "maunakea_subaru_keck",
+  "backends": [
+    "spad320_timetag",
+    "spad320_correlator",
+    "r5000_correlator",
+    "r5000_correlator_pbs"
+  ],
+  "track_backends": [
+    "r5000_correlator",
+    "r5000_correlator_pbs"
+  ],
+  "phases": {
+    "snapshot": "max_separation",
+    "extra": false
+  },
+  "night": {
+    "block_minutes": 15.0
+  },
+  "atmosphere": {
+    "use": true,
+    "allow_extrapolation": true
+  },
+  "outputs": {
+    "figures": true,
+    "track": true,
+    "latex": true
+  },
+  "notes": [
+    "Algol A (12 550 K) is clamped onto the 12 000 K NewEra edge model (allow_extrapolation)."
+  ]
+}

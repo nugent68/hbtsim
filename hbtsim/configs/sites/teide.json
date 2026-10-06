@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "site",
+  "name": "teide",
+  "label": "Teide (Izana)",
+  "latitude_deg": 28.3,
+  "longitude_deg": -16.51,
+  "elevation_m": 2390.0,
+  "sources": [],
+  "notes": [
+    "EON-SII's nominal site (Izana, 2390 m)."
+  ]
+}

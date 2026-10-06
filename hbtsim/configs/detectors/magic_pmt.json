@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "magic_pmt",
+  "label": "MAGIC PMT + 500 MS/s (analog, 110 MHz)",
+  "pde_table_nm": {
+    "flat": 0.295,
+    "range_nm": [
+      300.0,
+      700.0
+    ]
+  },
+  "timing": {
+    "electronic_bandwidth_hz": 110000000.0
+  },
+  "dead_time_ns": 0.0,
+  "dark_cps_per_pixel": 0.0,
+  "n_pixels": 1,
+  "readout": "correlator",
+  "max_total_cps": null,
+  "sources": [
+    "Abe et al. 2024, MNRAS 529, 4387: QE 0.295, 500 MS/s, 110 MHz effective bandwidth (125 MHz anti-aliasing)"
+  ],
+  "notes": [
+    "Analog PMT 'detector' for the photon-counting cross-check path only (see veritas_pmt)."
+  ]
+}

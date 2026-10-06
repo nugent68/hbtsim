@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "deltavel",
+  "label": "delta Velorum Aa-Ab",
+  "type": "binary",
+  "primary": {
+    "label": "delta Vel Aa (A2 IV)",
+    "mass_msun": 2.43,
+    "radius_rsun": 2.97,
+    "teff_k": 9450.0,
+    "ld_table": "claret11_betaaur"
+  },
+  "secondary": {
+    "label": "delta Vel Ab (A4 V)",
+    "mass_msun": 2.27,
+    "radius_rsun": 2.52,
+    "teff_k": 9830.0,
+    "ld_table": "claret11_betaaur"
+  },
+  "period_days": 45.1503,
+  "inclination_deg": 89.0,
+  "distance_pc": 25.13,
+  "semimajor_au": 0.4156,
+  "eccentricity": 0.29,
+  "arg_periastron_deg": 109.7,
+  "mag_anchors": [
+    {
+      "band": "g",
+      "mag_ab": 1.9
+    },
+    {
+      "band": "i",
+      "mag_ab": 2.25
+    }
+  ],
+  "node_pa_deg": 65.0,
+  "dec_deg": -54.708821,
+  "ra_hours": 8.74506,
+  "atmosphere": {
+    "resource": "newera"
+  },
+  "sources": [
+    "[M11] Merand et al. 2011, A&A 532, A50 (VLTI/AMBER + spectroscopy with Pribulla et al. 2011): P, e, omega, i, masses, radii, Teffs, orbital parallax 39.8 +/- 0.4 mas, Omega 65.0 +/- 0.6 (Table 2)",
+    "V = 1.95 for the unresolved A pair + B (F dwarf, V ~ 5.5, ~3.7 % third light, excluded): A-only V ~ 1.99, B-V ~ 0.04 -> g ~ 1.90"
+  ],
+  "notes": [
+    "omega = 109.7 deg [M11] agrees to 0.1 deg with the ROCHE spectroscopic value of Pribulla et al. 2011 and is therefore the PRIMARY's argument of periastron (RV convention). hbtsim applies omega to the secondary's relative orbit (orbit.py), where the visual-binary convention would call it omega + 180 deg. The two choices swap which conjunction falls near periastron and hence the eclipse durations and the phase gap between the minima: CHECK against the SMEI light curve (primary minimum deeper, secondary ~0.43 in phase later) before using delta Vel eclipse timing.",
+    "Both components use the beta Aur (9250 K, log g 3.9) Claret table: within ~0.02 in u of their own (9450 / 9830 K, log g 3.9 / 4.0).",
+    "The components' rapid rotation (v sin i ~ 145 km/s; oblate, gravity-darkened) is NOT modelled (spherical disks).",
+    "node_pa_deg 65.0 is the interferometry-only element [M11]; ORB6 lists 155.0 with i -> 180 - i, which is not a valid mirror transformation, so the published value is used.",
+    "The i-band anchor is from the anchored-blackbody colour (+/- ~0.1 mag).",
+    "semimajor_au from Kepler's third law with the [M11] masses."
+  ],
+  "provenance": {
+    "period_days": "[M11]",
+    "eccentricity": "[M11]",
+    "arg_periastron_deg": "[M11] (convention: see notes)",
+    "inclination_deg": "[M11]",
+    "distance_pc": "[M11] orbital parallax",
+    "semimajor_au": "Kepler, [M11] masses",
+    "node_pa_deg": "[M11] Table 2"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g3_spica_vlt",
+  "label": "Spica closure phases with the four VLT UTs (docs/three_telescope_feasibility.md)",
+  "runner": "g3",
+  "target": "spica",
+  "array": "vlt_ut",
+  "backends": [
+    "spad320_timetag",
+    "spad320_correlator",
+    "r5000_correlator",
+    "r5000_correlator_pbs"
+  ],
+  "track_backends": [
+    "r5000_correlator",
+    "r5000_correlator_pbs"
+  ],
+  "phases": {
+    "snapshot": "max_separation",
+    "extra": false
+  },
+  "night": {
+    "block_minutes": 15.0
+  },
+  "atmosphere": {
+    "use": true,
+    "allow_extrapolation": false
+  },
+  "outputs": {
+    "figures": true,
+    "track": true,
+    "latex": true
+  },
+  "notes": []
+}

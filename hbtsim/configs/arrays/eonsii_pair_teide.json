@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "eonsii_pair_teide",
+  "label": "EON-SII pair (Teide)",
+  "site": "teide",
+  "generator": {
+    "type": "pair",
+    "baseline_m": 100.0,
+    "pa_deg": 0.0,
+    "min_spacing_m": 6.0,
+    "station_names": [
+      "EON-1",
+      "EON-2"
+    ],
+    "telescope": "eonsii_4m",
+    "detector": "eonsii_mcp_pmt"
+  },
+  "notes": [
+    "Two 4 m transportable units at any baseline (nominally 1.5-3 km for the compact-star targets): load_array('eonsii_pair_teide', baseline_m=1750, pa_deg=90).",
+    "min_spacing_m 6: closest centre-to-centre spacing of two 4 m units."
+  ]
+}

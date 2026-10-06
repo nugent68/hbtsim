@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "filter_cousins_i",
+  "label": "I filter (806/149 nm) as a one-channel spectrograph",
+  "lambda_min_nm": 731.5,
+  "lambda_max_nm": 880.5,
+  "n_channels": 1,
+  "throughput": 1.0,
+  "sources": [
+    "Kim & Kaiser 2026, PASP 138, 044202 (band centres and widths)"
+  ],
+  "notes": [
+    "Throughput 1: the 0.3 of telescopes/kk_4m already covers the whole chain."
+  ]
+}

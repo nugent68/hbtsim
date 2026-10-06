@@ -74,6 +74,19 @@ def max_light_mag(system: BinarySystem, wavelength_nm: float,
     return float(apparent_ab_mag(flux, wavelength_nm, system, grid))
 
 
+def anchor_table(system: BinarySystem, band: str) -> dict:
+    """{band: observed mag} for the requested band, accepting anchors keyed
+    by band name or by wavelength [nm] (snr.BAND_LAMBDA_NM maps the two)."""
+    from .snr import BAND_LAMBDA_NM
+    out = {}
+    for key, mag in system.mag_anchors:
+        if isinstance(key, str):
+            out[key] = mag
+        elif band in BAND_LAMBDA_NM and float(key) == BAND_LAMBDA_NM[band]:
+            out[band] = mag
+    return out
+
+
 def anchored_mags(synth_mags: np.ndarray, band: str, system: BinarySystem,
                   reference_mag: float | None = None) -> np.ndarray:
     """Shift a band's synthetic magnitude curve by a constant so that
@@ -83,7 +96,7 @@ def anchored_mags(synth_mags: np.ndarray, band: str, system: BinarySystem,
     max_light_mag, independent of which epochs the curve samples); if
     None the curve's own minimum is used (legacy behaviour, which
     rectifies render jitter and depends on the phase window)."""
-    anchors = dict(system.mag_anchors)
+    anchors = anchor_table(system, band)
     m = np.asarray(synth_mags)
     ref = float(m.min()) if reference_mag is None else float(reference_mag)
     if system.has_sed_tables:

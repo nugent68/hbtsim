@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "magic_sii",
+  "label": "MAGIC SII (425/26 nm)",
+  "model": "analog",
+  "lambda_nm": 425.0,
+  "dlambda_nm": 26.0,
+  "alpha": 0.295,
+  "q": 0.304,
+  "b_el_hz": 110000000.0,
+  "noise_factor": 1.15,
+  "sigma_spec": 0.87,
+  "beta": 0.0,
+  "time_resolution_ns": 2.0,
+  "sources": [
+    "Abe et al. 2024, MNRAS 529, 4387, Table 4 and Eq. 4: Semrock 425/26 filter, QE 0.295, q 0.304, b_el 110 MHz effective, F 1.15, sigma_spec 0.87, 2 ns"
+  ],
+  "notes": []
+}

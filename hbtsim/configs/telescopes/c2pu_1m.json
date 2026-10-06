@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "c2pu_1m",
+  "label": "C2PU 1 m (Calern)",
+  "diameter_m": 1.0,
+  "throughput": 0.3,
+  "sources": [],
+  "notes": [
+    "Throughput 0.3 covers atmosphere, telescope optics and coupling up to the backend entrance."
+  ]
+}

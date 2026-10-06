@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "procyon_b",
+  "label": "Procyon B (DQZ white dwarf)",
+  "type": "uniform_disk",
+  "theta_mas": 0.032600000000000004,
+  "mag_ab": 10.7,
+  "ld_u": 0.3,
+  "dec_deg": 5.225,
+  "ra_hours": 7.655,
+  "reference_results": {
+    "precision_fraction": [
+      0.1,
+      0.05,
+      0.02
+    ],
+    "hours_spad": [
+      27.5,
+      100.0,
+      null
+    ]
+  },
+  "sources": [
+    "EON-SII design study (arXiv:2608.17444), Table 2: V magnitudes (taken as AB at 475 nm; the white dwarfs are hot, B-V ~ 0), diameters and hours to 10 / 5 / 2 % precision per detector case",
+    "SIMBAD: coordinates"
+  ],
+  "notes": []
+}

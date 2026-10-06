@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "algol",
+  "label": "Algol (beta Persei) A-B",
+  "type": "binary",
+  "primary": {
+    "label": "Algol A (B8V)",
+    "mass_msun": 3.17,
+    "radius_rsun": 2.73,
+    "teff_k": 12550.0,
+    "ld_table": "claret11_algol_a"
+  },
+  "secondary": {
+    "label": "Algol B (K0IV)",
+    "mass_msun": 0.7,
+    "radius_rsun": 3.48,
+    "teff_k": 4900.0,
+    "ld_table": "claret11_algol_b"
+  },
+  "period_days": 2.867328,
+  "inclination_deg": 98.7,
+  "distance_pc": 28.82,
+  "semimajor_au": 0.062,
+  "eccentricity": 0.0,
+  "arg_periastron_deg": 0.0,
+  "mag_anchors": [
+    {
+      "band": "g",
+      "mag_ab": 2.07
+    },
+    {
+      "band": "i",
+      "mag_ab": 2.58
+    }
+  ],
+  "node_pa_deg": 43.43,
+  "dec_deg": 40.955647,
+  "ra_hours": 3.13615,
+  "atmosphere": {
+    "resource": "newera",
+    "allow_extrapolation": true
+  },
+  "sources": [
+    "[B12] Baron et al. 2012, ApJ 752, 20 (CHARA/MIRC imaging): P, i, a, masses, radii, Omega (Table 6 inner orbit, +/- 0.32)",
+    "[Z10] Zavala et al. 2010, ApJ 715, L44: parallax 34.7 mas (28.82 pc)",
+    "[K15] Kolbas et al. 2015, MNRAS 451, 4150 (spectral disentangling): Teff_A = 12550 K, Teff_B = 4900 K",
+    "V_max = 2.12, B-V = -0.05 (incl. Algol C) -> C-corrected A-B-only anchors via Jester et al. 2005"
+  ],
+  "notes": [
+    "Component C (~70 mas away) is excluded; its ~10 % third light (~0.10 mag) is removed from the photometric anchors.",
+    "semimajor_au 0.0620 AU: [B12] 2.15 mas measured; Kepler-consistent.",
+    "Algol A (12 550 K) lies beyond the NewEra grid edge (12 000 K): attach with allow_extrapolation to clamp onto the edge model."
+  ],
+  "provenance": {
+    "period_days": "[B12]",
+    "inclination_deg": "[B12]",
+    "distance_pc": "[Z10]",
+    "semimajor_au": "[B12]",
+    "primary.teff_k": "[K15]",
+    "secondary.teff_k": "[K15]",
+    "node_pa_deg": "[B12] Table 6"
+  }
+}

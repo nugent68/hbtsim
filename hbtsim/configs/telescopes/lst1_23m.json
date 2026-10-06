@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "lst1_23m",
+  "label": "LST-1 23 m",
+  "diameter_m": 23.0,
+  "throughput": 0.304,
+  "collecting_area_m2": 390.0,
+  "sources": [
+    "Raiola et al. 2025, PoS ICRC2025 957"
+  ],
+  "notes": [],
+  "assumptions": [
+    "collecting_area_m2",
+    "throughput (taken as MAGIC's)"
+  ]
+}

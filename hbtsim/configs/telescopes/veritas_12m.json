@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "veritas_12m",
+  "label": "VERITAS 12 m (345 facets)",
+  "diameter_m": 12.0,
+  "throughput": 0.3,
+  "collecting_area_m2": 110.0,
+  "sources": [
+    "Abeysekara et al. 2020"
+  ],
+  "notes": [
+    "throughput is not used by the classic analog S/N (q is); set to 0.3 for the photon-counting cross-check path."
+  ],
+  "assumptions": [
+    "collecting_area_m2"
+  ]
+}

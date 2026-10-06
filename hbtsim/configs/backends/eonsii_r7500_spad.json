@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "eonsii_r7500_spad",
+  "label": "R = 7500 (2388 ch), QUASAR SPAD",
+  "model": "counting",
+  "spectrograph": "eonsii_r7500",
+  "detector": "eonsii_spad",
+  "polarization_mode": "unpolarized",
+  "notes": []
+}

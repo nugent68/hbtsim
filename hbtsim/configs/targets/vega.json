@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "vega",
+  "label": "Vega",
+  "type": "single",
+  "star": {
+    "label": "Vega",
+    "mass_msun": 2.15,
+    "teff_k": 9550.0,
+    "ld_table": "claret11_betaaur",
+    "logg": 4.0
+  },
+  "theta_ld_mas": 3.329,
+  "v_mag": 0.03,
+  "dec_deg": 38.7837,
+  "ra_hours": 18.6156,
+  "distance_pc": 7.68,
+  "atmosphere": {
+    "resource": "newera"
+  },
+  "sources": [
+    "Aufdenberg et al. 2006: theta_LD 3.329 mas; pole-on rapid rotator, mean T_eff ~9550 K, log g 4.0",
+    "d = 7.68 pc; V = 0.03"
+  ],
+  "notes": [
+    "The spherical model ignores the ~2000 K pole-to-equator gradient (docs/chromatic_diameters_eonsii.md).",
+    "The radius is derived from theta_LD and the distance."
+  ]
+}

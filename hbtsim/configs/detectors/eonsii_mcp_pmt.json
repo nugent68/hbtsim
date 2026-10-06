@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "eonsii_mcp_pmt",
+  "label": "EON-SII Photonis FT18 MCP-PMT (assumed bialkali QE)",
+  "pde_table_nm": [
+    [
+      400.0,
+      0.22
+    ],
+    [
+      450.0,
+      0.24
+    ],
+    [
+      500.0,
+      0.2
+    ],
+    [
+      550.0,
+      0.15
+    ]
+  ],
+  "timing": {
+    "pair_sigma_ps": 27.4
+  },
+  "dead_time_ns": 1.0,
+  "dark_cps_per_pixel": 1.0,
+  "n_pixels": 1,
+  "readout": "timetag",
+  "max_total_cps": 1000000000.0,
+  "sources": [
+    "EON-SII design study (arXiv:2608.17444): Photonis FT18 MCP-PMT, 32.4 ps FWHM transit-time spread, measured HBT pair width sigma = 27.4 +/- 1.1 ps; 1 GHz time-tag link per telescope"
+  ],
+  "notes": [
+    "timing.pair_sigma_ps is the measured pair width; the per-detector FWHM is derived so that the pair sigma is reproduced."
+  ],
+  "assumptions": [
+    "pde_table_nm (bialkali QE)"
+  ]
+}

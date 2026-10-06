@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "veritas_pmt",
+  "label": "VERITAS R10560 PMT + 250 MS/s (analog, 125 MHz)",
+  "pde_table_nm": {
+    "flat": 0.3,
+    "range_nm": [
+      300.0,
+      700.0
+    ]
+  },
+  "timing": {
+    "electronic_bandwidth_hz": 125000000.0
+  },
+  "dead_time_ns": 0.0,
+  "dark_cps_per_pixel": 0.0,
+  "n_pixels": 1,
+  "readout": "correlator",
+  "max_total_cps": null,
+  "sources": [
+    "Abeysekara et al. 2020: Hamamatsu R10560, QE ~0.30, 250 MS/s"
+  ],
+  "notes": [
+    "Analog PMT 'detector' for the photon-counting cross-check path only: the electronic bandwidth as an equivalent Gaussian pair kernel (sigma_pair = 1/(sqrt(pi) b_el)), no dead time, no link ceiling."
+  ]
+}

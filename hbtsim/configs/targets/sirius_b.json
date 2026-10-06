@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "sirius_b",
+  "label": "Sirius B (DA2 white dwarf)",
+  "type": "uniform_disk",
+  "theta_mas": 0.0285,
+  "mag_ab": 8.44,
+  "ld_u": 0.3,
+  "dec_deg": -16.716,
+  "ra_hours": 6.7525,
+  "reference_results": {
+    "precision_fraction": [
+      0.1,
+      0.05,
+      0.02
+    ],
+    "hours_mcp": [
+      1.5,
+      6.0,
+      37.5
+    ],
+    "hours_spad": [
+      0.33,
+      1.3,
+      8.2
+    ]
+  },
+  "sources": [
+    "EON-SII design study (arXiv:2608.17444), Table 2: V magnitudes (taken as AB at 475 nm; the white dwarfs are hot, B-V ~ 0), diameters and hours to 10 / 5 / 2 % precision per detector case",
+    "SIMBAD: coordinates"
+  ],
+  "notes": [
+    "ld_u 0.3 is the linear coefficient used by scripts/eonsii_crosscheck.py; the Monte Carlo campaign draws a uniform disk (ld_u 0) as its truth.",
+    "The paper's Monte Carlo: theta 0.02955 +/- 0.0014 mas with the MCP-PMT in 10 h (campaigns/mc_sirius_b_eonsii.json)."
+  ]
+}

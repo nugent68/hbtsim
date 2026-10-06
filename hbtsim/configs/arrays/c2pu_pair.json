@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "c2pu_pair",
+  "label": "C2PU 1 m pair (Calern)",
+  "site": "calern",
+  "generator": {
+    "type": "pair",
+    "baseline_m": 15.0,
+    "pa_deg": 0.0,
+    "station_names": [
+      "C2PU-1",
+      "C2PU-2"
+    ],
+    "telescope": "c2pu_1m",
+    "detector": "spad_lambda"
+  },
+  "notes": [
+    "The two 1 m C2PU telescopes ~15 m apart; the site coordinates are to be confirmed (sites/calern)."
+  ]
+}

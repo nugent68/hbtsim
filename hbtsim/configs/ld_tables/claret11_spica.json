@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "kind": "ld_table",
+  "name": "claret11_spica",
+  "label": "Claret & Bloemen 2011 linear law for Spica A (25 300 K); also used for Spica B and gamma Cas",
+  "law": "linear",
+  "table_nm": [
+    [
+      400.0,
+      0.32
+    ],
+    [
+      477.0,
+      0.29
+    ],
+    [
+      551.0,
+      0.26
+    ],
+    [
+      623.0,
+      0.24
+    ],
+    [
+      763.0,
+      0.2
+    ],
+    [
+      913.0,
+      0.17
+    ]
+  ],
+  "sources": [
+    "[C11] Claret & Bloemen 2011, A&A 529, A75 (VizieR J/A+A/529/A75): linear u(lambda), ATLAS, [M/H] = 0"
+  ],
+  "notes": [
+    "The same table serves Spica B (20.9 kK, log g 4.2): u differs from A's by ~0.02, below the other uncertainties of this hot pair."
+  ]
+}

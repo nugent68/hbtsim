@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g2_eonsii",
+  "label": "Two-telescope g2 sensitivity of the four binaries on the EON-SII pair",
+  "runner": "g2",
+  "targets": [
+    "betaaur",
+    "algol",
+    "deltavel",
+    "spica"
+  ],
+  "instrument": {
+    "telescope": "eonsii_4m"
+  },
+  "backends": [
+    "eonsii_mcp",
+    "eonsii_mcp_pbs",
+    "eonsii_spad",
+    "eonsii_spad_pbs",
+    "eonsii_r7500_spad"
+  ],
+  "atmosphere": {
+    "use": true,
+    "allow_extrapolation": true
+  },
+  "options": {
+    "baseline_scan_m": {
+      "start": 10.0,
+      "stop": 300.0,
+      "step": 5.0
+    },
+    "phase": "max_separation",
+    "vis2_method": "analytic"
+  },
+  "outputs": {
+    "latex": true
+  }
+}

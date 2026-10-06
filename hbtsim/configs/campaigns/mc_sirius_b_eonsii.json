@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "mc_sirius_b_eonsii",
+  "label": "Sirius B diameter Monte Carlo with the EON-SII pair (paper Table 2 cross-check)",
+  "runner": "montecarlo",
+  "target": "sirius_b",
+  "instrument": {
+    "array": "eonsii_pair_teide",
+    "array_params": {
+      "baseline_m": 1750.0,
+      "pa_deg": 90.0
+    }
+  },
+  "backends": [
+    "eonsii_mcp",
+    "eonsii_spad"
+  ],
+  "options": {
+    "theta_true_mas": 0.0295,
+    "truth_ld_u": 0.0,
+    "zenith_angles_deg": [
+      45.0,
+      52.5,
+      60.0
+    ],
+    "t_total_h": 10.0,
+    "blocks_per_zenith": 1,
+    "n_realizations": 100,
+    "estimators": [
+      "matched",
+      "box_opt",
+      "box_sigma_raw",
+      "box_tdc_raw"
+    ],
+    "seed": 11,
+    "bin_ps": 3.125,
+    "lag_half_range_ps": 400.0,
+    "sideband_sigma": 6.0,
+    "background": [
+      "singles",
+      "sideband"
+    ],
+    "paper": {
+      "theta_mas": 0.02955,
+      "sigma_mas": 0.0014,
+      "hours_to_10pct": {
+        "mcp": 1.5,
+        "spad": 0.33
+      }
+    }
+  },
+  "notes": [
+    "The paper's Monte Carlo used theta = 0.030 mas; 0.0295 reproduces its table."
+  ]
+}

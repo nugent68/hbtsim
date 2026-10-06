@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "eonsii_mcp_pbs",
+  "label": "1000 ch, MCP-PMT + PBS",
+  "model": "counting",
+  "spectrograph": "eonsii_1000ch",
+  "detector": "eonsii_mcp_pmt",
+  "polarization_mode": "pbs",
+  "notes": []
+}

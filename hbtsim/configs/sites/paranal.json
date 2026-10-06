@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "site",
+  "name": "paranal",
+  "label": "Paranal",
+  "latitude_deg": -24.6272,
+  "longitude_deg": -70.4045,
+  "elevation_m": 2635.0,
+  "sources": [],
+  "notes": [
+    "Latitude -24.6: Algol and beta Aur (dec +41/+45) culminate below ~25 deg altitude; Spica (dec -11) transits at ~77 deg."
+  ]
+}

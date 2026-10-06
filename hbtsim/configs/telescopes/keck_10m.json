@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "keck_10m",
+  "label": "Keck 10 m",
+  "diameter_m": 10.0,
+  "throughput": 0.3,
+  "sources": [],
+  "notes": [
+    "The two Keck telescopes on Maunakea are ~85 m apart (arrays/keck_pair, arrays/maunakea_subaru_keck)."
+  ]
+}

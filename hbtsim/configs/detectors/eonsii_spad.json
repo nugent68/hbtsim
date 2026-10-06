@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "eonsii_spad",
+  "label": "EON-SII QUASAR SPAD array (assumed SPAD Lambda PDE, 20 ps)",
+  "pde_table_nm": [
+    [
+      400.0,
+      0.22
+    ],
+    [
+      450.0,
+      0.4
+    ],
+    [
+      500.0,
+      0.49
+    ],
+    [
+      520.0,
+      0.5
+    ],
+    [
+      550.0,
+      0.48
+    ]
+  ],
+  "timing": {
+    "jitter_fwhm_ps": 20.0
+  },
+  "dead_time_ns": 10.0,
+  "dark_cps_per_pixel": 250.0,
+  "n_pixels": 1,
+  "readout": "timetag",
+  "max_total_cps": 1000000000.0,
+  "sources": [
+    "EON-SII design study (arXiv:2608.17444): QUASAR 32x32 SPAD array, 12-30 ps target jitter, 'higher QE'; 1 GHz time-tag link"
+  ],
+  "notes": [],
+  "assumptions": [
+    "pde_table_nm (the SPAD Lambda curve)"
+  ]
+}

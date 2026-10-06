@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "kk_1000ch",
+  "label": "KK detector, 1000 ch 400-950 nm",
+  "model": "counting",
+  "spectrograph": "kk_1000ch_400_950",
+  "detector": "kk_ideal",
+  "polarization_mode": "unpolarized",
+  "notes": []
+}

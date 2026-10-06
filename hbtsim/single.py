@@ -31,6 +31,20 @@ from .snr import (C2PU, SPAD_LAMBDA, Detector, Spectrograph, SpectralSNRResult,
 
 
 @dataclass(frozen=True)
+class Ellipse:
+    """An elliptical (e.g. rotationally flattened or disk-bearing) outline
+    for ellipse_vis / composite_vis: major axis [mas], axis ratio >= 1 and
+    the position angle of the major axis [deg E of N]."""
+    theta_major_mas: float
+    axis_ratio: float = 1.0
+    pa_deg: float = 0.0
+
+    @property
+    def theta_minor_mas(self) -> float:
+        return self.theta_major_mas / self.axis_ratio
+
+
+@dataclass(frozen=True)
 class SingleStar:
     name: str
     star: Star
@@ -44,6 +58,8 @@ class SingleStar:
     # between the anchors (held constant beyond them), as
     # snr.system_ab_mag does for the binaries; empty = unanchored model
     mag_anchors: tuple = ()
+    # optional resolved non-circular outline (gamma Cas's decretion disk)
+    ellipse: Ellipse | None = None
 
     @property
     def drawn_diameter_mas(self) -> float:

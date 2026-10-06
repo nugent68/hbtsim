@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "sirius_a",
+  "label": "Sirius A",
+  "type": "single",
+  "star": {
+    "label": "Sirius A",
+    "mass_msun": 2.06,
+    "teff_k": 9940.0,
+    "ld_table": "claret11_betaaur",
+    "logg": 4.33
+  },
+  "theta_ld_mas": 6.039,
+  "v_mag": -1.46,
+  "dec_deg": -16.716,
+  "ra_hours": 6.7525,
+  "distance_pc": 2.637,
+  "atmosphere": {
+    "resource": "newera"
+  },
+  "sources": [
+    "Adelman 2004: T_eff 9940 K, log g 4.33",
+    "Kervella et al. 2003 (VINCI): theta_LD 6.039 mas",
+    "Hipparcos: d = 2.637 pc",
+    "V = -1.46"
+  ],
+  "notes": [
+    "The radius is derived from theta_LD and the distance (0.5 theta d).",
+    "Fallback linear law: the beta Aur (A-type) Claret table; replaced by the NewEra profile when attached."
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g3_betaaur_maunakea",
+  "label": "beta Aur closure phases with Subaru + Keck I + Keck II",
+  "runner": "g3",
+  "target": "betaaur",
+  "array": "maunakea_subaru_keck",
+  "backends": [
+    "spad320_timetag",
+    "spad320_correlator",
+    "r5000_correlator",
+    "r5000_correlator_pbs"
+  ],
+  "track_backends": [
+    "r5000_correlator",
+    "r5000_correlator_pbs"
+  ],
+  "phases": {
+    "snapshot": "max_separation",
+    "extra": false
+  },
+  "night": {
+    "block_minutes": 15.0
+  },
+  "atmosphere": {
+    "use": true,
+    "allow_extrapolation": false
+  },
+  "outputs": {
+    "figures": true,
+    "track": true,
+    "latex": true
+  },
+  "notes": []
+}

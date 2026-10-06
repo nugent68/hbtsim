@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "vlt_ut_8p2m",
+  "label": "VLT Unit Telescope 8.2 m",
+  "diameter_m": 8.2,
+  "throughput": 0.3,
+  "sources": [],
+  "notes": []
+}

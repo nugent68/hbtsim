@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "subaru_8p2m",
+  "label": "Subaru 8.2 m",
+  "diameter_m": 8.2,
+  "throughput": 0.3,
+  "sources": [],
+  "notes": [
+    "~152 m from Keck I and ~226 m from Keck II: the third vertex of the Maunakea triangle."
+  ]
+}

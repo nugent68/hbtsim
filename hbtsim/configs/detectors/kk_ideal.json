@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "kk_ideal",
+  "label": "Kim & Kaiser fiducial (sigma_t 16.6 ps, throughput in the telescope)",
+  "pde_table_nm": {
+    "flat": 1.0,
+    "range_nm": [
+      300.0,
+      2600.0
+    ]
+  },
+  "timing": {
+    "jitter_sigma_ps": 16.6
+  },
+  "dead_time_ns": 0.0,
+  "dark_cps_per_pixel": 0.0,
+  "n_pixels": 1,
+  "readout": "correlator",
+  "max_total_cps": null,
+  "sources": [
+    "Kim & Kaiser 2026, PASP 138, 044202: sigma_t = 16.6 ps per detector (the '42.4 ps FWHM' quoted alongside would be 18.0 ps; the 16.6 ps that enters their numbers is adopted)"
+  ],
+  "notes": [
+    "PDE 1 and no dark counts: the 0.3 of telescopes/kk_4m covers the whole chain; no readout ceiling."
+  ]
+}

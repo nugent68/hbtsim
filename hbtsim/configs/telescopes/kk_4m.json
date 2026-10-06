@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "kk_4m",
+  "label": "Kim & Kaiser fiducial 4 m (throughput 0.3 for the whole chain)",
+  "diameter_m": 4.0,
+  "throughput": 0.3,
+  "sources": [
+    "Kim & Kaiser 2026, PASP 138, 044202"
+  ],
+  "notes": [
+    "The 0.3 covers atmosphere, optics AND detector: pair with detectors/kk_ideal (PDE 1) and the unit-throughput filters."
+  ]
+}

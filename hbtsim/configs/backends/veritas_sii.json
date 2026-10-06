@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "veritas_sii",
+  "label": "VERITAS SII (416/13 nm)",
+  "model": "analog",
+  "lambda_nm": 416.0,
+  "dlambda_nm": 13.0,
+  "alpha": 0.3,
+  "q": 0.25,
+  "b_el_hz": 125000000.0,
+  "noise_factor": 1.0,
+  "sigma_spec": 1.0,
+  "beta": 0.0,
+  "time_resolution_ns": 4.0,
+  "anchor": {
+    "star": "eps Ori",
+    "band": "B",
+    "mag_vega": 1.5,
+    "sigma_vis2": 0.016,
+    "t_s": 15300.0,
+    "note": "Abeysekara et al. 2020: sigma(|g|^2) = 2e-8 on N0 = 1.26e-6 per pair in 4.25 h"
+  },
+  "sources": [
+    "Abeysekara et al. 2020 (VERITAS SII): 416 nm / 13 nm effective passband (10 nm in the 2025 gamma Cas paper), Hamamatsu R10560 QE ~0.30, 250 MS/s, 4 ns time resolution"
+  ],
+  "notes": [
+    "q, F and sigma_spec are not published: q is calibrated from the anchor (iact.calibrated) with F = sigma_spec = 1 absorbed; the file's q = 0.25 is the uncalibrated starting value."
+  ],
+  "assumptions": [
+    "q",
+    "noise_factor",
+    "sigma_spec"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g2_keck",
+  "label": "Two-telescope g2 sensitivity of the four binaries on the Keck pair",
+  "runner": "g2",
+  "targets": [
+    "betaaur",
+    "algol",
+    "deltavel",
+    "spica"
+  ],
+  "instrument": {
+    "telescope": "keck_10m"
+  },
+  "backends": [
+    "spad320_timetag",
+    "spad320_correlator",
+    "r5000_correlator"
+  ],
+  "atmosphere": {
+    "use": true,
+    "allow_extrapolation": true
+  },
+  "options": {
+    "baseline_scan_m": {
+      "start": 10.0,
+      "stop": 300.0,
+      "step": 5.0
+    },
+    "phase": "max_separation",
+    "vis2_method": "analytic"
+  },
+  "outputs": {
+    "latex": true
+  }
+}

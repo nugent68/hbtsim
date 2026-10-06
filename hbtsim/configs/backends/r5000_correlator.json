@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "r5000_correlator",
+  "label": "next-gen R = 5000, correlator",
+  "model": "counting",
+  "spectrograph": "r5000_400_950",
+  "detector": "spad_lambda_ng",
+  "polarization_mode": "unpolarized",
+  "notes": []
+}

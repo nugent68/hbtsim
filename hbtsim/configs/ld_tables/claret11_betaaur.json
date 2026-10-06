@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "kind": "ld_table",
+  "name": "claret11_betaaur",
+  "label": "Claret & Bloemen 2011 linear law, 9250 K / log g 3.9 (A-type; beta Aur, delta Vel, Sirius A, Vega fallback)",
+  "law": "linear",
+  "table_nm": [
+    [
+      400.0,
+      0.52
+    ],
+    [
+      477.0,
+      0.5
+    ],
+    [
+      763.0,
+      0.3
+    ],
+    [
+      800.0,
+      0.29
+    ],
+    [
+      913.0,
+      0.26
+    ]
+  ],
+  "sources": [
+    "[C11] Claret & Bloemen 2011, A&A 529, A75 (VizieR J/A+A/529/A75): linear u(lambda), ATLAS, [M/H] = 0"
+  ],
+  "notes": [
+    "Used for both beta Aur components (9350 / 9200 K), both delta Vel components (9450 / 9830 K, within ~0.02 in u of their own) and as the blackbody-fallback law of the single A stars."
+  ]
+}

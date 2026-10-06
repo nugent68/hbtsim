@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "eonsii_triangle_paranal",
+  "label": "EON-SII triangle (Paranal / CTAO-South)",
+  "site": "paranal",
+  "generator": {
+    "type": "equilateral",
+    "side_m": 20.0,
+    "pa_deg": 0.0,
+    "min_spacing_m": 6.0,
+    "station_names": [
+      "EON-1",
+      "EON-2",
+      "EON-3"
+    ],
+    "telescope": "eonsii_4m",
+    "detector": "eonsii_mcp_pmt"
+  },
+  "notes": [
+    "The pair plus a hypothetical third identical unit on an equilateral triangle: EON-1 at the origin, EON-2 at position angle pa_deg (E of N), EON-3 at pa_deg + 60.",
+    "Paranal because the southern targets (delta Vel, dec -54.7) never rise usefully at Teide."
+  ]
+}

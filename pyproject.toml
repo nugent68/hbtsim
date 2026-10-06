@@ -16,9 +16,11 @@ gpu = ["jax[cuda12]>=0.4.32"]
 sed = ["h5py>=3.10"]
 
 [project.scripts]
+hbtsim = "hbtsim.__main__:main"
 hbtsim-movie = "hbtsim.cli:main"
 hbtsim-g2spec = "hbtsim.g2spec:main"
 hbtsim-snr = "hbtsim.snr_cli:main"
+hbtsim-catalog = "hbtsim.catalog.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -33,4 +35,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["hbtsim"]
+packages = ["hbtsim", "hbtsim.catalog"]
+
+[tool.setuptools.package-data]
+hbtsim = ["configs/*/*.json"]

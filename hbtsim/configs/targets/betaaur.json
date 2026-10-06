@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "betaaur",
+  "label": "Beta Aurigae (Menkalinan)",
+  "type": "binary",
+  "primary": {
+    "label": "beta Aur Aa",
+    "mass_msun": 2.376,
+    "radius_rsun": 2.762,
+    "teff_k": 9350.0,
+    "ld_table": "claret11_betaaur"
+  },
+  "secondary": {
+    "label": "beta Aur Ab",
+    "mass_msun": 2.291,
+    "radius_rsun": 2.568,
+    "teff_k": 9200.0,
+    "ld_table": "claret11_betaaur"
+  },
+  "period_days": 3.96004,
+  "inclination_deg": 76.8,
+  "distance_pc": 24.87,
+  "semimajor_au": 0.08186,
+  "eccentricity": 0.0,
+  "arg_periastron_deg": 0.0,
+  "mag_anchors": [
+    {
+      "band": "g",
+      "mag_ab": 1.8
+    },
+    {
+      "band": "i",
+      "mag_ab": 2.1
+    }
+  ],
+  "node_pa_deg": 295.15,
+  "dec_deg": 44.94743,
+  "ra_hours": 5.99214,
+  "atmosphere": {
+    "resource": "newera"
+  },
+  "sources": [
+    "[S07] Southworth, Bruntt & Buzasi 2007, A&A 467, 1215 (WIRE photometry): P, i, masses, radii, Teff",
+    "[vL07] van Leeuwen 2007, A&A 474, 653 (Hipparcos re-reduction): parallax 40.21 mas",
+    "[H95] Hummel et al. 1995, AJ 110, 376 (Mark III interferometric orbit)",
+    "Jonak et al. 2026 (arXiv:2609.03886): CHARA + RVs + closure phases resolve the node ambiguity (Omega = 295.15)",
+    "Bright Star Catalogue V = 1.90, B-V = 0.03 -> g ~ 1.80, i ~ 2.10 (Jester et al. 2005)",
+    "SIMBAD ICRS position"
+  ],
+  "notes": [
+    "semimajor_au from Kepler's third law with the [S07] masses (4.667 Msun) and period: a^3 = M P^2 -> 0.08186 AU = 3.29 mas at 24.87 pc (H95 measured 3.3 +/- 0.1 mas; Jonak et al. 2026: 3.365 mas at 24.30 pc).",
+    "inclination: [S07] 76.8 (H95: 76.0 +/- 0.4).",
+    "node_pa_deg: Jonak et al. 2026, 295.15 deg (H95's 115.4 is the other node)."
+  ],
+  "provenance": {
+    "period_days": "[S07]",
+    "inclination_deg": "[S07]",
+    "distance_pc": "[vL07]",
+    "semimajor_au": "Kepler, [S07] masses",
+    "primary.radius_rsun": "[S07]",
+    "secondary.radius_rsun": "[S07]",
+    "node_pa_deg": "Jonak et al. 2026"
+  }
+}

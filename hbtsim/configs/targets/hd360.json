@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "hd360",
+  "label": "HD 360 (HR 16, K1 II)",
+  "type": "single",
+  "star": {
+    "label": "HD 360",
+    "mass_msun": 1.5,
+    "teff_k": 4764.0,
+    "ld_table": "k_giant_rough",
+    "logg": 2.5
+  },
+  "theta_ld_mas": 0.906,
+  "v_mag": 5.986,
+  "dec_deg": -8.8241,
+  "ra_hours": 0.1382,
+  "distance_pc": 110.97,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 5.986
+    },
+    {
+      "band": "H",
+      "mag_vega": 3.757
+    },
+    {
+      "band": "K",
+      "mag_vega": 3.653
+    }
+  ],
+  "atmosphere": {
+    "resource": "newera_redclump",
+    "model": "lte04800-4.50-0.0"
+  },
+  "sources": [
+    "Kim & Kaiser 2026, PASP 138, 044202 (red-clump validation targets): theta_LD from Gallenne et al. (VLTI/PIONIER), T_eff / log g as adopted there, V H K magnitudes",
+    "SIMBAD: coordinates"
+  ],
+  "notes": [
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85).",
+    "Fallback linear law: a rough K-giant table. No NewEra model exists yet at 4800 K / log g 2.5; the red-clump campaigns use explicit stand-in models (campaigns/redclump_ii_*.json).",
+    "The radius is derived from theta_LD and the distance."
+  ]
+}

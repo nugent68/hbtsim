@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "redclump_ii_dwarf",
+  "label": "Red-clump scale precision (Kim & Kaiser comparison) with the 4800 K / log g 4.5 dwarf stand-in",
+  "runner": "scale",
+  "targets": [
+    "hd17652",
+    "hd360"
+  ],
+  "instrument": {
+    "telescope": "kk_4m"
+  },
+  "backends": [
+    "kk_1000ch",
+    "spad320_timetag",
+    "spad320_correlator",
+    "r5000_correlator",
+    "r5000_correlator_pbs"
+  ],
+  "atmosphere": {
+    "use": true,
+    "stand_in": "lte04800-4.50-0.0",
+    "resource": "newera_redclump"
+  },
+  "options": {
+    "hours": 2.0,
+    "filters": [
+      "filter_johnson_v",
+      "filter_cousins_r",
+      "filter_cousins_i",
+      "filter_2mass_h",
+      "filter_2mass_k"
+    ],
+    "baseline_scan_m": {
+      "start": 20.0,
+      "stop": 300.0,
+      "step": 5.0
+    },
+    "target_sigma_s": 0.007,
+    "eonsii_case": {
+      "telescope": "eonsii_4m",
+      "backend": "eonsii_spad"
+    }
+  },
+  "outputs": {
+    "figures": true
+  }
+}

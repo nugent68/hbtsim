@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "filter_johnson_v",
+  "label": "V filter (551/88 nm) as a one-channel spectrograph",
+  "lambda_min_nm": 507.0,
+  "lambda_max_nm": 595.0,
+  "n_channels": 1,
+  "throughput": 1.0,
+  "sources": [
+    "Kim & Kaiser 2026, PASP 138, 044202 (band centres and widths)"
+  ],
+  "notes": [
+    "Throughput 1: the 0.3 of telescopes/kk_4m already covers the whole chain."
+  ]
+}

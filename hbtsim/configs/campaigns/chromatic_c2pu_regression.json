@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "chromatic_c2pu_regression",
+  "label": "Chromatic-diameter regression: Sirius A and Vega, 2 x 1 m, 320 ch at R = 5000 around H-beta, 6 h",
+  "runner": "chromatic",
+  "targets": [
+    "sirius_a",
+    "vega"
+  ],
+  "instrument": {
+    "telescope": "c2pu_1m"
+  },
+  "backends": [
+    {
+      "label": "R = 5000 H-beta window, SPAD Lambda correlator",
+      "model": "counting",
+      "spectrograph": "hbeta_window_r5000",
+      "detector": "spad_lambda_ng"
+    }
+  ],
+  "atmosphere": {
+    "use": true,
+    "allow_extrapolation": false
+  },
+  "options": {
+    "channel_selection": [
+      "all"
+    ],
+    "t_int_h": 6.0,
+    "continuum_degree": 0,
+    "baseline_x": 1.7,
+    "baseline_reference_nm": 486.27
+  },
+  "notes": [
+    "baseline_x: B = x lambda / (pi theta_drawn) at the reference wavelength, as the 1 m study chose it."
+  ]
+}

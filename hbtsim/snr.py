@@ -105,6 +105,7 @@ class Telescope:
     diameter_m: float
     throughput: float = 0.3
     collecting_area_m2: float | None = None
+    name: str = ""
 
     @property
     def area_m2(self) -> float:
@@ -640,6 +641,14 @@ def _g2_budget(vis2, mag, spectrograph: Spectrograph, baseline_m: float, *,
 BAND_LAMBDA_NM = {"g": 477.0, "i": 763.0}
 
 
+def anchor_wavelength_nm(key) -> float:
+    """The wavelength of a magnitude anchor: a band name (legacy
+    ("g", mag) anchors) or the wavelength itself [nm]."""
+    if isinstance(key, str):
+        return BAND_LAMBDA_NM[key]
+    return float(key)
+
+
 def model_ab_mag(system: BinarySystem, wavelength_nm):
     """Synthetic AB magnitude of the uneclipsed binary from the stars'
     surface fluxes (model SED tables, or pi B_lambda(T_eff) blackbodies):
@@ -670,7 +679,7 @@ def _anchor_offsets(system: BinarySystem):
     """(log10 lambda_nm, offset) at the anchor bands, sorted."""
     lams, offs = [], []
     for band, m_obs in system.mag_anchors:
-        lam_b = BAND_LAMBDA_NM[band]
+        lam_b = anchor_wavelength_nm(band)
         lams.append(np.log10(lam_b))
         offs.append(m_obs - float(model_ab_mag(system, lam_b)))
     order = np.argsort(lams)

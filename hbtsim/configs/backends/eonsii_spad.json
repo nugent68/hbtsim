@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "eonsii_spad",
+  "label": "1000 ch, QUASAR SPAD",
+  "model": "counting",
+  "spectrograph": "eonsii_1000ch",
+  "detector": "eonsii_spad",
+  "polarization_mode": "unpolarized",
+  "notes": []
+}

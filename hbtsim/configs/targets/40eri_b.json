@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "40eri_b",
+  "label": "40 Eri B (DA white dwarf)",
+  "type": "uniform_disk",
+  "theta_mas": 0.024300000000000002,
+  "mag_ab": 9.52,
+  "ld_u": 0.3,
+  "dec_deg": -7.6528,
+  "ra_hours": 4.2544,
+  "reference_results": {
+    "precision_fraction": [
+      0.1,
+      0.05,
+      0.02
+    ],
+    "hours_mcp": [
+      10.0,
+      40.0,
+      null
+    ],
+    "hours_spad": [
+      2.0,
+      8.0,
+      50.0
+    ]
+  },
+  "sources": [
+    "EON-SII design study (arXiv:2608.17444), Table 2: V magnitudes (taken as AB at 475 nm; the white dwarfs are hot, B-V ~ 0), diameters and hours to 10 / 5 / 2 % precision per detector case",
+    "SIMBAD: coordinates"
+  ],
+  "notes": []
+}

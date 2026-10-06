@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "spad320_timetag",
+  "label": "current SPAD Lambda, 320 ch, time-tag",
+  "model": "counting",
+  "spectrograph": "spad_lambda_320",
+  "detector": "spad_lambda",
+  "polarization_mode": "unpolarized",
+  "notes": []
+}

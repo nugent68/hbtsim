@@ -196,6 +196,12 @@ class Array:
         return Array(_project_stations(self.stations, self.site,
                                        hour_angle_h, dec_deg), self.site)
 
+    def as_triangle(self) -> "Triangle":
+        """The Triangle of a three-station array."""
+        if len(self.stations) != 3:
+            raise ValueError(f"an Array of {len(self.stations)} stations is not a triangle")
+        return Triangle(self.stations, self.site)
+
 
 # The four VLT Unit Telescopes (8.2 m) at Paranal, published VLTI station
 # (E, N) coordinates [m]; pairwise separations 46.6 (UT2-UT3) to 130.2 m

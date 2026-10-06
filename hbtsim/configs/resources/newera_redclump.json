@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "kind": "resource",
+  "name": "newera_redclump",
+  "label": "NewEra stand-in tables for the red-clump giants",
+  "path": "data/newera_redclump",
+  "pattern": "newera_lte*.npz",
+  "contents": "prepare_newera .npz, 380-1000 nm (0.02 nm) and 380-2500 nm (0.1 nm) ranges",
+  "notes": [
+    "Stand-ins: lte04800-4.50-0.0 (dwarf) and lte05000-0.00-0.0 (supergiant); no 4800 K / log g 2.5 model exists yet."
+  ]
+}

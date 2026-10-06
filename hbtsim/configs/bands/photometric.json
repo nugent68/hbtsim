@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "kind": "band",
+  "name": "photometric",
+  "label": "Effective wavelengths and Vega -> AB offsets of the bands used for anchors",
+  "sources": [
+    "SDSS g, i effective wavelengths as adopted by snr.BAND_LAMBDA_NM (Jester et al. 2005 transformations)",
+    "Johnson/Cousins B V R I and 2MASS H Ks centres and FWHM: Kim & Kaiser 2026, PASP 138, 044202 (as in hbtsim.diameter.BANDS)",
+    "Vega -> AB: V +0.02 (Bessell), B -0.09, H +1.39, Ks +1.85 (Blanton & Roweis 2007)"
+  ],
+  "bands": {
+    "g": {
+      "wavelength_nm": 477.0,
+      "system": "AB (SDSS)"
+    },
+    "i": {
+      "wavelength_nm": 763.0,
+      "system": "AB (SDSS)"
+    },
+    "B": {
+      "wavelength_nm": 445.0,
+      "fwhm_nm": 94.0,
+      "vega_to_ab": -0.09,
+      "system": "Johnson"
+    },
+    "V": {
+      "wavelength_nm": 551.0,
+      "fwhm_nm": 88.0,
+      "vega_to_ab": 0.02,
+      "system": "Johnson"
+    },
+    "R": {
+      "wavelength_nm": 658.0,
+      "fwhm_nm": 138.0,
+      "system": "Cousins"
+    },
+    "I": {
+      "wavelength_nm": 806.0,
+      "fwhm_nm": 149.0,
+      "system": "Cousins"
+    },
+    "H": {
+      "wavelength_nm": 1630.0,
+      "fwhm_nm": 300.0,
+      "vega_to_ab": 1.39,
+      "system": "2MASS"
+    },
+    "K": {
+      "wavelength_nm": 2190.0,
+      "fwhm_nm": 390.0,
+      "vega_to_ab": 1.85,
+      "system": "2MASS Ks"
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "kind": "ld_table",
+  "name": "k_giant_rough",
+  "label": "Rough K-giant linear law (fallback for the red-clump targets)",
+  "law": "linear",
+  "table_nm": [
+    [
+      400.0,
+      0.85
+    ],
+    [
+      450.0,
+      0.78
+    ],
+    [
+      550.0,
+      0.68
+    ],
+    [
+      650.0,
+      0.6
+    ],
+    [
+      800.0,
+      0.5
+    ],
+    [
+      1000.0,
+      0.42
+    ],
+    [
+      1650.0,
+      0.32
+    ],
+    [
+      2200.0,
+      0.28
+    ]
+  ],
+  "sources": [
+    "[C11] Claret & Bloemen 2011, A&A 529, A75 (VizieR J/A+A/529/A75): linear u(lambda), ATLAS, [M/H] = 0"
+  ],
+  "notes": [
+    "Approximate; to be replaced by a NewEra I(mu) profile once a 4800 K / log g 2.5 model exists (see /Users/nugent/phoenix/HANDOFF.md)."
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "eonsii_spad_correlator",
+  "extends": "eonsii_spad",
+  "label": "EON-SII QUASAR SPAD array, correlator readout",
+  "readout": "correlator",
+  "max_total_cps": null,
+  "sources": [],
+  "notes": [
+    "The QUASAR SPAD with no link ceiling (chromatic-diameter 'correlator' readout case)."
+  ]
+}

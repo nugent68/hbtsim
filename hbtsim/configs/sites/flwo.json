@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "kind": "site",
+  "name": "flwo",
+  "label": "Fred Lawrence Whipple Observatory (VERITAS)",
+  "latitude_deg": 31.675,
+  "longitude_deg": -110.952,
+  "elevation_m": 1268.0,
+  "sources": [],
+  "notes": []
+}

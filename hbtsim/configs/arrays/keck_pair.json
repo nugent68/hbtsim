@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "keck_pair",
+  "label": "Keck I + Keck II (Maunakea)",
+  "site": "maunakea",
+  "stations": [
+    {
+      "name": "Keck I",
+      "east_m": 145.8,
+      "north_m": 43.3,
+      "telescope": "keck_10m",
+      "detector": "spad_lambda"
+    },
+    {
+      "name": "Keck II",
+      "east_m": 196.6,
+      "north_m": 111.3,
+      "telescope": "keck_10m",
+      "detector": "spad_lambda"
+    }
+  ],
+  "notes": [
+    "The two 10 m Keck telescopes, 84.9 m apart (same coordinates as maunakea_subaru_keck)."
+  ]
+}
