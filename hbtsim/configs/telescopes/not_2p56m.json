@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "not_2p56m",
+  "label": "Nordic Optical Telescope 2.56 m",
+  "diameter_m": 2.56,
+  "throughput": 0.3,
+  "sources": [
+    "Wikipedia: Nordic Optical Telescope, primary 2.560 m; focal length 28.16 m (f/11)"
+  ],
+  "notes": [
+    "Throughput 0.3 (atmosphere + telescope optics to the camera, excl. filter and PDE) is the hbtsim default, not an LPQI number; Prada et al. 2026 (ELTI) adopt an overall instrumental efficiency of 0.5 for a SPAD camera at the focus."
+  ],
+  "assumptions": [
+    "throughput"
+  ]
+}

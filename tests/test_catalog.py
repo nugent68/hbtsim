@@ -266,3 +266,19 @@ def test_cli_smoke(capsys):
     assert '"east_m"' in capsys.readouterr().out
     assert main(["paths"]) == 0
     assert "configs" in capsys.readouterr().out
+
+
+def test_pair_generator_with_two_telescopes(tmp_path):
+    arr = cat.load_array("lpqi_pathfinder", baseline_m=471.0)
+    (_, _, b), = arr.pairs()
+    assert float((b**2).sum()) ** 0.5 == pytest.approx(471.0)
+    assert arr.stations[1].telescope.name.startswith("Telescopio Nazionale")
+    # telescope2 may also be given as an object
+    keck = cat.load_telescope("keck_10m")
+    arr2 = cat.load_array("lpqi_pathfinder", telescope2=keck)
+    assert arr2.stations[1].telescope == keck and arr2.stations[0].telescope.diameter_m == 2.56
+    from hbtsim.montecarlo import MCConfig
+    cfg = MCConfig.from_target(cat.load_target("sirius_b"), cat.load_array("lpqi_pathfinder"),
+                               cat.load_spectrograph("filter_lpqi_500_1nm"))
+    assert cfg.telescope.area_m2 == pytest.approx((arr.stations[0].telescope.area_m2 * arr.stations[1].telescope.area_m2) ** 0.5)
+    assert cfg.ground_baseline_m == pytest.approx(550.0) and "geometric mean" in cfg.telescope.name

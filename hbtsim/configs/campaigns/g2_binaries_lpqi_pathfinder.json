@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g2_binaries_lpqi_pathfinder",
+  "label": "The four binaries on the LPQI-Pathfinder (NOT + TNG, 550 m, 1 nm filters, one filter per night)",
+  "runner": "g2",
+  "targets": [
+    "betaaur",
+    "algol",
+    "deltavel",
+    "spica"
+  ],
+  "instrument": {
+    "array": "lpqi_pathfinder"
+  },
+  "backends": [
+    "lpqi_halpha",
+    "lpqi_hbeta",
+    "lpqi_500",
+    "lpqi_550",
+    "lpqi_nextgen_halpha",
+    "lpqi_nextgen_hbeta",
+    "lpqi_nextgen_500",
+    "lpqi_nextgen_550"
+  ],
+  "night": {
+    "block_minutes": 30.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": true,
+    "allow_extrapolation": true
+  },
+  "options": {
+    "one_backend_per_night": true,
+    "phase": "max_separation",
+    "detection_sigma": 3.0
+  },
+  "outputs": {
+    "latex": true
+  },
+  "notes": [
+    "At 471-550 m every catalog binary is resolved out (first null of a 1 mas disk at ~140 m for 500 nm): the table quantifies how far."
+  ]
+}

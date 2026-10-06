@@ -248,7 +248,7 @@ def build_target(cat, d: dict):
 
 
 GENERATOR_KEYS = ("type", "side_m", "baseline_m", "pa_deg", "min_spacing_m", "station_names",
-                  "telescope", "detector")
+                  "telescope", "detector", "telescope2", "detector2")
 
 
 def build_array(cat, d: dict, **overrides):
@@ -282,7 +282,12 @@ def build_array(cat, d: dict, **overrides):
     names = tuple(g.get("station_names", ("T1", "T2")))
     if len(names) != 2:
         raise CatalogError(f"{where}: a pair generator needs two station_names")
-    return pair_array(float(g["baseline_m"]), tel, det, names=names, **common)
+    second = {}
+    for key, kind in (("telescope2", "telescope"), ("detector2", "detector")):
+        v = g.get(key)
+        if v is not None:
+            second[key] = v if isinstance(v, (Telescope, Detector)) else _ref(cat, kind, v, where)
+    return pair_array(float(g["baseline_m"]), tel, det, names=names, **common, **second)
 
 
 def build_resource(cat, d: dict) -> Resource:

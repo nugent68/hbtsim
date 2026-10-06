@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "filter_lpqi_halpha_1nm",
+  "label": "LPQI 1 nm filter, H-alpha (656.28 nm)",
+  "lambda_min_nm": 655.78,
+  "lambda_max_nm": 656.78,
+  "n_channels": 1,
+  "throughput": 0.9,
+  "sources": [
+    "lapalmaqi.es and the Sensors paper: the Pathfinder observes through narrow optical filters; the user's brief (2026-10-06): ~1 nm wide, a few of them, one per night"
+  ],
+  "notes": [
+    "Central wavelength and width TO BE CONFIRMED with the LPQI team; the Balmer + continuum set is a working assumption.",
+    "Throughput 0.9 = FILTER_THROUGHPUT (filter + relay optics); the telescope file carries the rest."
+  ],
+  "assumptions": [
+    "lambda_min_nm",
+    "lambda_max_nm"
+  ]
+}

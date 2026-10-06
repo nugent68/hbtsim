@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "wht_4p2m",
+  "label": "William Herschel Telescope 4.2 m",
+  "diameter_m": 4.2,
+  "throughput": 0.3,
+  "collecting_area_m2": 13.8,
+  "sources": [
+    "Wikipedia: William Herschel Telescope, 4.2 m, collecting area 13.8 m^2"
+  ],
+  "notes": [
+    "Throughput 0.3 (atmosphere + telescope optics to the camera, excl. filter and PDE) is the hbtsim default, not an LPQI number; Prada et al. 2026 (ELTI) adopt an overall instrumental efficiency of 0.5 for a SPAD camera at the focus."
+  ],
+  "assumptions": [
+    "throughput"
+  ]
+}

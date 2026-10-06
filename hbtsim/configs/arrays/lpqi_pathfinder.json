@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "lpqi_pathfinder",
+  "label": "LPQI-Pathfinder: NOT + TNG (ORM, La Palma)",
+  "site": "orm_not",
+  "generator": {
+    "type": "pair",
+    "baseline_m": 550.0,
+    "pa_deg": 219.28,
+    "station_names": [
+      "NOT",
+      "TNG"
+    ],
+    "telescope": "not_2p56m",
+    "detector": "lpqi_spad64_i2cass",
+    "telescope2": "tng_3p58m",
+    "detector2": "lpqi_spad64_i2cass"
+  },
+  "sources": [
+    "lapalmaqi.es (project site, read 2026-10-06): LPQI-Pathfinder = NOT + TNG '550 metres apart'; extension to GTC, WHT, INT, baselines to 1.5 km",
+    "Wikipedia infoboxes (read 2026-10-06): NOT 28.75728 N -17.88508 E 2382 m; TNG 28.754 N -17.88814 E 2370 m; GTC 28.75661 N -17.89203 E 2267 m; WHT 28.76066 N -17.88174 E 2344 m; INT 28.7622 N -17.8775 E 2396 m"
+  ],
+  "notes": [
+    "Baseline 550 m as published by the project; the Wikipedia coordinates of the two domes give 471 m (arc-second precision, ~30 m per coordinate) -- TO BE CONFIRMED against the LPQI station file.",
+    "Position angle 219.3 deg (TNG south-west of the NOT) from the coordinates; load_array('lpqi_pathfinder', baseline_m=471.0) uses the coordinate-derived length instead.",
+    "Unequal pair: the generator's telescope2 / detector2 give the TNG its own telescope; the photon budget uses sqrt(A1 A2)."
+  ]
+}

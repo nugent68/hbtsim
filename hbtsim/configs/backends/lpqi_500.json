@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "lpqi_500",
+  "label": "LPQI 1 nm 500 nm continuum, IMSE 64x64",
+  "model": "counting",
+  "spectrograph": "filter_lpqi_500_1nm",
+  "detector": "lpqi_spad64_i2cass",
+  "polarization_mode": "unpolarized",
+  "notes": [
+    "One filter at a time: a night on this backend excludes the other LPQI filters (campaign option one_backend_per_night)."
+  ]
+}

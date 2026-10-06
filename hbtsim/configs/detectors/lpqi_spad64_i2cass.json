@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "lpqi_spad64_i2cass",
+  "label": "LPQI-Pathfinder IMSE 64x64 SPAD array (I2CASS, LiDAR heritage)",
+  "pde_table_nm": {
+    "flat": 0.026,
+    "range_nm": [
+      400.0,
+      900.0
+    ]
+  },
+  "timing": {
+    "jitter_fwhm_ps": 500.0
+  },
+  "dead_time_ns": 10.0,
+  "dark_cps_per_pixel": 1.68,
+  "n_pixels": 25,
+  "readout": "timetag",
+  "max_total_cps": 6700000.0,
+  "sources": [
+    "Quintana, Gonzalez-de-Rivera, Lopez-Buedo & Prada 2026, Sensors 26, 5757 (doi:10.3390/s26185757): the LPQI-Pathfinder 64 x 64 I2CASS/IMSE SPAD array and its AER readout",
+    "Cosentino et al. 2026, SPIE AS 14149AN: Peltier-cooled camera head at -20 C, FPGA acquisition",
+    "Prada et al. 2024 (arXiv:2406.14704): the same array on a 10-inch telescope (Betelgeuse occultation, SDSS g)"
+  ],
+  "notes": [
+    "Effective PDE 0.026 = fill factor 0.035 x peak PDP 0.75 (Sensors paper, Table 1 and Sec. 2); the wavelength dependence is not published, so the value is taken flat over 400-900 nm.",
+    "Timing: the array has no per-event time stamps yet (AER events only); the paper's roadmap targets ~500 ps end-to-end with White Rabbit time stamping (10-20 ps synchronization jitter, 81-96 ps demonstrated on a previous Zynq) -- 500 ps FWHM is that target, not a measurement.",
+    "Dead time 5-10 ns (paper: 'typical dead times of 5-10 ns'); dark count rate median 1.68 Hz per pixel at 27.8 C (lower when cooled to -20 C).",
+    "max_total_cps 6.7e6 is the implemented AER-to-AXI capture ceiling (100 MHz / 15 cycles per event); the chip's own AER arbitration ceiling is 4e7 events/s.",
+    "n_pixels 25: a ~1 arcsec seeing disk over the 0.18 arcsec (NOT) / 0.13 arcsec (TNG) pixels of a 24.5 um pitch at the natural focus (plate scales from the paper), i.e. the dead time and dark counts of ~5 x 5 pixels per telescope.",
+    "Sky at ORM (21.70 mag/arcsec^2 V): ~3 incident photons/s/pixel (paper Eq. 1), negligible against the stellar rates here."
+  ],
+  "assumptions": [
+    "pde_table_nm (flat; the curve is unpublished)",
+    "timing (500 ps White Rabbit target)",
+    "n_pixels"
+  ]
+}

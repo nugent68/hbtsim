@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "lpqi_orm",
+  "label": "LPQI: NOT + TNG + GTC + WHT + INT (ORM, La Palma)",
+  "site": "orm_not",
+  "stations": [
+    {
+      "name": "NOT",
+      "east_m": 0.0,
+      "north_m": 0.0,
+      "up_m": 0.0,
+      "telescope": "not_2p56m",
+      "detector": "lpqi_spad64_i2cass"
+    },
+    {
+      "name": "TNG",
+      "east_m": -298.3,
+      "north_m": -364.7,
+      "up_m": -12.0,
+      "telescope": "tng_3p58m",
+      "detector": "lpqi_spad64_i2cass"
+    },
+    {
+      "name": "GTC",
+      "east_m": -677.5,
+      "north_m": -74.5,
+      "up_m": -115.0,
+      "telescope": "gtc_10p4m",
+      "detector": "lpqi_spad64_i2cass"
+    },
+    {
+      "name": "WHT",
+      "east_m": 325.6,
+      "north_m": 375.8,
+      "up_m": -38.0,
+      "telescope": "wht_4p2m",
+      "detector": "lpqi_spad64_i2cass"
+    },
+    {
+      "name": "INT",
+      "east_m": 738.9,
+      "north_m": 547.1,
+      "up_m": 14.0,
+      "telescope": "int_2p54m",
+      "detector": "lpqi_spad64_i2cass"
+    }
+  ],
+  "sources": [
+    "lapalmaqi.es (project site, read 2026-10-06): LPQI-Pathfinder = NOT + TNG '550 metres apart'; extension to GTC, WHT, INT, baselines to 1.5 km",
+    "Wikipedia infoboxes (read 2026-10-06): NOT 28.75728 N -17.88508 E 2382 m; TNG 28.754 N -17.88814 E 2370 m; GTC 28.75661 N -17.89203 E 2267 m; WHT 28.76066 N -17.88174 E 2344 m; INT 28.7622 N -17.8775 E 2396 m"
+  ],
+  "notes": [
+    "ENU relative to the NOT from the Wikipedia dome coordinates (arc-second precision): pairwise 447 m (WHT-INT) to 1547 m (GTC-INT, the project's '1.5 km'); NOT-TNG comes out 471 m against the published 550 m -- TO BE CONFIRMED.",
+    "The five-telescope network is the planned extension of the Pathfinder; every station carries the Pathfinder detector here."
+  ]
+}

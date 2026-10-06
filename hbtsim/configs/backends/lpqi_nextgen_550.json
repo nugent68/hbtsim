@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "lpqi_nextgen_550",
+  "label": "LPQI 1 nm 550 nm continuum, next-gen SPAD (assumed)",
+  "model": "counting",
+  "spectrograph": "filter_lpqi_550_1nm",
+  "detector": "lpqi_spad_nextgen",
+  "polarization_mode": "unpolarized",
+  "notes": [
+    "The same filter on the assumed next-generation array (detectors/lpqi_spad_nextgen)."
+  ]
+}

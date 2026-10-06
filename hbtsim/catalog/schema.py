@@ -208,7 +208,8 @@ GENERATOR_FIELDS = (Field("type", STR, required=True, choices=("equilateral", "p
                     Field("side_m", NUM, lo=0), Field("baseline_m", NUM, lo=0),
                     Field("pa_deg", NUM), Field("min_spacing_m", NUM, lo=0),
                     Field("station_names", LIST), Field("telescope", REF, required=True),
-                    Field("detector", REF, required=True))
+                    Field("detector", REF, required=True),
+                    Field("telescope2", REF), Field("detector2", REF))
 TIMING_KEYS = ("jitter_fwhm_ps", "jitter_sigma_ps", "pair_sigma_ps", "electronic_bandwidth_hz")
 ANCHOR_FIELDS = (Field("band", STR), Field("wavelength_nm", NUM, lo=0),
                  Field("mag_ab", NUM), Field("mag_vega", NUM), Field("note", STR))

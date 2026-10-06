@@ -72,19 +72,27 @@ class MCConfig:
     def from_target(cls, target, array, spectrograph: Spectrograph,
                     detector: Detector | None = None, **kw) -> "MCConfig":
         """target a params.DiskTarget (theta_mas, mag_ab, dec_deg), array a
-        two-station bispectrum.Array whose site, first telescope and (unless
-        detector is given) first detector are used; kw overrides any field
-        (theta_true_mas defaults to the target's theta_mas, ld_u to 0)."""
+        two-station bispectrum.Array whose site, telescope (the geometric
+        mean of the two when they differ) and (unless detector is given)
+        first detector are used; kw overrides any field (theta_true_mas
+        defaults to the target's theta_mas, ld_u to 0)."""
         if len(array.stations) != 2:
             raise ValueError(f"the Monte Carlo needs a two-station array, not {len(array.stations)}")
         if array.site is None:
             raise ValueError("the array needs a site")
         (_, _, bvec), = array.pairs()
-        st = array.stations[0]
+        st, st2 = array.stations
+        tel = st.telescope
+        if (st2.telescope.diameter_m, st2.telescope.area_m2) != (tel.diameter_m, tel.area_m2):
+            # an unequal pair (LPQI-Pathfinder: NOT + TNG): the pair S/N scales with
+            # sqrt(A1 A2), so the geometric-mean telescope reproduces it
+            tel = replace(tel, diameter_m=float(np.sqrt(tel.diameter_m * st2.telescope.diameter_m)),
+                          collecting_area_m2=float(np.sqrt(tel.area_m2 * st2.telescope.area_m2)),
+                          name=f"{tel.name} x {st2.telescope.name} (geometric mean)")
         fields = dict(theta_true_mas=target.theta_mas, mag_ab=target.mag_ab, dec_deg=target.dec_deg,
                       site=array.site, ground_baseline_m=float(np.hypot(*bvec)),
                       ground_pa_deg=float(np.degrees(np.arctan2(bvec[0], bvec[1]))),
-                      spectrograph=spectrograph, telescope=st.telescope,
+                      spectrograph=spectrograph, telescope=tel,
                       detector=st.detector if detector is None else detector)
         fields.update(kw)
         return cls(**fields)

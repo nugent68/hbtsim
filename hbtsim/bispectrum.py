@@ -198,16 +198,20 @@ class Array:
 # catalog's "generator" arrays call.
 def pair_array(baseline_m: float, telescope: Telescope, detector: Detector, *,
                site: Site | None = None, pa_deg: float = 0.0,
-               names: tuple = ("T1", "T2"), min_spacing_m: float | None = None) -> Array:
-    """Two identical telescopes at the given baseline and position angle
-    (E of N): the first at the origin, as an Array (g2 only, no triangles)."""
+               names: tuple = ("T1", "T2"), min_spacing_m: float | None = None,
+               telescope2: Telescope | None = None, detector2: Detector | None = None) -> Array:
+    """Two telescopes at the given baseline and position angle (E of N): the
+    first at the origin, as an Array (g2 only, no triangles).  telescope2 /
+    detector2 (default: the same as the first) allow an unequal pair
+    (LPQI-Pathfinder: NOT 2.56 m + TNG 3.58 m)."""
     if min_spacing_m is not None and baseline_m < min_spacing_m:
         raise ValueError(f"baseline {baseline_m} m is below the {min_spacing_m} m minimum "
                          f"spacing of two {telescope.diameter_m:g} m telescopes")
     pa = np.radians(pa_deg)
     stations = (Station(names[0], 0.0, 0.0, telescope, detector),
                 Station(names[1], baseline_m * np.sin(pa), baseline_m * np.cos(pa),
-                        telescope, detector))
+                        telescope if telescope2 is None else telescope2,
+                        detector if detector2 is None else detector2))
     return Array(stations, site=site)
 
 

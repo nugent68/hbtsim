@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "int_2p54m",
+  "label": "Isaac Newton Telescope 2.54 m",
+  "diameter_m": 2.54,
+  "throughput": 0.3,
+  "sources": [
+    "Wikipedia: Isaac Newton Telescope, 2.54 m"
+  ],
+  "notes": [
+    "Throughput 0.3 (atmosphere + telescope optics to the camera, excl. filter and PDE) is the hbtsim default, not an LPQI number; Prada et al. 2026 (ELTI) adopt an overall instrumental efficiency of 0.5 for a SPAD camera at the focus."
+  ],
+  "assumptions": [
+    "throughput"
+  ]
+}

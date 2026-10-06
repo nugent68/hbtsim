@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "mc_sirius_b_lpqi_pathfinder",
+  "label": "Sirius B diameter Monte Carlo on the LPQI-Pathfinder (NOT + TNG, 550 m, one 1 nm filter)",
+  "runner": "montecarlo",
+  "target": "sirius_b",
+  "instrument": {
+    "array": "lpqi_pathfinder"
+  },
+  "backends": [
+    "lpqi_500",
+    "lpqi_nextgen_500"
+  ],
+  "options": {
+    "theta_true_mas": 0.0285,
+    "truth_ld_u": 0.0,
+    "zenith_angles_deg": [
+      46.0,
+      52.5,
+      60.0
+    ],
+    "t_total_h": 10.0,
+    "blocks_per_zenith": 1,
+    "n_realizations": 100,
+    "estimators": [
+      "matched",
+      "box_opt"
+    ],
+    "seed": 11,
+    "bin_ps": 3.125,
+    "lag_half_range_ps": 400.0,
+    "sideband_sigma": 6.0,
+    "background": [
+      "singles"
+    ]
+  },
+  "notes": [
+    "The Pathfinder's own use case (angular sizes of bright compact stars); the photon budget uses the geometric mean of the NOT and TNG apertures.",
+    "Sirius (dec -16.7) culminates at zenith angle 45.5 deg from the NOT (lat 28.76): the blocks sit at 46, 52.5 and 60 deg (the EON-SII study's 45 deg block is unreachable here)."
+  ]
+}

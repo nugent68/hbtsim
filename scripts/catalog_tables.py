@@ -148,6 +148,34 @@ def iact_parameters() -> str:
     return "\n".join(out)
 
 
+def lpqi_parameters() -> str:
+    pf, orm = cat.load_array("lpqi_pathfinder"), cat.load_array("lpqi_orm")
+    d, n = cat.load_detector("lpqi_spad64_i2cass"), cat.load_detector("lpqi_spad_nextgen")
+    (_, _, b), = pf.pairs()
+    pa = np.degrees(np.arctan2(b[0], b[1])) % 360
+    lengths = {f"{orm.stations[i].name}–{orm.stations[j].name}": float(np.hypot(*bb)) for i, j, bb in orm.pairs()}
+    filters = [cat.load_spectrograph(nm) for nm in cat.list_names("spectrograph") if nm.startswith("filter_lpqi_")]
+    rows = [("", "value", "source / status")]
+    rows += [("site", f"{pf.site.name}: {pf.site.latitude_deg:g}°, {pf.site.longitude_deg:g}°, {pf.site.elevation_m:g} m", "Wikipedia (NOT infobox)"),
+             ("Pathfinder pair", f"{pf.stations[0].name} {pf.stations[0].telescope.diameter_m:g} m + {pf.stations[1].name} "
+                                 f"{pf.stations[1].telescope.diameter_m:g} m, B = {np.hypot(*b):.0f} m at PA {pa:.0f}°",
+              "550 m published (lapalmaqi.es); coordinates give 471 m — **to be confirmed**"),
+             ("five-telescope network", ", ".join(f"{s.name} {s.telescope.diameter_m:g} m" for s in orm.stations)
+              + f"; baselines {min(lengths.values()):.0f}–{max(lengths.values()):.0f} m", "Wikipedia coordinates, arc-second precision"),
+             ("telescope throughput", ", ".join(f"{s.telescope.throughput:g}" for s in pf.stations), "hbtsim default (**assumed**)"),
+             ("detector (published)", f"IMSE 64×64: PDE {d.pde(550.0):.3f} (fill factor 3.5 % × PDP 75 %), {d.jitter_fwhm_ps:.0f} ps FWHM, "
+                                      f"dead {d.dead_time_ns:g} ns, dark {d.dark_cps_per_pixel:g} cps/pixel, "
+                                      f"{d.n_pixels} pixels, readout ≤ {d.max_total_cps:.1e} cps",
+              "Quintana et al. 2026, Sensors 26, 5757; timing = White Rabbit target (**assumed**), n_pixels **assumed**"),
+             ("detector (next-gen)", f"PDE {n.pde(520.0):.2f} peak (SPAD Lambda curve), {n.jitter_fwhm_ps:.0f} ps, readout ≤ {n.max_total_cps:.0e} cps",
+              "**assumed** (the paper names a higher-efficiency sensor as the next generation)"),
+             ("filters", "; ".join(f"{f.channel_centers_nm[0]:.1f} nm ({f.channel_width_nm:.1f} nm)" for f in filters)
+              + f"; throughput {filters[0].throughput:g}; one per night", "wavelengths **to be confirmed**; width and one-per-night from the user")]
+    out = ["| " + " | ".join(rows[0]) + " |", "|---|---|---|"]
+    out += ["| " + " | ".join(r) + " |" for r in rows[1:]]
+    return "\n".join(out)
+
+
 def campaigns_table() -> str:
     rows = ["| Campaign | Runner | What it computes |", "|---|---|---|"]
     for n in cat.list_names("campaign"):
@@ -160,6 +188,7 @@ BLOCKS = {
     "README.md": {"systems": systems_table, "hardware": hardware_list, "campaigns": campaigns_table},
     "docs/three_telescope_feasibility.md": {"maunakea_baselines": maunakea_baselines},
     "docs/iact_targets.md": {"iact_parameters": iact_parameters},
+    "docs/lpqi_pathfinder.md": {"lpqi_parameters": lpqi_parameters},
 }
 MARK = re.compile(r"(<!-- catalog:(\w+) -->\n)(.*?)(\n<!-- /catalog -->)", re.S)
 
