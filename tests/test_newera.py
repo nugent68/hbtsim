@@ -23,7 +23,8 @@ from hbtsim.sed import (NewEraGrid, band_average_flux, band_average_profile,
 from hbtsim.snr import Spectrograph, model_ab_mag, spectral_g2_snr, system_ab_mag
 
 LAM = np.linspace(380.0, 1000.0, 3101)          # 0.2 nm
-NEWERA_DIR = "data/newera"
+from hbtsim.catalog import Catalog as _Catalog
+NEWERA_DIR = _Catalog(env=False).load_resource("newera").resolved_path   # data/newera or the user cache
 
 
 def spherical_profile(lam, mu_edge=0.07, u_cont=0.6, r_outer=None):
@@ -330,7 +331,7 @@ def test_with_newera_report(synthetic_grid, beta_aur, algol, delta_vel):
 # real tables (gated)
 # ---------------------------------------------------------------------------
 needs_data = pytest.mark.skipif(not glob.glob(os.path.join(NEWERA_DIR, "newera_lte*.npz")),
-                                reason="no NewEra tables in data/newera")
+                                reason=f"no NewEra tables in {NEWERA_DIR} (hbtsim data fetch)")
 
 
 @needs_data

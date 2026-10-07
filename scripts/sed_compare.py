@@ -15,6 +15,7 @@ each table against the Claret & Bloemen value in params.
 from __future__ import annotations
 
 import argparse
+import os
 import warnings
 
 import numpy as np
@@ -47,7 +48,7 @@ def linear_u(prof, lam):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--newera-dir", default="data/newera")
+    ap.add_argument("--newera-dir", default=CAT.load_resource("newera").resolved_path)
     args = ap.parse_args()
     grid = NewEraGrid.scan(args.newera_dir)
     print(f"NewEra grid: {grid.coverage()}")

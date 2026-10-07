@@ -13,7 +13,9 @@ from hbtsim.snr import Spectrograph
 
 CAT = Catalog(env=False)
 NM = CAT.load_spectrograph("eonsii_1000ch").channel_centers_nm
-has_newera = pytest.mark.skipif(not os.path.isdir("data/newera"), reason="NewEra tables not present")
+from hbtsim.catalog import Catalog as _Catalog
+NEWERA = _Catalog(env=False).load_resource("newera").resolved_path
+has_newera = pytest.mark.skipif(not os.path.isdir(NEWERA), reason="NewEra tables not present (hbtsim data fetch)")
 
 
 def test_line_masks_disjoint_and_complete():
@@ -70,7 +72,7 @@ def test_significance_scales_as_sqrt_time(vega, eonsii_tel, eonsii_spad_correlat
 @has_newera
 def test_sirius_subset_beats_link_and_signal_sign(sirius_a, eonsii_tel, eonsii_spad, eonsii_spec,
                                                   teide):
-    s, _ = attach_newera_single(sirius_a, "data/newera")
+    s, _ = attach_newera_single(sirius_a, NEWERA)
     # the time-tag SPAD: "all" channels share the link (the former readout="link")
     kw = dict(telescope=eonsii_tel, detector=eonsii_spad, site=teide)
     link = chromatic_signature(s, 10.0, eonsii_spec, channel_selection="all", **kw)

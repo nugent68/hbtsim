@@ -246,7 +246,9 @@ def test_rebin_to_channels_is_idempotent(vega, spec_r5000):
     import os
     import pytest
     from hbtsim.sed import load_star_tables, rebin_to_channels, with_tables
-    path = "data/newera/newera_lte09600-4.00-0.0_380-1000nm_0.02nm.npz"
+    from hbtsim.catalog import Catalog as _Catalog
+    path = os.path.join(_Catalog(env=False).load_resource("newera").resolved_path,
+                        "newera_lte09600-4.00-0.0_380-1000nm_0.02nm.npz")
     if not os.path.exists(path):
         pytest.skip("NewEra table not present")
     ft, ld = load_star_tables(path)

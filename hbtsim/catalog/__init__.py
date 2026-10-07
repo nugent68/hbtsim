@@ -106,7 +106,7 @@ class Catalog:
         return Triangle(arr.stations, arr.site)
 
     def load_target(self, name: str, *, atmosphere=False, newera_dir=None,
-                    allow_extrapolation=None, verbose: bool = False):
+                    allow_extrapolation=None, verbose: bool = False, fetch=None):
         """The target object.  atmosphere=True attaches the model-atmosphere
         tables named by the target's `atmosphere` pointer when the resource
         directory exists (silently kept blackbody + linear law otherwise);
@@ -116,19 +116,20 @@ class Catalog:
             return target
         target, report = self.attach_atmosphere(target, name=name, newera_dir=newera_dir,
                                                 allow_extrapolation=allow_extrapolation,
-                                                require=(atmosphere == "require"))
+                                                require=(atmosphere == "require"), fetch=fetch)
         if verbose and report:
             print(f"{name}: {report}")
         return target
 
     def attach_atmosphere(self, target, name: str | None = None, newera_dir=None,
-                          allow_extrapolation=None, require: bool = False):
+                          allow_extrapolation=None, require: bool = False, fetch=None):
         """(target with NewEra tables, report).  The target's `atmosphere`
         pointer (resource, optional explicit model, allow_extrapolation,
         which stars) says what to attach; newera_dir / allow_extrapolation
         override it.  Without a pointer and without newera_dir nothing is
-        attached."""
-        from .. import sed
+        attached.  fetch=True (None: $HBTSIM_AUTO_FETCH) downloads the
+        tables the target needs into the directory first (hbtsim.data)."""
+        from .. import data, sed
         ptr = {}
         if name is not None:
             ptr = dict(self.registry.raw("target", name).get("atmosphere") or {})
@@ -143,8 +144,20 @@ class Catalog:
             newera_dir, pattern = res.resolved_path, res.pattern
         if allow_extrapolation is None:
             allow_extrapolation = bool(ptr.get("allow_extrapolation", False))
+        if fetch is None:
+            fetch = data.auto_fetch_enabled()
+        fetched = ""
+        if fetch and ptr:
+            try:
+                got = data.fetch_for_target(self, name, dest=newera_dir,
+                                            allow_extrapolation=allow_extrapolation, progress=None)
+                fetched = f" ({len(got)} table(s) fetched/verified)"
+            except data.DataError as e:
+                if require:
+                    raise CatalogError(str(e)) from None
+                fetched = f" (fetch failed: {e})"
         if not os.path.isdir(newera_dir):
-            msg = f"NewEra directory {newera_dir} not found: blackbody + linear limb darkening"
+            msg = f"NewEra directory {newera_dir} not found{fetched}: blackbody + linear limb darkening"
             if require:
                 raise CatalogError(msg)
             return target, msg
@@ -161,13 +174,23 @@ class Catalog:
             if hasattr(target, "star"):
                 return replace(target, star=sed.with_tables(target.star, ft, ld)), f"stand-in {ptr['model']}"
             raise CatalogError("explicit stand-in models are only supported for single stars")
-        grid = sed.NewEraGrid.scan(newera_dir, pattern)
+        try:
+            grid = sed.NewEraGrid.scan(newera_dir, pattern)
+        except FileNotFoundError as e:
+            msg = f"{e}{fetched}: blackbody + linear limb darkening"
+            if require:
+                raise CatalogError(msg) from None
+            return target, msg
         if hasattr(target, "primary"):
             which = tuple(ptr.get("which", ("primary", "secondary")))
-            return sed.with_newera(target, grid, which=which, allow_extrapolation=allow_extrapolation)
+            out, report = sed.with_newera(target, grid, which=which, allow_extrapolation=allow_extrapolation)
+            if fetched:
+                report = {k: v + fetched for k, v in report.items()}
+            return out, report
         if hasattr(target, "star"):
             from ..single import attach_newera_single
-            return attach_newera_single(target, grid, allow_extrapolation)
+            out, report = attach_newera_single(target, grid, allow_extrapolation)
+            return out, report + fetched
         return target, "uniform-disk target: no atmosphere"
 
     def load_campaign(self, name_or_path: str) -> Campaign:

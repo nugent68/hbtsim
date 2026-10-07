@@ -42,6 +42,6 @@
     "[C11] Claret & Bloemen 2011, A&A 529, A75 (VizieR J/A+A/529/A75): linear u(lambda), ATLAS, [M/H] = 0"
   ],
   "notes": [
-    "Approximate; to be replaced by a NewEra I(mu) profile once a 4800 K / log g 2.5 model exists (see /Users/nugent/phoenix/HANDOFF.md)."
+    "Approximate; to be replaced by a NewEra I(mu) profile once a 4800 K / log g 2.5 model exists."
   ]
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Spectral |V|^2 benchmark on one Perlmutter A100:
-#     sbatch ~/binary/scripts/perlmutter/bench.sbatch
+#     sbatch ~/hbtsim/scripts/perlmutter/bench.sbatch
 # Find your GPU account (the _g suffix) with:
 #     sacctmgr show assoc user=$USER format=account%20 -n -P | sort -u
 #SBATCH -A m2218_g
@@ -14,7 +14,7 @@
 
 module load python
 source activate jax-gpu-env 2>/dev/null || conda activate jax-gpu-env
-cd "$HOME/binary"
+cd "$HOME/hbtsim"
 # don't let XLA preallocate 75% of the GPU: on a shared GPU (login node,
 # or shared QOS neighbors) that collides with other users' allocations
 # and starves the cuFFT workspace

@@ -118,8 +118,8 @@ Planck function at its effective temperature; with `--newera-dir`
 (`hbtsim.sed.NewEraGrid`, `with_newera`) the angle-resolved intensities
 I(μ, λ) and surface fluxes of the NewEra PHOENIX models (Hauschildt et
 al. 2025; `scripts/prepare_newera.py` bins an HSR-RF file to a 0.02 nm
-table, the grid at NERSC `/global/cfs/projectdirs/newera` covers
-8000–12 000 K × log g 3.0–4.5), interpolated bilinearly in T_eff and
+table; `hbtsim data fetch` pulls the binned tables from NERSC, whose grid
+covers 8000–12 000 K × log g 3.0–4.5), interpolated bilinearly in T_eff and
 log g per star, which then set both the flux ratio of the two stars
 (hence the fringe contrast) and their limb profiles, line by line.
 Three things a spherical model needs are built in: its μ = 0 is the
@@ -394,7 +394,45 @@ traced to its inputs. `suite_phase6` runs everything (`--jobs 4`).
 | `suite_phase6` | suite | Everything behind docs/three_telescope_feasibility.md and the paper tables (output/logs/run_*.sh) |
 <!-- /catalog -->
 
-## Running locally
+## Installing
+
+```bash
+pip install hbtsim                 # CPU JAX; add "hbtsim[movie]" for the movies (matplotlib + ffmpeg)
+hbtsim catalog validate            # the shipped JSON catalog
+hbtsim snr --target spica --instrument keck_pair --vis2-method analytic
+```
+
+Python 3.11+; `pip install "hbtsim[gpu]"` for CUDA JAX, `"hbtsim[sed]"`
+for h5py (only `scripts/prepare_newera.py` needs it). From a checkout:
+`uv venv .venv && uv pip install -p .venv/bin/python -e ".[test,movie]"`.
+
+### Model atmospheres (NewEra tables)
+
+The NewEra PHOENIX tables that replace the blackbody + Claret model are not
+in the package. They are hosted at NERSC
+(`https://portal.nersc.gov/project/newera/binned/`, the `remote` block of
+`hbtsim/configs/resources/*.json`) and cached on your machine:
+
+```bash
+hbtsim data path                         # where tables are looked for
+hbtsim data fetch --target betaaur       # the four grid corners beta Aur needs (~48 MB)
+hbtsim data fetch --target algol --allow-extrapolation
+hbtsim data fetch --all                  # every 380-1000 nm table (19 files, 210 MB)
+hbtsim data fetch --resource newera_redclump --model lte04800-4.50-0.0
+hbtsim data list                         # what the cache holds
+```
+
+Every tool takes `--fetch` to pull what its target needs first
+(`HBTSIM_AUTO_FETCH=1` does it always); without tables the stars fall back
+to blackbody + linear limb darkening and the report says so. Environment
+variables: `HBTSIM_DATA_DIR` (cache root; default `~/Library/Caches/hbtsim`
+on macOS, `~/.cache/hbtsim` on Linux), `HBTSIM_DATA_URL` (mirror base URL,
+`file://` works), `HBTSIM_NEWERA_DIR` / `HBTSIM_NEWERA_REDCLUMP_DIR` (an
+explicit directory per resource), `HBTSIM_CONFIG_PATH` (your own catalog
+files). A checkout's `data/newera/` is used when present. Hosting a mirror
+is one command: `hbtsim data manifest <dir> --write` next to the tables.
+
+## Running from a checkout
 
 ```bash
 # one-time setup (macOS)
@@ -416,7 +454,7 @@ uv pip install -p .venv/bin/python -e ".[test,movie]"   # + [sed] for h5py, [gpu
 # tests (analytic validation suite, ~65 s)
 .venv/bin/python -m pytest
 
-# feasibility campaigns with the NewEra tables (rsync data/newera/ from NERSC first)
+# feasibility campaigns with the NewEra tables (hbtsim data fetch --all first, or --fetch)
 .venv/bin/python -m hbtsim run g3_betaaur_maunakea
 .venv/bin/python -m hbtsim run g2_eonsii
 .venv/bin/python -m hbtsim run suite_phase6 --jobs 4     # everything behind the docs
@@ -425,8 +463,8 @@ uv pip install -p .venv/bin/python -e ".[test,movie]"   # + [sed] for h5py, [gpu
 ## Running on NERSC Perlmutter
 
 ```bash
-git clone https://github.com/nugent68/binary.git ~/binary
-bash ~/binary/scripts/perlmutter/setup_env.sh   # conda env jax-gpu-env
+git clone https://github.com/nugent68/hbtsim.git ~/hbtsim
+bash ~/hbtsim/scripts/perlmutter/setup_env.sh   # conda env jax-gpu-env
 ```
 
 The env uses pip `jax[cuda12]` wheels, which bundle CUDA/cuDNN — do
@@ -441,13 +479,13 @@ can OOM you. For real work use a dedicated GPU:
 # interactive (account: your _g allocation)
 salloc -N 1 -C gpu -G 1 -c 32 -q interactive -t 30 -A m2218_g
 module load python && conda activate jax-gpu-env
-cd ~/binary && srun -n 1 python -m hbtsim g2spec --target algol \
+cd ~/hbtsim && srun -n 1 python -m hbtsim g2spec --target algol \
     --compute-only --diameter 10 --baseline 85 \
     --npz $SCRATCH/hbt/g2spec_algol_keck.npz
 # (note: standalone srun needs an explicit -n 1)
 
 # or batch
-sbatch ~/binary/scripts/perlmutter/bench.sbatch
+sbatch ~/hbtsim/scripts/perlmutter/bench.sbatch
 ```
 
 Keep the repo and env in `$HOME` ($SCRATCH is purged after ~8 weeks);
@@ -469,8 +507,10 @@ movie locally with `--render-only`.
 - `hbtsim/params.py` — constants, `Star`/`BinarySystem`/`DiskTarget`/
   `GridConfig`/`MovieConfig`
 - `hbtsim/cli_common.py`, `hbtsim/__main__.py` — the shared `--target` /
-  `--instrument` / `--config-dir` options and the `hbtsim <command>`
-  dispatcher
+  `--instrument` / `--config-dir` / `--fetch` options and the `hbtsim
+  <command>` dispatcher
+- `hbtsim/data.py` — the NewEra table cache and fetcher (`hbtsim data
+  fetch|list|path|manifest`; NERSC portal manifest, sha256-verified)
 - `hbtsim/orbit.py` — Keplerian sky geometry, oriented on the sky by Ω
 - `hbtsim/aperture.py` — finite-aperture (pupil) averaging of |V|² and
   of the three-pupil bispectrum

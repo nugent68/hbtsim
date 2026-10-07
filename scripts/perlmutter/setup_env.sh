@@ -2,8 +2,8 @@
 # One-time setup of the jax-gpu-env conda environment on a Perlmutter
 # login node:
 #
-#     git clone https://github.com/nugent68/binary.git ~/binary
-#     bash ~/binary/scripts/perlmutter/setup_env.sh
+#     git clone https://github.com/nugent68/hbtsim.git ~/hbtsim
+#     bash ~/hbtsim/scripts/perlmutter/setup_env.sh
 #
 # Per current NERSC guidance the pip "jax[cuda12]" wheels bundle their own
 # CUDA/cuDNN libraries: do NOT module load cudatoolkit/cudnn/nccl -- their
@@ -22,7 +22,7 @@ conda create -y -p "$HOME/.conda/envs/jax-gpu-env" python=3.12 pip
 source activate jax-gpu-env 2>/dev/null || conda activate jax-gpu-env
 
 pip install --upgrade "jax[cuda12]" numpy scipy matplotlib pytest
-pip install -e "$HOME/binary"
+pip install -e "$HOME/hbtsim"
 
 # job outputs live here, not in the scratch root
 mkdir -p "$SCRATCH/hbt"

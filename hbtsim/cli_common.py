@@ -39,6 +39,9 @@ def add_catalog_options(p: argparse.ArgumentParser, *, target: bool = True,
                        help="blackbody + linear limb darkening only")
         g.add_argument("--allow-extrapolation", action="store_true",
                        help="clamp a star just outside the NewEra grid onto its edge model")
+        g.add_argument("--fetch", action="store_true",
+                       help="download the NewEra tables the target needs into the cache first "
+                            "(hbtsim data fetch; also HBTSIM_AUTO_FETCH=1)")
 
 
 def add_instrument_options(p: argparse.ArgumentParser, *, telescope_default: str = "c2pu_1m",
@@ -79,7 +82,8 @@ def resolve_target(cat: Catalog, args, verbose: bool = True):
     newera_dir = getattr(args, "newera_dir", None)
     allow = getattr(args, "allow_extrapolation", False) or None
     target, report = cat.attach_atmosphere(target, name=name, newera_dir=newera_dir,
-                                           allow_extrapolation=allow)
+                                           allow_extrapolation=allow,
+                                           fetch=True if getattr(args, "fetch", False) else None)
     if verbose and report:
         if isinstance(report, dict):
             for star, what in report.items():

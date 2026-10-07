@@ -14,6 +14,8 @@ from __future__ import annotations
 import warnings
 from dataclasses import replace
 
+import os
+
 import numpy as np
 
 from hbtsim.catalog import Catalog
@@ -35,7 +37,7 @@ KK_TABLE1 = {"HD 17652": dict(V=28.93, R=40.37, I=69.70, H=188.53, K=168.63),
              "HD 360": dict(V=7.07, R=9.81, I=17.02, H=47.31, K=41.82)}
 KK_SIGMA_S = {"HD 17652": ("H", "< 0.007 at ~100 m", "H, K: <~ 0.01 at ~150 m; optical ~0.1 at 50-70 m"),
               "HD 360": ("H", "< 0.03 at ~100 m", "")}
-MODEL = "data/newera_redclump/newera_lte04800-4.50-0.0_380-2500nm_0.1nm.npz"
+MODEL = os.path.join(CAT.load_resource("newera_redclump").resolved_path, "newera_lte04800-4.50-0.0_380-2500nm_0.1nm.npz")
 
 
 def snr0_formula(ab_mag, nm):

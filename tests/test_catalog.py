@@ -220,7 +220,7 @@ def test_atmosphere_attachment_without_tables(tmp_path, monkeypatch):
     res = cat.load_resource("newera")
     assert res.resolved_path == str(tmp_path / "nowhere") and not res.exists()
     monkeypatch.delenv("HBTSIM_NEWERA_DIR")
-    assert cat.load_resource("newera").resolved_path == "data/newera"
+    assert cat.load_resource("newera").candidates()[0] == "data/newera"       # the checkout's data/ first
 
 
 def test_campaigns_resolve():

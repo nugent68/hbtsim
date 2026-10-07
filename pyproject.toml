@@ -1,7 +1,23 @@
 [project]
 name = "hbtsim"
-version = "0.1.0"
-description = "Hanbury Brown-Twiss intensity-interferometry simulation of bright binary stars"
+version = "0.2.0"
+description = "Photon-counting intensity interferometry (Hanbury Brown-Twiss) of bright binary and single stars: visibilities, closure phases, photon budgets, campaigns"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [{name = "Peter Nugent", email = "penugent@lbl.gov"}]
+keywords = ["intensity interferometry", "Hanbury Brown-Twiss", "binary stars", "closure phase", "astronomy", "JAX"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+]
 requires-python = ">=3.11"
 dependencies = [
     "jax>=0.4.32",
@@ -15,6 +31,12 @@ test = ["pytest>=8.0", "matplotlib>=3.8"]
 gpu = ["jax[cuda12]>=0.4.32"]
 sed = ["h5py>=3.10"]
 
+[project.urls]
+Homepage = "https://github.com/nugent68/hbtsim"
+Source = "https://github.com/nugent68/hbtsim"
+Issues = "https://github.com/nugent68/hbtsim/issues"
+Documentation = "https://github.com/nugent68/hbtsim/tree/main/docs"
+
 [project.scripts]
 hbtsim = "hbtsim.__main__:main"
 hbtsim-movie = "hbtsim.cli:main"
@@ -22,6 +44,7 @@ hbtsim-g2spec = "hbtsim.g2spec:main"
 hbtsim-snr = "hbtsim.snr_cli:main"
 hbtsim-catalog = "hbtsim.catalog.cli:main"
 hbtsim-run = "hbtsim.run_campaign:main"
+hbtsim-data = "hbtsim.data:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -35,8 +58,8 @@ filterwarnings = [
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["hbtsim", "hbtsim.catalog", "hbtsim.runners"]
+[tool.setuptools.packages.find]
+include = ["hbtsim*"]
 
 [tool.setuptools.package-data]
 hbtsim = ["configs/*/*.json"]

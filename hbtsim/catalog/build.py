@@ -25,18 +25,42 @@ from .schema import CatalogError, SchemaError, check_kind
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Resource:
-    """A directory of data files (NewEra tables) the catalog points at."""
+    """A directory of data files (NewEra tables) the catalog points at, with
+    the remote it can be fetched from (hbtsim.data)."""
     name: str
     path: str
     env_override: str | None = None
     pattern: str = "*"
     contents: str = ""
+    remote: tuple = ()               # (("base_url", ...), ("manifest", ...), ...)
+
+    @property
+    def remote_dict(self) -> dict:
+        return dict(self.remote)
+
+    def candidates(self) -> list:
+        """Directories searched in order: the env override, the file's path
+        (relative to the current directory), the user cache."""
+        from ..data import data_dir
+        out = []
+        if self.env_override and os.environ.get(self.env_override):
+            out.append(os.environ[self.env_override])
+        out.append(self.path)
+        out.append(str(data_dir() / self.name))
+        return out
 
     @property
     def resolved_path(self) -> str:
+        """The env override when set (authoritative, even if the directory
+        does not exist yet); else the first existing candidate; else the
+        cache directory (where a fetch would put the tables)."""
         if self.env_override and os.environ.get(self.env_override):
             return os.environ[self.env_override]
-        return self.path
+        cands = self.candidates()
+        for c in cands:
+            if os.path.isdir(c):
+                return c
+        return cands[-1]
 
     def exists(self) -> bool:
         return os.path.isdir(self.resolved_path)
@@ -291,7 +315,8 @@ def build_array(cat, d: dict, **overrides):
 
 
 def build_resource(cat, d: dict) -> Resource:
-    return Resource(d["name"], **_given(d, ("path", "env_override", "pattern", "contents")))
+    remote = tuple(sorted((k, v) for k, v in d.get("remote", {}).items() if not k.startswith("_")))
+    return Resource(d["name"], remote=remote, **_given(d, ("path", "env_override", "pattern", "contents")))
 
 
 def build_campaign(cat, d: dict) -> Campaign:

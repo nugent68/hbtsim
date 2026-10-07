@@ -40,6 +40,7 @@ class RunOptions:
     newera_dir: str | None = None        # None: the target's atmosphere resource
     no_newera: bool = False
     allow_extrapolation: bool | None = None
+    fetch: bool | None = None            # None: $HBTSIM_AUTO_FETCH
     phase: float | None = None
     jobs: int = 1
     quiet: bool = False
@@ -99,7 +100,8 @@ def attach_targets(cat: Catalog, camp: Campaign, opts: RunOptions, log=print) ->
             cat_ptr = cat.registry._raw.get(("target", name))
             t2, report = _attach_with_pointer(cat, t, name, ptr, newera_dir, allow)
         else:
-            t2, report = cat.attach_atmosphere(t, name=name, newera_dir=newera_dir, allow_extrapolation=allow)
+            t2, report = cat.attach_atmosphere(t, name=name, newera_dir=newera_dir, allow_extrapolation=allow,
+                                               fetch=opts.fetch)
         log(f"atmosphere [{name}]: {report}")
         targets.append(t2)
     return replace(camp, targets=tuple(targets))
@@ -120,12 +122,16 @@ def _attach_with_pointer(cat, target, name, ptr, newera_dir, allow):
 
 
 def git_revision() -> str:
-    try:
-        root = Path(__file__).resolve().parents[1]
-        return subprocess.check_output(["git", "-C", str(root), "rev-parse", "--short", "HEAD"],
-                                       stderr=subprocess.DEVNULL, text=True).strip()
-    except Exception:          # noqa: BLE001
-        return "unknown"
+    """The git revision of a source checkout, else the installed version."""
+    root = Path(__file__).resolve().parents[1]
+    if (root / ".git").exists():
+        try:
+            return subprocess.check_output(["git", "-C", str(root), "rev-parse", "--short", "HEAD"],
+                                           stderr=subprocess.DEVNULL, text=True).strip()
+        except Exception:          # noqa: BLE001
+            pass
+    from . import __version__
+    return f"hbtsim {__version__}"
 
 
 class _Tee:
@@ -193,6 +199,8 @@ def main(argv=None) -> int:
     p.add_argument("--newera-dir", default=None, help="NewEra tables (default: the campaign's resource)")
     p.add_argument("--no-newera", action="store_true", help="blackbody + linear limb darkening")
     p.add_argument("--allow-extrapolation", action="store_true")
+    p.add_argument("--fetch", action="store_true",
+                   help="download missing NewEra tables first (hbtsim data; also HBTSIM_AUTO_FETCH=1)")
     p.add_argument("--phase", type=float, default=None, help="orbital phase of the snapshot (runner g3)")
     p.add_argument("--no-figures", action="store_true")
     p.add_argument("--no-track", action="store_true")
@@ -213,7 +221,8 @@ def main(argv=None) -> int:
     camp = apply_overrides(cat, camp, overrides)
     opts = RunOptions(out_dir=Path(args.out), figures=not args.no_figures, track=not args.no_track,
                       latex=not args.no_latex, newera_dir=args.newera_dir, no_newera=args.no_newera,
-                      allow_extrapolation=True if args.allow_extrapolation else None, phase=args.phase,
+                      allow_extrapolation=True if args.allow_extrapolation else None,
+                      fetch=True if args.fetch else None, phase=args.phase,
                       jobs=args.jobs or camp.spec.get("jobs", 1), quiet=args.quiet,
                       overrides=tuple(overrides))
     run(cat, camp, opts, suffix=args.suffix)

@@ -7,6 +7,13 @@
   "pattern": "newera_lte*.npz",
   "contents": "prepare_newera .npz, 380-1000 nm (0.02 nm) and 380-2500 nm (0.1 nm) ranges",
   "notes": [
-    "Stand-ins: lte04800-4.50-0.0 (dwarf) and lte05000-0.00-0.0 (supergiant); no 4800 K / log g 2.5 model exists yet."
-  ]
+    "Stand-ins: lte04800-4.50-0.0 (dwarf) and lte05000-0.00-0.0 (supergiant); no 4800 K / log g 2.5 model exists yet.",
+    "Directory search order: $HBTSIM_NEWERA_REDCLUMP_DIR, then this `path` relative to the current directory, then <data_dir>/newera_redclump ($HBTSIM_DATA_DIR or the user cache). `hbtsim data fetch` downloads from `remote.base_url` ($HBTSIM_DATA_URL overrides) using its manifest.json; HBTSIM_AUTO_FETCH=1 or --fetch pulls missing tables on demand."
+  ],
+  "env_override": "HBTSIM_NEWERA_REDCLUMP_DIR",
+  "remote": {
+    "base_url": "https://portal.nersc.gov/project/newera/binned/",
+    "manifest": "manifest.json",
+    "default_range": "380-1000nm_0.02nm"
+  }
 }

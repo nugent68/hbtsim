@@ -164,7 +164,7 @@ FIELDS = {
     "array": (Field("site", REF, nullable=True),
               Field("stations", LIST), Field("generator", DICT)),
     "resource": (Field("path", STR, required=True), Field("env_override", STR, nullable=True),
-                 Field("pattern", STR), Field("contents", STR)),
+                 Field("pattern", STR), Field("contents", STR), Field("remote", DICT)),
     "target": (Field("type", STR, required=True, choices=("binary", "single", "uniform_disk")),
                # binary
                Field("primary", DICT), Field("secondary", DICT),
@@ -287,6 +287,11 @@ def check_kind(where: str, kind: str, d: dict) -> None:
                 raise SchemaError(f"{where}: lambda_max_nm must exceed lambda_min_nm")
             if d.get("n_channels") is None and d.get("resolving_power") is None:
                 raise SchemaError(f"{where}: give n_channels and/or resolving_power")
+    elif kind == "resource":
+        if "remote" in d:
+            check_fields(f"{where}: remote", d["remote"],
+                         (Field("base_url", STR, required=True), Field("manifest", STR),
+                          Field("default_range", STR)))
     elif kind == "backend":
         if d["model"] == "counting":
             if "spectrograph" not in d:

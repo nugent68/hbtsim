@@ -37,7 +37,7 @@ EONSII_SPAD = CAT.load_detector("eonsii_spad")
 EONSII_SPECTROGRAPH = CAT.load_spectrograph("eonsii_1000ch")
 SPAD_LAMBDA_NG = CAT.load_detector("spad_lambda_ng")
 
-DATA = "data/newera_redclump"
+DATA = CAT.load_resource("newera_redclump").resolved_path
 OUT = "docs/redclump_note"
 MODELS = {"dwarf (4800 K, log g 4.5)": "newera_lte04800-4.50-0.0",
           "supergiant (5000 K, log g 0)": "newera_lte05000-0.00-0.0"}

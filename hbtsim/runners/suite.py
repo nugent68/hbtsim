@@ -34,6 +34,8 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
             argv.append("--no-newera")
         if opts.allow_extrapolation:
             argv.append("--allow-extrapolation")
+        if opts.fetch:
+            argv.append("--fetch")
         if not opts.figures:
             argv.append("--no-figures")
         if not opts.track:

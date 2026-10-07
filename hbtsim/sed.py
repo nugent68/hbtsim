@@ -438,6 +438,7 @@ def vacuum_to_air(lam_nm):
 # The NewEra grid
 # ---------------------------------------------------------------------------
 _NEWERA_RE = re.compile(r"lte(\d{5})-(\d\.\d\d)([-+]\d\.\d)")
+_RANGE_RE = re.compile(r"_(\d+)-(\d+)nm_([0-9.]+)nm\.npz$")
 
 
 @dataclass(frozen=True)
@@ -466,14 +467,28 @@ class NewEraGrid:
         self.tables = dict(tables)      # (teff, logg, z) -> path or loaded tuple
 
     @classmethod
-    def scan(cls, directory: str, pattern: str = "newera_lte*.npz") -> "NewEraGrid":
-        found = {}
+    def scan(cls, directory: str, pattern: str = "newera_lte*.npz",
+             prefer_range_nm: tuple = (380.0, 1000.0)) -> "NewEraGrid":
+        """One table per (T_eff, log g, [M/H]).  When a model exists in several
+        wavelength ranges / steps, the file covering prefer_range_nm wins,
+        then the finest step, then the widest range (the blue 350-560 nm /
+        0.01 nm tables lose to the 380-1000 nm / 0.02 nm ones)."""
+        found, score = {}, {}
         for path in sorted(glob.glob(os.path.join(directory, pattern))):
-            m = _NEWERA_RE.search(os.path.basename(path))
+            base = os.path.basename(path)
+            m = _NEWERA_RE.search(base)
             if not m:
                 continue
             key = (float(m.group(1)), float(m.group(2)), float(m.group(3)))
-            found.setdefault(key, path)      # first match wins (sorted: finest step first)
+            r = _RANGE_RE.search(base)
+            if r:
+                lo, hi, step = float(r.group(1)), float(r.group(2)), float(r.group(3))
+                covers = lo <= prefer_range_nm[0] and hi >= prefer_range_nm[1]
+                s = (1 if covers else 0, -step, hi - lo)
+            else:
+                s = (0, 0.0, 0.0)
+            if key not in found or s > score[key]:
+                found[key], score[key] = path, s
         if not found:
             raise FileNotFoundError(f"no NewEra tables matching {pattern} in {directory}")
         return cls(found)

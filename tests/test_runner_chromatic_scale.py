@@ -90,7 +90,7 @@ def test_chromatic_array_mode(tmp_path):
     assert not list(out.glob("*.png"))
 
 
-@pytest.mark.skipif(not (ROOT / "data" / "newera").is_dir(), reason="no NewEra tables")
+@pytest.mark.skipif(not Path(Catalog(env=False).load_resource("newera").resolved_path).is_dir(), reason="no NewEra tables")
 def test_chromatic_array_mode_with_atmosphere(tmp_path):
     cat, camp = _campaign(
         tmp_path, "chromatic_sirius_vega_eonsii", "tiny_chromatic_newera",
@@ -144,7 +144,7 @@ def test_scale_linear_law(tmp_path):
     assert "Multiplexed optical backends" in log and "Model request" in log
 
 
-@pytest.mark.skipif(not (ROOT / "data" / "newera_redclump").is_dir(), reason="no red-clump NewEra tables")
+@pytest.mark.skipif(not Path(Catalog(env=False).load_resource("newera_redclump").resolved_path).is_dir(), reason="no red-clump NewEra tables")
 def test_scale_with_stand_in(tmp_path):
     cat, camp = _campaign(
         tmp_path, "redclump_ii_supergiant", "tiny_scale_standin",

@@ -1,0 +1,40 @@
+name: release
+
+# Builds the sdist + wheel and publishes to PyPI through trusted publishing
+# when a v* tag is pushed (RELEASING.md).  No token lives in the repository:
+# register this workflow as a trusted publisher on pypi.org (project hbtsim,
+# owner nugent68, repository hbtsim, workflow release.yml, environment pypi).
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build
+      - name: Smoke-test the wheel
+        run: |
+          uv venv /tmp/wheel-venv
+          uv pip install -p /tmp/wheel-venv/bin/python dist/hbtsim-*.whl
+          /tmp/wheel-venv/bin/hbtsim catalog validate
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

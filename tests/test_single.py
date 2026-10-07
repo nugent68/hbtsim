@@ -15,8 +15,9 @@ from hbtsim.snr import Observation, Spectrograph, g2_snr
 
 NM = np.array([410.0, 450.0, 500.0, 540.0])
 SPEC = Spectrograph(lambda_min_nm=400.0, lambda_max_nm=550.0, n_channels=30, throughput=0.6)
-NEWERA = "data/newera"
-has_newera = pytest.mark.skipif(not os.path.isdir(NEWERA), reason="NewEra tables not present")
+from hbtsim.catalog import Catalog as _Catalog
+NEWERA = _Catalog(env=False).load_resource("newera").resolved_path
+has_newera = pytest.mark.skipif(not os.path.isdir(NEWERA), reason="NewEra tables not present (hbtsim data fetch)")
 
 
 def test_linear_law_matches_analytic(vega):

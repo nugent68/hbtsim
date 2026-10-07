@@ -10,6 +10,7 @@ COMMANDS = {
     "g2spec": ("hbtsim.g2spec", "main", "channelized g2 spectrum movie"),
     "catalog": ("hbtsim.catalog.cli", "main", "list / show / validate / dump the JSON catalog"),
     "run": ("hbtsim.run_campaign", "main", "run a catalog campaign (hbtsim/runners)"),
+    "data": ("hbtsim.data", "main", "fetch / list the NewEra model tables (user cache, NERSC portal)"),
 }
 
 
