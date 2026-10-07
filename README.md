@@ -410,18 +410,21 @@ for h5py (only `scripts/prepare_newera.py` needs it). From a checkout:
 
 The NewEra PHOENIX tables that replace the blackbody + Claret model are not
 in the package. They are hosted at NERSC
-(`https://portal.nersc.gov/project/newera/binned/`, the `remote` block of
+(`https://portal.nersc.gov/project/newera/phoenix/`, the `remote` block of
 `hbtsim/configs/resources/*.json`) and cached on your machine:
 
 ```bash
 hbtsim data path                         # where tables are looked for
-hbtsim data fetch --target betaaur       # the four grid corners beta Aur needs (~48 MB)
-hbtsim data fetch --target algol --allow-extrapolation
-hbtsim data fetch --all                  # every 380-1000 nm table (19 files, 210 MB)
-hbtsim data fetch --resource newera_redclump --model lte04800-4.50-0.0
+hbtsim data fetch --model lte06000-5.00-0.0   # the public example model (6000 K, log g 5; 12 MB)
+hbtsim data fetch --target betaaur       # the grid corners beta Aur needs (once they are published)
+hbtsim data fetch --all                  # every published 380-1000 nm table
 hbtsim data list                         # what the cache holds
 ```
 
+Today the portal publishes one model, the 6000 K / log g 5 example
+(https://portal.nersc.gov/project/newera/); the hot-star grid and the
+red-clump stand-ins follow once their release is agreed with the NewEra
+team, after which the target-based fetches work without any change here.
 Every tool takes `--fetch` to pull what its target needs first
 (`HBTSIM_AUTO_FETCH=1` does it always); without tables the stars fall back
 to blackbody + linear limb darkening and the report says so. Environment

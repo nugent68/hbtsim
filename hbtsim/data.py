@@ -2,7 +2,7 @@
 
 The binned NewEra (PHOENIX) tables that `hbtsim.sed` reads are not part
 of the package: they are hosted at NERSC
-(https://portal.nersc.gov/project/newera/binned/, the `remote` block of
+(https://portal.nersc.gov/project/newera/phoenix/, the `remote` block of
 hbtsim/configs/resources/*.json) and cached on the user's machine.
 
     hbtsim data path                       # where tables are looked for
