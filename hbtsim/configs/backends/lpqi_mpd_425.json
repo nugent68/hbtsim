@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "lpqi_mpd_425",
+  "label": "LPQI 1 nm 425 nm continuum, MPD single pixel",
+  "model": "counting",
+  "spectrograph": "filter_lpqi_425_1nm",
+  "detector": "lpqi_spad1_mpd_blue",
+  "polarization_mode": "unpolarized",
+  "notes": [
+    "The MPD single-pixel back-up detector at its degraded blue timing (275 ps)."
+  ]
+}

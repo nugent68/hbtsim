@@ -2,12 +2,12 @@
   "schema_version": 1,
   "kind": "backend",
   "name": "lpqi_nextgen_550",
-  "label": "LPQI 1 nm 550 nm continuum, next-gen SPAD (assumed)",
+  "label": "LPQI 1 nm 550 nm continuum, next IMSE 64x64",
   "model": "counting",
   "spectrograph": "filter_lpqi_550_1nm",
-  "detector": "lpqi_spad_nextgen",
+  "detector": "lpqi_spad64_i2cass_nextgen",
   "polarization_mode": "unpolarized",
   "notes": [
-    "The same filter on the assumed next-generation array (detectors/lpqi_spad_nextgen)."
+    "The same filter on the next IMSE-LPQI array (detectors/lpqi_spad64_i2cass_nextgen)."
   ]
 }

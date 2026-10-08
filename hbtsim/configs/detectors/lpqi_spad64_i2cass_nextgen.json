@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "lpqi_spad64_i2cass_nextgen",
+  "extends": "lpqi_spad64_i2cass",
+  "label": "LPQI-Pathfinder next IMSE-LPQI 64x64 SPAD array (microlenses)",
+  "pde_table_nm": [
+    [
+      400.0,
+      0.5
+    ],
+    [
+      550.0,
+      0.5
+    ],
+    [
+      650.0,
+      0.2
+    ]
+  ],
+  "timing": {
+    "jitter_fwhm_ps": 500.0
+  },
+  "n_pixels": 4,
+  "sources": [
+    "F. Prada (LPQI PI), email to P. Nugent 2026-10-07: sensor data for both LPQI-Pathfinder detectors and the filter set",
+    "Quintana, Gonzalez-de-Rivera, Lopez-Buedo & Prada 2026, Sensors 26, 5757 (doi:10.3390/s26185757): the LPQI-Pathfinder 64 x 64 I2CASS/IMSE SPAD array and its AER readout"
+  ],
+  "notes": [
+    "PDE 0.50 flat over 400-550 nm: ~100 % fill factor (25 % native + microlenses) x the 75 % peak PDP at 425 nm of the Sensors paper, taken as a flat 50 % (assumed); the PDP drops to 20 % at 650 nm (linear between 550 and 650 nm here, 20 % beyond -- the H-alpha filter sees 0.19).",
+    "Timing 500 ps FWHM: the White Rabbit time-stamping target, not measured.",
+    "n_pixels 4: ~1 arcsec seeing on 0.5 arcsec pixels.",
+    "Dead time, dark counts and the 6.7e6 cps capture ceiling inherited from the published array."
+  ],
+  "assumptions": [
+    "pde_table_nm (flat 50 % over 400-550 nm)",
+    "timing (500 ps White Rabbit target)",
+    "n_pixels"
+  ]
+}

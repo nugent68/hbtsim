@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "campaign",
   "name": "g2_binaries_lpqi_pathfinder",
-  "label": "The four binaries on the LPQI-Pathfinder (NOT + TNG, 550 m, 1 nm filters, one filter per night)",
+  "label": "The four binaries on the LPQI-Pathfinder (NOT + TNG, 550 m, five 1 nm filters, one filter per night, three detector cases)",
   "runner": "g2",
   "targets": [
     "betaaur",
@@ -18,10 +18,17 @@
     "lpqi_hbeta",
     "lpqi_500",
     "lpqi_550",
+    "lpqi_425",
     "lpqi_nextgen_halpha",
     "lpqi_nextgen_hbeta",
     "lpqi_nextgen_500",
-    "lpqi_nextgen_550"
+    "lpqi_nextgen_550",
+    "lpqi_nextgen_425",
+    "lpqi_mpd_halpha",
+    "lpqi_mpd_hbeta",
+    "lpqi_mpd_500",
+    "lpqi_mpd_550",
+    "lpqi_mpd_425"
   ],
   "night": {
     "block_minutes": 30.0,

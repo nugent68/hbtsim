@@ -14,7 +14,7 @@ This document records what the catalog carries for it, which numbers are
 published and which are assumptions to confirm with the team, and what the
 Pathfinder does for hbtsim's targets. Catalog: `sites/orm_not`,
 `telescopes/{not_2p56m,tng_3p58m,gtc_10p4m,wht_4p2m,int_2p54m}`,
-`detectors/{lpqi_spad64_i2cass,lpqi_spad_nextgen}`,
+`detectors/{lpqi_spad64_i2cass,lpqi_spad64_i2cass_nextgen,lpqi_spad1_mpd,lpqi_spad1_mpd_blue}`,
 `spectrographs/filter_lpqi_*_1nm`, `backends/lpqi_*`,
 `arrays/{lpqi_pathfinder,lpqi_orm}`, campaigns `g2_binaries_lpqi_pathfinder`
 and `mc_sirius_b_lpqi_pathfinder` (`hbtsim catalog show array lpqi_pathfinder`
@@ -43,6 +43,9 @@ prints the provenance).
   "50 µas", "160 µas", spring 2028.
 - Wikipedia infoboxes (read 2026-10-06) for the five telescopes' coordinates,
   altitudes, apertures and collecting areas.
+- F. Prada (LPQI PI), email of 2026-10-07: the two Pathfinder detector cases
+  (the next IMSE-LPQI 64×64 array with microlenses, and the MPD single-pixel
+  back-up) and the filter set with a fifth filter at 425 nm.
 
 ## Parameters and status
 
@@ -54,12 +57,21 @@ prints the provenance).
 | five-telescope network | NOT 2.56 m, TNG 3.58 m, GTC 10.4 m, WHT 4.2 m, INT 2.54 m; baselines 447–1547 m | Wikipedia coordinates, arc-second precision |
 | telescope throughput | 0.3, 0.3 | hbtsim default (**assumed**) |
 | detector (published) | IMSE 64×64: PDE 0.026 (fill factor 3.5 % × PDP 75 %), 500 ps FWHM, dead 10 ns, dark 1.68 cps/pixel, 25 pixels, readout ≤ 6.7e+06 cps | Quintana et al. 2026, Sensors 26, 5757; timing = White Rabbit target (**assumed**), n_pixels **assumed** |
-| detector (next-gen) | PDE 0.50 peak (SPAD Lambda curve), 100 ps, readout ≤ 4e+07 cps | **assumed** (the paper names a higher-efficiency sensor as the next generation) |
-| filters | 500.0 nm (1.0 nm); 550.0 nm (1.0 nm); 656.3 nm (1.0 nm); 486.1 nm (1.0 nm); throughput 0.9; one per night | wavelengths **to be confirmed**; width and one-per-night from the user |
+| detector (next IMSE-LPQI 64×64) | PDE 0.50 flat 400–550 nm, 0.20 at 650 nm (microlenses); 500 ps FWHM, 4 pixels, dead 10 ns, dark 1.68 cps/pixel, readout ≤ 6.7e+06 cps | F. Prada 2026-10-07; PDE shape and timing **assumed** |
+| detector (MPD single pixel, back-up) | PDE 0.30 flat 400–700 nm, 35 ps FWHM (275 ps below 470 nm), dead 55 ns, dark 50 cps, 1 pixel, link ceiling unknown | F. Prada 2026-10-07; flat PDE **assumed**, ceiling **unknown** |
+| filters | 425.0 nm (1.0 nm); 500.0 nm (1.0 nm); 550.0 nm (1.0 nm); 656.3 nm (1.0 nm); 486.1 nm (1.0 nm); throughput 0.9; one per night | wavelengths **to be confirmed**; width and one-per-night from the user |
 <!-- /catalog -->
 
-The filter wavelengths (Hα, Hβ, 500 and 550 nm, 1 nm wide) are a working
-assumption chosen with the user on 2026-10-06; nothing published names them.
+The filter set (Hα, Hβ, 500, 550 and 425 nm, 1 nm wide, one per night) was
+confirmed by F. Prada on 2026-10-07; the exact central wavelengths and widths
+remain working values. Three detector cases are modelled: the **published
+IMSE array** of the Sensors paper (effective PDE 2.6 %), the **next
+IMSE-LPQI array** (microlenses bring the fill factor to ~100 %: PDE 0.50 over
+400–550 nm, 0.20 at 650 nm; 500 ps White Rabbit timing; 4 pixels per star;
+the same 6.7×10⁶ cps capture ceiling), and the **MPD single-pixel 50 µm SPAD
+back-up** (PDE 0.30, 35 ps FWHM above 470 nm but 250–300 ps at 400 nm, so the
+425 nm filter uses a 275 ps variant; dead time 55 ns, 50 cps dark, time-tag
+ceiling unknown and therefore not applied).
 The arrays' ENU positions come from arc-second Wikipedia coordinates (≈ 30 m
 per coordinate): they give NOT–TNG = 471 m against the project's 550 m, and
 GTC–INT = 1547 m, the project's "1.5 km". `arrays/lpqi_pathfinder` adopts the
@@ -76,14 +88,18 @@ all sit many nulls beyond. The Pathfinder is built for 50–200 µas sources
 10⁻⁴–10⁻³ (table below), not a measurement.
 
 **Sensitivity.** A 1 nm filter gives a coherence time τ_c = λ²/(cΔλ) ≈ 0.8 ps
-at 500 nm, against a pair timing width of 300 ps (published array, 500 ps FWHM
-per detector) or 60 ps (next-gen assumption); the g² S/N scales with the
+at 500 nm, against a pair timing width of 300 ps (both IMSE arrays, 500 ps
+FWHM per detector) or 21 ps (MPD, 35 ps FWHM); the g² S/N scales with the
 photon rate (so with the PDE) and with the coherence time over the square root
-of the timing width, and a single channel has no multiplexing gain. In the
-campaign below the assumed next-generation array (PDE 0.5 peak, 100 ps) gains
-a factor 25–40 per night over the published one on the same filter; both are
-orders of magnitude below what the same telescopes would do behind a
-320-channel spectrograph.
+of the timing width, and a single channel has no multiplexing gain. Two
+things follow in the tables below. The next IMSE array's 20× higher PDE buys
+only a factor 2–8 per night on these bright stars, because its rates
+(10⁷–10⁸ cps per telescope) run into the unchanged 6.7×10⁶ cps capture
+ceiling and are attenuated by ×0.1–0.3: for the Pathfinder's bright targets
+the readout, not the sensor, is the limit. The MPD single pixel, with a lower
+PDE but 35 ps timing and no ceiling, is the most sensitive of the three by
+a factor 10–20 over the next IMSE array — except through the 425 nm filter,
+where its 275 ps timing costs a factor 3.6.
 
 **One filter per night.** The backends `lpqi_<filter>` are exclusive: a night on
 one filter is a night not spent on the others. The g2 runner's
@@ -93,28 +109,32 @@ one filter is a night not spent on the others. The g2 runner's
 ### The four binaries on NOT + TNG (`hbtsim run g2_binaries_lpqi_pathfinder`)
 
 One night along the uv track (30-min blocks above 30°; NewEra atmospheres where
-the grid covers the stars, the blackbody + Claret model otherwise), the
-published array and the assumed next-generation one; "nights" is the time to a
-3σ detection of |V|² at the night's mean value. δ Vel (dec −54.7°) never rises
-above 30° from La Palma.
+the grid covers the stars, the blackbody + Claret model otherwise), the three
+detector cases; "nights" is the time to a 3σ detection of |V|² at the night's
+mean value. δ Vel (dec −54.7°) never rises above 30° from La Palma. The full
+table (45 rows) is `output/campaigns/g2_binaries_lpqi_pathfinder/table.md`.
 
-| target | SED | backend | B [m] | |V|² over the night | SNR/night | nights (3σ) |
-|---|---|---|---|---|---|---|
-| β Aur | NewEra | 1 nm Hα, IMSE 64×64 | 314–550 | 1×10⁻⁴–2×10⁻³ | 8×10⁻⁴ | 1.3×10⁷ |
-| β Aur | NewEra | 1 nm 550 nm, IMSE 64×64 | 314–550 | 2×10⁻⁵–2×10⁻³ | 1.4×10⁻³ | 4.7×10⁶ |
-| β Aur | NewEra | 1 nm 550 nm, next-gen (assumed) | 314–550 | 2×10⁻⁵–2×10⁻³ | 0.057 | 2.8×10³ |
-| Algol | NewEra (A) | 1 nm Hα, IMSE 64×64 | 331–550 | 8×10⁻⁶–3×10⁻³ | 1.4×10⁻³ | 4.4×10⁶ |
-| Algol | NewEra (A) | 1 nm 550 nm, next-gen (assumed) | 331–550 | 4×10⁻⁶–2×10⁻³ | 0.058 | 2.7×10³ |
-| Spica | blackbody | 1 nm Hα, IMSE 64×64 | 314–550 | 1×10⁻⁴–3×10⁻³ | 0.007 | 1.8×10⁵ |
-| Spica | blackbody | 1 nm Hα, next-gen (assumed) | 314–550 | 1×10⁻⁴–3×10⁻³ | 0.21 | 207 |
-| Spica | blackbody | 1 nm 550 nm, next-gen (assumed) | 314–550 | 2×10⁻⁵–3×10⁻³ | 0.17 | 306 |
+| target | SED | filter | detector | B [m] | |V|² over the night | SNR/night | nights (3σ) |
+|---|---|---|---|---|---|---|---|
+| β Aur | NewEra | 550 nm | IMSE 64×64 | 314–550 | 2×10⁻⁵–2×10⁻³ | 1.4×10⁻³ | 4.7×10⁶ |
+| β Aur | NewEra | 550 nm | next IMSE (readout-limited) | 314–550 | 2×10⁻⁵–2×10⁻³ | 7.8×10⁻³ | 1.5×10⁵ |
+| β Aur | NewEra | 550 nm | MPD single pixel | 314–550 | 2×10⁻⁵–2×10⁻³ | 0.039 | 6.0×10³ |
+| β Aur | NewEra | Hα | MPD single pixel | 314–550 | 1×10⁻⁴–2×10⁻³ | 0.029 | 1.1×10⁴ |
+| β Aur | NewEra | 425 nm | MPD (275 ps) | 314–550 | 7×10⁻⁶–4×10⁻⁴ | 2.0×10⁻³ | 2.3×10⁶ |
+| Algol | NewEra (A) | 550 nm | IMSE 64×64 | 331–550 | 4×10⁻⁶–2×10⁻³ | 1.4×10⁻³ | 4.5×10⁶ |
+| Algol | NewEra (A) | 550 nm | next IMSE (readout-limited) | 331–550 | 4×10⁻⁶–2×10⁻³ | 0.010 | 8.4×10⁴ |
+| Algol | NewEra (A) | Hα | MPD single pixel | 331–550 | 8×10⁻⁶–3×10⁻³ | 0.052 | 3.4×10³ |
+| Spica | blackbody | Hα | IMSE 64×64 | 314–550 | 1×10⁻⁴–3×10⁻³ | 0.007 | 1.8×10⁵ |
+| Spica | blackbody | Hα | next IMSE (readout-limited) | 314–550 | 1×10⁻⁴–3×10⁻³ | 0.019 | 2.6×10⁴ |
+| Spica | blackbody | Hα | MPD single pixel | 314–550 | 1×10⁻⁴–3×10⁻³ | 0.14 | 452 |
+| Spica | blackbody | 550 nm | MPD single pixel | 314–550 | 2×10⁻⁵–3×10⁻³ | 0.11 | 728 |
 
-Filter set (four filters, one per night, nights added): β Aur 4×10⁸ nights
-(IMSE) / 2.7×10⁵ (next-gen); Algol 3×10⁷ / 2×10⁴; Spica 1×10⁶ / 1.8×10³. The
-full table (all 24 observable rows) is `output/campaigns/g2_binaries_lpqi_pathfinder/table.md`.
-The next-generation rows on Spica are readout-limited at the 4×10⁷ cps ceiling
-(×0.5–0.6); the published array never is (its rates are 10⁶–10⁷ cps per
-telescope through a 1 nm filter).
+Filter set (five filters, one per night, nights added): β Aur 6×10⁸ nights
+(IMSE) / 2×10⁷ (next IMSE) / 4×10⁵ + 2×10⁶ (MPD, the 425 nm night dominating);
+Algol 7×10⁷ / 2.5×10⁶ / 3×10⁴ + 5×10⁵; Spica 3×10⁶ / 1.3×10⁶ / 3.8×10³ + 8×10⁴.
+Every next-IMSE row is readout-limited (×0.1–0.3 at the 6.7×10⁶ cps capture
+ceiling); the published array never is, and the MPD has no ceiling in the
+model because none has been specified.
 
 ### Sirius B on NOT + TNG (`hbtsim run mc_sirius_b_lpqi_pathfinder`)
 
@@ -122,30 +142,39 @@ The Pathfinder's own use case: a 28.5 µas white dwarf (V = 8.44), 10 h at
 zenith angles 46°, 52.5°, 60° (Sirius culminates at 45.5° from the NOT), one
 500 nm / 1 nm filter, unpolarized, geometric-mean aperture √(A_NOT A_TNG).
 
-| detector | rate per telescope | pair σ_t | analytic σ(θ)/θ in 10 h | hours to 10 % |
+| detector | pair σ_t | analytic σ(θ)/θ in 10 h | hours to 10 % | with PBS at the 2400 m optimum |
 |---|---|---|---|---|
-| IMSE 64×64 (published) | 2.3×10³ cps | 300 ps | 1.8×10³ (no measurement) | 3.4×10⁹ |
-| next-gen (assumed) | 4.4×10⁴ cps | 60 ps | 42 | 1.8×10⁶ |
-| next-gen + PBS + 2400 m | — | 60 ps | 3.7 | 1.4×10⁴ |
+| IMSE 64×64 (published) | 300 ps | 1.8×10³ (no measurement) | 3.4×10⁹ | 2.6×10⁷ |
+| next IMSE 64×64 | 300 ps | 96 | 9.1×10⁶ | 6.9×10⁴ |
+| MPD single pixel | 21 ps | 41 | 1.7×10⁶ | 1.3×10⁴ |
 
-The Poisson Monte Carlo cannot fit a diameter from these histograms (the
-coincidence excess is below the accidentals' shot noise by orders of
-magnitude); the analytic matched-filter precision is what the table reports.
-The EON-SII pair reaches 10 % on the same star in 1.5 h (MCP-PMT) because it
-has 1000 channels, 27 ps and a 20 % PDE: with one 1 nm channel the Pathfinder
-needs ≈ 10 ps timing *and* a high-PDE array *and* a spectrograph to approach it.
+At V = 8.44 the rates are far below any ceiling, so here the sensor counts:
+the next IMSE array gains the full factor 19 in precision over the published
+one, and the MPD's timing makes it the best of the three. None of them
+measures Sirius B with one 1 nm channel: the Poisson Monte Carlo cannot fit a
+diameter from these histograms (the coincidence excess is below the
+accidentals' shot noise by orders of magnitude) and the table reports the
+analytic matched-filter precision. The EON-SII pair reaches 10 % on the same
+star in 1.5 h (MCP-PMT) because it has 1000 channels, 27 ps and a 20 % PDE:
+the Pathfinder needs a spectrograph (hundreds of channels) on top of the MPD
+class of timing to approach it.
 
 ## Assumptions to confirm with the LPQI team
 
-1. The filter list: central wavelengths, widths (1 nm assumed), throughput, and
-   whether more than one filter can be used per night (one assumed).
+1. The filter list is confirmed (Hα, Hβ, 500, 550, 425 nm; 1 nm; one per
+   night); the exact central wavelengths, widths and the 0.9 throughput are
+   still working values.
 2. The NOT–TNG baseline (550 m published vs 471 m from the dome coordinates)
    and the station positions of the five-telescope network.
-3. The Pathfinder detector's PDE curve (2.6 % flat assumed), the time-stamp
-   resolution actually reached with White Rabbit (500 ps target assumed), the
-   number of pixels the seeing disk covers (25 assumed), and the cooled dark
-   count rate.
-4. The next-generation sensor (`lpqi_spad_nextgen` is a placeholder: SPAD
-   Lambda PDE, 100 ps, 4×10⁷ events/s).
-5. Telescope + relay throughput to the camera (0.3 × 0.9 assumed; Prada et al.
+3. The published IMSE array: its PDE curve (2.6 % flat assumed), the
+   time-stamp resolution reached with White Rabbit (500 ps target), the
+   pixels the seeing disk covers (25), the cooled dark count rate.
+4. The next IMSE-LPQI array: the flat 50 % PDE over 400–550 nm and the 20 % at
+   650 nm (shape assumed), the 500 ps timing, 4 pixels per star, and above all
+   whether the 6.7×10⁶ cps capture ceiling stays — it is what limits this
+   array on every bright target in the tables.
+5. The MPD single-pixel module: its time-tag link ceiling (unknown; none
+   applied), the flat 30 % PDE, and the 250–300 ps blue timing (275 ps used
+   for the 425 nm filter).
+6. Telescope + relay throughput to the camera (0.3 × 0.9 assumed; Prada et al.
    use an overall 0.5).

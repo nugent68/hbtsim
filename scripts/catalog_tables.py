@@ -150,7 +150,7 @@ def iact_parameters() -> str:
 
 def lpqi_parameters() -> str:
     pf, orm = cat.load_array("lpqi_pathfinder"), cat.load_array("lpqi_orm")
-    d, n = cat.load_detector("lpqi_spad64_i2cass"), cat.load_detector("lpqi_spad_nextgen")
+    d, n, m = (cat.load_detector(k) for k in ("lpqi_spad64_i2cass", "lpqi_spad64_i2cass_nextgen", "lpqi_spad1_mpd"))
     (_, _, b), = pf.pairs()
     pa = np.degrees(np.arctan2(b[0], b[1])) % 360
     lengths = {f"{orm.stations[i].name}–{orm.stations[j].name}": float(np.hypot(*bb)) for i, j, bb in orm.pairs()}
@@ -167,8 +167,13 @@ def lpqi_parameters() -> str:
                                       f"dead {d.dead_time_ns:g} ns, dark {d.dark_cps_per_pixel:g} cps/pixel, "
                                       f"{d.n_pixels} pixels, readout ≤ {d.max_total_cps:.1e} cps",
               "Quintana et al. 2026, Sensors 26, 5757; timing = White Rabbit target (**assumed**), n_pixels **assumed**"),
-             ("detector (next-gen)", f"PDE {n.pde(520.0):.2f} peak (SPAD Lambda curve), {n.jitter_fwhm_ps:.0f} ps, readout ≤ {n.max_total_cps:.0e} cps",
-              "**assumed** (the paper names a higher-efficiency sensor as the next generation)"),
+             ("detector (next IMSE-LPQI 64×64)", f"PDE {n.pde(500.0):.2f} flat 400–550 nm, {n.pde(650.0):.2f} at 650 nm (microlenses); "
+                                                 f"{n.jitter_fwhm_ps:.0f} ps FWHM, {n.n_pixels} pixels, dead {n.dead_time_ns:g} ns, "
+                                                 f"dark {n.dark_cps_per_pixel:g} cps/pixel, readout ≤ {n.max_total_cps:.1e} cps",
+              "F. Prada 2026-10-07; PDE shape and timing **assumed**"),
+             ("detector (MPD single pixel, back-up)", f"PDE {m.pde(550.0):.2f} flat 400–700 nm, {m.jitter_fwhm_ps:.0f} ps FWHM (275 ps below 470 nm), "
+                                                   f"dead {m.dead_time_ns:g} ns, dark {m.dark_cps_per_pixel:g} cps, 1 pixel, link ceiling unknown",
+              "F. Prada 2026-10-07; flat PDE **assumed**, ceiling **unknown**"),
              ("filters", "; ".join(f"{f.channel_centers_nm[0]:.1f} nm ({f.channel_width_nm:.1f} nm)" for f in filters)
               + f"; throughput {filters[0].throughput:g}; one per night", "wavelengths **to be confirmed**; width and one-per-night from the user")]
     out = ["| " + " | ".join(rows[0]) + " |", "|---|---|---|"]

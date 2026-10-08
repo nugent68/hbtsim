@@ -162,11 +162,14 @@ def test_g2_array_track_mode(tmp_path):
         assert 0 <= r["vis2_min"] <= r["vis2_max"] < 0.05           # resolved out at 550 m
         assert r["snr_night"] > 0 and r["nights_detection"] > 1 and r["n_blocks"] >= 2
     by = {r["backend"]: r for r in rows}
-    assert by["LPQI 1 nm 500 nm continuum, next-gen SPAD (assumed)"]["snr_night"] > \
-        by["LPQI 1 nm 500 nm continuum, IMSE 64x64"]["snr_night"] * 5
+    # the next array has 20x the PDE but runs into the same 6.7e6 cps capture
+    # ceiling on a bright star, so the gain is modest (and readout-limited)
+    nxt, pub = by["LPQI 1 nm 500 nm continuum, next IMSE 64x64"], by["LPQI 1 nm 500 nm continuum, IMSE 64x64"]
+    assert nxt["snr_night"] > pub["snr_night"] and nxt["readout_limited"] and not pub["readout_limited"]
     sets = res["filter_set_nights"]["Spica"]
-    imse = [r for r in rows if r["detector"].startswith("LPQI-Pathfinder")]
-    assert sets["LPQI-Pathfinder IMSE 64x64 SPAD array (I2CASS, LiDAR heritage)"] == \
+    imse_name = "LPQI-Pathfinder IMSE 64x64 SPAD array (I2CASS, LiDAR heritage)"
+    imse = [r for r in rows if r["detector"] == imse_name]
+    assert len(imse) == 2 and sets[imse_name] == \
         pytest.approx(sum(r["nights_detection"] for r in imse))          # one filter per night: nights add
     assert (out / "tiny_lpqi" / "table.md").read_text().count("NOT-TNG") == 3
     assert (out / "tiny_lpqi" / "results.json").exists()

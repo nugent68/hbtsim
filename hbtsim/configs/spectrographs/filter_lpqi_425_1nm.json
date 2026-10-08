@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "filter_lpqi_425_1nm",
+  "label": "LPQI 1 nm filter, 425 nm continuum (425 nm)",
+  "lambda_min_nm": 424.5,
+  "lambda_max_nm": 425.5,
+  "n_channels": 1,
+  "throughput": 0.9,
+  "sources": [
+    "F. Prada (LPQI PI), email to P. Nugent 2026-10-07: sensor data for both LPQI-Pathfinder detectors and the filter set"
+  ],
+  "notes": [
+    "Added by F. Prada 2026-10-07 to the Balmer + continuum set; 1 nm width and 0.9 throughput as the other LPQI filters."
+  ],
+  "assumptions": [
+    "lambda_min_nm",
+    "lambda_max_nm"
+  ]
+}

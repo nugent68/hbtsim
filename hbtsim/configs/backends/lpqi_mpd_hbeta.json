@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "lpqi_mpd_hbeta",
+  "label": "LPQI 1 nm H-beta, MPD single pixel",
+  "model": "counting",
+  "spectrograph": "filter_lpqi_hbeta_1nm",
+  "detector": "lpqi_spad1_mpd",
+  "polarization_mode": "unpolarized",
+  "notes": [
+    "The MPD single-pixel back-up detector (35 ps)."
+  ]
+}

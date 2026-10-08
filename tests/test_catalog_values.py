@@ -106,12 +106,20 @@ def test_lpqi_pathfinder():
     d = cat.load_detector("lpqi_spad64_i2cass")
     assert d.pde(550.0) == pytest.approx(0.026) and d.jitter_fwhm_ps == 500.0 and d.n_pixels == 25
     assert d.max_total_cps == 6.7e6 and d.readout == "timetag"
-    n = cat.load_detector("lpqi_spad_nextgen")
-    assert n.pde(520.0) == 0.50 and n.jitter_fwhm_ps == 100.0 and n.dark_cps_per_pixel == d.dark_cps_per_pixel
-    for key, lam in (("halpha", 656.28), ("hbeta", 486.13), ("500", 500.0), ("550", 550.0)):
+    n = cat.load_detector("lpqi_spad64_i2cass_nextgen")           # F. Prada, 2026-10-07
+    assert n.pde(425.0) == 0.5 and n.pde(550.0) == 0.5 and n.pde(650.0) == pytest.approx(0.2)
+    assert n.pde(656.28) == pytest.approx(0.2) and n.jitter_fwhm_ps == 500.0 and n.n_pixels == 4
+    assert (n.dead_time_ns, n.dark_cps_per_pixel, n.max_total_cps) == (10.0, 1.68, 6.7e6)
+    m = cat.load_detector("lpqi_spad1_mpd")
+    assert (m.pde(550.0), m.jitter_fwhm_ps, m.dead_time_ns, m.dark_cps_per_pixel, m.n_pixels) == (0.3, 35.0, 55.0, 50.0, 1)
+    assert m.max_total_cps is None and m.readout == "timetag"
+    mb = cat.load_detector("lpqi_spad1_mpd_blue")
+    assert mb.jitter_fwhm_ps == 275.0 and mb.pde(425.0) == 0.3 and mb.dead_time_ns == 55.0
+    for key, lam in (("halpha", 656.28), ("hbeta", 486.13), ("500", 500.0), ("550", 550.0), ("425", 425.0)):
         f = cat.load_spectrograph(f"filter_lpqi_{key}_1nm")
         assert f.n_channels == 1 and f.channel_width_nm == pytest.approx(1.0)
         assert float(f.channel_centers_nm[0]) == pytest.approx(lam)
         assert cat.load_backend(f"lpqi_{key}").detector == d
         assert cat.load_backend(f"lpqi_nextgen_{key}").detector == n
+        assert cat.load_backend(f"lpqi_mpd_{key}").detector == (mb if key == "425" else m)
     assert "TO BE CONFIRMED" in " ".join(cat.raw("array", "lpqi_pathfinder")["notes"])

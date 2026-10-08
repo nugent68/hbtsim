@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "lpqi_mpd_500",
+  "label": "LPQI 1 nm 500 nm continuum, MPD single pixel",
+  "model": "counting",
+  "spectrograph": "filter_lpqi_500_1nm",
+  "detector": "lpqi_spad1_mpd",
+  "polarization_mode": "unpolarized",
+  "notes": [
+    "The MPD single-pixel back-up detector (35 ps)."
+  ]
+}

@@ -10,7 +10,8 @@
   },
   "backends": [
     "lpqi_500",
-    "lpqi_nextgen_500"
+    "lpqi_nextgen_500",
+    "lpqi_mpd_500"
   ],
   "options": {
     "theta_true_mas": 0.0285,

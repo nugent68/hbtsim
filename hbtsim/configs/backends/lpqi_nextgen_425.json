@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "backend",
-  "name": "lpqi_nextgen_hbeta",
-  "label": "LPQI 1 nm H-beta, next IMSE 64x64",
+  "name": "lpqi_nextgen_425",
+  "label": "LPQI 1 nm 425 nm continuum, next IMSE 64x64",
   "model": "counting",
-  "spectrograph": "filter_lpqi_hbeta_1nm",
+  "spectrograph": "filter_lpqi_425_1nm",
   "detector": "lpqi_spad64_i2cass_nextgen",
   "polarization_mode": "unpolarized",
   "notes": [

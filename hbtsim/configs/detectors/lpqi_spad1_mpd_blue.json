@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "lpqi_spad1_mpd_blue",
+  "extends": "lpqi_spad1_mpd",
+  "label": "LPQI MPD single-pixel SPAD at 400-470 nm (275 ps)",
+  "timing": {
+    "jitter_fwhm_ps": 275.0
+  },
+  "sources": [
+    "F. Prada (LPQI PI), email to P. Nugent 2026-10-07: sensor data for both LPQI-Pathfinder detectors and the filter set"
+  ],
+  "notes": [
+    "The same module seen through a filter bluer than 470 nm, where its timing degrades to 250-300 ps FWHM (275 ps adopted)."
+  ],
+  "assumptions": [
+    "timing (midpoint of 250-300 ps)"
+  ]
+}

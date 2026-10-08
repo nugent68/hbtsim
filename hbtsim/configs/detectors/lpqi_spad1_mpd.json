@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "lpqi_spad1_mpd",
+  "label": "LPQI MPD single-pixel 50 um SPAD (back-up)",
+  "pde_table_nm": {
+    "flat": 0.3,
+    "range_nm": [
+      400.0,
+      700.0
+    ]
+  },
+  "timing": {
+    "jitter_fwhm_ps": 35.0
+  },
+  "dead_time_ns": 55.0,
+  "dark_cps_per_pixel": 50.0,
+  "n_pixels": 1,
+  "readout": "timetag",
+  "max_total_cps": null,
+  "sources": [
+    "F. Prada (LPQI PI), email to P. Nugent 2026-10-07: sensor data for both LPQI-Pathfinder detectors and the filter set"
+  ],
+  "notes": [
+    "Micro Photon Devices 50 um single-pixel SPAD module: PDE 50 % at 550 nm, taken as a flat 30 % over 400-700 nm (assumed).",
+    "Timing 35 ps FWHM above 470 nm; 250-300 ps FWHM at 400 nm -- hbtsim has one jitter per detector, so the blue filter uses detectors/lpqi_spad1_mpd_blue (275 ps).",
+    "Dead time 55 ns (specifications); dark counts 50 cps (as offered); one pixel takes the whole seeing disk (< 2 arcsec).",
+    "Time-tag link ceiling UNKNOWN (left open: no ceiling applied); to be supplied by the LPQI team."
+  ],
+  "assumptions": [
+    "pde_table_nm (flat 30 %)",
+    "max_total_cps (unknown, none applied)",
+    "n_pixels"
+  ]
+}
