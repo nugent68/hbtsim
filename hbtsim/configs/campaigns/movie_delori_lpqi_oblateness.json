@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_delori_lpqi_oblateness",
+  "label": "Movie: is delta Ori Aa1 oblate? H-alpha nights on the LPQI-Pathfinder against the equal-area circular disk (MPD, 40 nights)",
+  "runner": "nightmovie",
+  "target": "delori_aa",
+  "instrument": {
+    "array": "lpqi_pathfinder"
+  },
+  "backends": [
+    "lpqi_mpd_halpha"
+  ],
+  "night": {
+    "block_minutes": 5.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "oblateness": true,
+    "nights": 40,
+    "detection_sigma": 3.0,
+    "fps": 12,
+    "dpi": 110,
+    "seed": 7,
+    "display_bin_blocks": 6
+  },
+  "outputs": {
+    "figures": true
+  },
+  "notes": [
+    "The baseline's position angle sweeps ~90 deg over the night, so an oblate disk (axis ratio 1.03 from v sin i, major axis at the assumed PA 0) departs from the circular curve in a PA-dependent way; the Fisher matrix on (theta_major, q) with the orientation fixed gives the nights to a 3 sigma detection of q - 1.",
+    "The orientation of the spin axis is unknown and the tidal distortion by the 5.73 d companion is not modelled: a first look, not a forecast."
+  ]
+}

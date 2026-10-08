@@ -28,16 +28,27 @@
     "No interferometric diameter exists: theta_LD = 2R/d = 0.319 mas from the quoted radius and distance; the Pathfinder would be its first measurement.",
     "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
     "V 2.23 is Aa + Ab (2.50 + 3.90); the Aa1 primary dominates. Distance 382 pc (cluster / spectroscopic) against the Hipparcos 212 +/- 30 pc: the diameter scales with it.",
-    "Aa1-Aa2 eclipsing orbit: a 40.1 Rsun, i 79.1 deg, e 0.081."
+    "Aa1-Aa2 eclipsing orbit: a 40.1 Rsun, i 79.1 deg, e 0.081.",
+    "Oblateness: v sin i 114 km/s on R 13.1 Rsun, M 17.8 Msun gives a rotational flattening v^2 R / (2 G M) ~ 2-3 %; the ellipse carries axis_ratio 1.03 at the equal-area diameter (theta_major = theta_LD sqrt(1.03)) with the major axis at PA 0 -- the spin axis's sky orientation is UNKNOWN (assumed aligned with the i = 79 deg orbit, whose node is unmeasured). The 5.73 d companion at 3 stellar radii adds a comparable tidal distortion along the line of centres, not modelled."
   ],
   "assumptions": [
     "theta_ld_mas (2R/d, no measurement)",
     "star.ld_table",
     "distance_pc (382 vs 212 pc)",
-    "v_mag (Aa + Ab)"
+    "v_mag (Aa + Ab)",
+    "ellipse.axis_ratio (2-3 % from v sin i)",
+    "ellipse.pa_deg (unknown)"
   ],
   "summary": {
     "short": "δ Ori Aa",
     "components": "O9.5 II + B eclipsing pair (5.73 d)"
+  },
+  "ellipse": {
+    "theta_major_mas": 0.3237,
+    "axis_ratio": 1.03,
+    "pa_deg": 0.0,
+    "sources": [
+      "v sin i = 114 +/- 20 km/s (Shenar et al. 2015 / Richardson et al. 2015 delta Ori campaign); R 13.1 Rsun, M 17.8 Msun"
+    ]
   }
 }

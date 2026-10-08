@@ -87,6 +87,10 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
         raise SystemExit("runner nightmovie needs a two-station array (instrument.array)")
     if len(campaign.backends) > 1:
         return run_rotation(campaign, cat, opts, out_dir)        # a different filter each night
+    if campaign.option("options.oblateness", False):
+        if getattr(target, "ellipse", None) is None:
+            raise SystemExit("options.oblateness needs a target with an `ellipse`")
+        return run_ellipse(campaign, cat, opts, out_dir)
     if len(campaign.backends) != 1:
         raise SystemExit("runner nightmovie takes one backend (one filter, one detector), or several to rotate")
     b = campaign.backends[0]
@@ -653,6 +657,187 @@ def _render_rotation(path, target, arr, mids, alt, bvec, blen, per, sched, meas,
         for j in range(len(sched)):
             frame_night(j, n - 1)
             for _ in range(max(1, fps // 2)):
+                writer.grab_frame()
+        for _ in range(2 * fps):
+            writer.grab_frame()
+    plt.close(fig)
+    print(f"  wrote {path}")
+
+
+# ---------------------------------------------------------------------------
+# Oblateness: an elliptical disk along the track, nights accumulating
+# ---------------------------------------------------------------------------
+def run_ellipse(campaign, cat, opts, out_dir: Path) -> dict:
+    """The target's `ellipse` (axis ratio q, major axis at pa_deg) against the
+    equal-area circular disk.  Along the night the projected baseline rotates
+    through ~90 deg of position angle, so the effective baseline
+    sqrt(b_maj^2 + (b_min/q)^2) differs from |B| by up to (q - 1): the
+    measurements deviate from the circular curve in a PA-dependent way.  The
+    Fisher matrix on (theta_major, q) with the orientation held fixed gives
+    sigma(q) per night and the nights to a 3 sigma detection of q - 1."""
+    from hbtsim.iact import pair_track, single_vis2_fn
+    from hbtsim.single import ellipse_vis
+    target = campaign.target
+    ell = target.ellipse
+    array = campaign.array
+    b = campaign.backends[0]
+    spec, det, pol = b.spectrograph, b.detector, b.polarization_mode
+    arr = Array(tuple(replace(s, detector=det) for s in array.stations), array.site)
+    t1, t2 = arr.stations[0].telescope, arr.stations[1].telescope
+    opt = campaign.option
+    block_minutes = float(opt("night.block_minutes", 5.0)); min_alt = float(opt("night.min_alt_deg", 30.0))
+    n_nights = int(opt("options.nights", 40)); n_sigma = float(opt("options.detection_sigma", 3.0))
+    rng = np.random.default_rng(int(opt("options.seed", 7)))
+    nbin_show = max(1, int(opt("options.display_bin_blocks", 6)))
+    lam, w = float(spec.channel_centers_nm[0]), float(spec.channel_widths_nm[0])
+    tgt = prepare_single(target, spec)
+    star = tgt.star
+    th_maj, q, pa = float(ell.theta_major_mas), float(ell.axis_ratio), float(ell.pa_deg)
+    mids, block_s, bvec, alt = _night(arr, target.dec_deg, block_minutes, min_alt)
+    blen = np.hypot(bvec[:, 0], bvec[:, 1])
+    pa_track = np.degrees(np.arctan2(bvec[:, 0], bvec[:, 1])) % 180.0
+    pupils = True
+
+    def v2_track(thm, qq):
+        fn = single_vis2_fn(lambda bb, l: ellipse_vis(bb, l, star, thm, qq, pa)[0], pupils)
+        return pair_track(arr, target.dec_deg, lam, fn, block_minutes=block_minutes, min_alt_deg=min_alt).vis2[0]
+    v2_ell = v2_track(th_maj, q)
+    th_eq = th_maj / np.sqrt(q)                                 # equal-area circular disk
+    v2_circ = v2_track(th_eq, 1.0)
+    bud = _budget(tgt, lam, w, block_s, t1, t2, det, pol, spec.throughput)
+    sig = bud["sigma_v2"]
+    # Fisher matrix on (theta_major, q), PA fixed
+    d_th = 0.01 * th_maj; d_q = 0.01
+    g_th = (v2_track(th_maj + d_th, q) - v2_track(th_maj - d_th, q)) / (2 * d_th)
+    g_q = (v2_track(th_maj, q + d_q) - v2_track(th_maj, q - d_q)) / (2 * d_q)
+    F = np.array([[np.sum(g_th * g_th), np.sum(g_th * g_q)], [np.sum(g_q * g_th), np.sum(g_q * g_q)]]) / sig**2
+    cov = np.linalg.inv(F)
+    sig_q_night, sig_th_night = np.sqrt(cov[1, 1]), np.sqrt(cov[0, 0])
+    sig_q_known = 1.0 / np.sqrt(F[1, 1])                        # if theta were known
+    nights_detect = (n_sigma * sig_q_night / (q - 1.0)) ** 2
+    print(f"=== {target.name}: ellipse theta_major {th_maj:.4f} mas, axis ratio {q:.3f} at PA {pa:.0f} deg "
+          f"(equal-area theta {th_eq:.4f}), {b.name} ===")
+    print(f"  {mids.size} blocks of {block_minutes:g} min, B {blen.min():.0f}-{blen.max():.0f} m, PA of the baseline "
+          f"{pa_track.min():.0f}-{pa_track.max():.0f} deg; |V|^2 ellipse {v2_ell.min():.2g}-{v2_ell.max():.2g}, "
+          f"max |ellipse - circle| {np.abs(v2_ell - v2_circ).max():.3g} (sigma per block {sig:.3g})")
+    print(f"  one night: sigma(q) = {sig_q_night:.4f} (theta free; {sig_q_known:.4f} with theta known), "
+          f"sigma(theta_major)/theta = {sig_th_night / th_maj:.3f}; correlation {cov[0, 1] / (sig_q_night * sig_th_night):+.2f}")
+    print(f"  q - 1 = {q - 1:.3f} at {n_sigma:g} sigma after {nights_detect:.0f} nights "
+          f"({n_nights} simulated: {(q - 1) / (sig_q_night / np.sqrt(n_nights)):.1f} sigma)")
+    meas = [v2_ell + rng.normal(0.0, sig, size=v2_ell.size) for _ in range(n_nights)]
+    sig_q = sig_q_night / np.sqrt(np.arange(1, n_nights + 1))
+    q_est = [float(q + rng.normal(0.0, s)) for s in sig_q]
+    out = {"target": target.name, "backend": b.name, "theta_major_mas": th_maj, "axis_ratio": q, "pa_deg": pa,
+           "theta_equal_area_mas": th_eq, "n_blocks": int(mids.size), "baseline_m": blen.tolist(),
+           "baseline_pa_deg": pa_track.tolist(), "vis2_ellipse": v2_ell.tolist(), "vis2_circle": v2_circ.tolist(),
+           "sigma_vis2": sig, "sigma_q_night": float(sig_q_night), "sigma_q_night_theta_known": float(sig_q_known),
+           "sigma_theta_major_frac_night": float(sig_th_night / th_maj), "nights_to_detect": float(nights_detect),
+           "n_nights": n_nights, "sigma_q": sig_q.tolist()}
+    if opts.figures:
+        path = out_dir / f"{campaign.name}.mp4"
+        _render_ellipse(path, target, b, arr, mids, alt, bvec, blen, pa_track, v2_ell, v2_circ, meas, sig, th_maj, q, pa,
+                        th_eq, lam, sig_q, q_est, n_sigma, nbin_show, star, pupils,
+                        fps=int(opt("options.fps", 12)), dpi=int(opt("options.dpi", 110)))
+        out["movie"] = str(path)
+    return out
+
+
+def _render_ellipse(path, target, backend, arr, mids, alt, bvec, blen, pa_track, v2_ell, v2_circ, meas, sig, th_maj, q,
+                    pa, th_eq, lam, sig_q, q_est, n_sigma, nbin_show, star, pupils, fps=12, dpi=110):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FFMpegWriter
+    from matplotlib.patches import Ellipse as MplEllipse
+
+    n = mids.size; n_nights = len(meas)
+    fig = plt.figure(figsize=(14, 5.2))
+    gs = fig.add_gridspec(1, 3, width_ratios=[1.0, 1.6, 1.1], wspace=0.32, left=0.05, right=0.985, bottom=0.14, top=0.86)
+    ax_uv, ax_v, ax_q = (fig.add_subplot(gs[0, k]) for k in range(3))
+    fig.suptitle(f"{target.name}: is it oblate?  axis ratio {q:.3f}, major axis at PA {pa:.0f}°, {backend.name}", fontsize=11)
+
+    lim = 1.15 * np.abs(bvec).max()
+    ax_uv.plot(bvec[:, 0], bvec[:, 1], color="0.8", lw=1); ax_uv.plot(-bvec[:, 0], -bvec[:, 1], color="0.8", lw=1)
+    # the star's outline (exaggerated x10 for the eye) at the origin, major axis at pa (east of north)
+    q_show = 1.0 + 10.0 * (q - 1.0)                              # flattening exaggerated x10 for the eye
+    ex = MplEllipse((0, 0), width=0.45 * lim / q_show, height=0.45 * lim, angle=-pa, fill=False, color="tab:orange", lw=1.5)
+    ax_uv.add_patch(ex)
+    ax_uv.text(0, -0.3 * lim, "star outline (flattening ×10)", ha="center", fontsize=7, color="tab:orange")
+    uv_pt, = ax_uv.plot([], [], "o", color="tab:blue", ms=7)
+    ax_uv.set_xlim(-lim, lim); ax_uv.set_ylim(-lim, lim); ax_uv.set_aspect("equal")
+    ax_uv.set_xlabel("u [m] (east)"); ax_uv.set_ylabel("v [m] (north)")
+    ax_uv.set_title("projected baseline sweeps the position angle", fontsize=9)
+    uv_txt = ax_uv.text(0.03, 0.97, "", transform=ax_uv.transAxes, va="top", fontsize=9)
+
+    order = np.argsort(blen)
+    B_grid = np.linspace(0.6 * blen.min(), 1.1 * blen.max(), 300)
+    from hbtsim.single import single_star_vis2
+    tgt_c = replace(target, theta_ld_mas=th_eq / target.star.radius_scale)
+    curve_c = np.array([float(single_star_vis2(tgt_c, float(bb), lam, (arr.stations[0].telescope.diameter_m,
+                                                                      arr.stations[1].telescope.diameter_m))[0, 0]) for bb in B_grid])
+    ax_v.plot(B_grid, curve_c, color="k", lw=1.5, label=f"circular disk, θ = {th_eq:.3f} mas")
+    ax_v.plot(blen[order], v2_ell[order], color="tab:orange", lw=1.5, label="oblate disk along this track")
+    pts_sc = ax_v.scatter([], [], c=[], cmap="twilight", vmin=0, vmax=180, s=28, zorder=5)
+    err_containers = []
+    sig_bin = sig / np.sqrt(nbin_show)
+    ax_v.set_xlabel("projected baseline [m]"); ax_v.set_ylabel(r"$|V|^2$")
+    ax_v.set_ylim(-1.5 * sig_bin, max(0.05, 1.25 * curve_c[B_grid >= 0.9 * blen.min()].max())); ax_v.set_xlim(B_grid[0], B_grid[-1])
+    ax_v.legend(fontsize=8, loc="upper right")
+    cb = fig.colorbar(pts_sc, ax=ax_v, pad=0.01, fraction=0.04); cb.set_label("baseline PA [deg]", fontsize=8)
+    v_txt = ax_v.text(0.03, 0.97, "", transform=ax_v.transAxes, va="top", fontsize=9)
+    nb_full = n // nbin_show + (1 if n % nbin_show else 0)
+    bin_slices = [slice(i * nbin_show, min((i + 1) * nbin_show, n)) for i in range(nb_full)]
+
+    nights_ax = np.arange(1, n_nights + 1)
+    ax_q.plot(nights_ax, (q - 1) / sig_q, color="tab:blue", lw=1.5)
+    ax_q.axhline(n_sigma, color="tab:red", ls=":", lw=0.9, label=f"{n_sigma:g}σ")
+    q_pt, = ax_q.plot([], [], "o", color="tab:blue", ms=7)
+    ax_q.set_xlabel("nights"); ax_q.set_ylabel("(q − 1) / σ(q)"); ax_q.set_xlim(0, n_nights + 1)
+    ax_q.set_ylim(0, max(n_sigma * 1.3, 1.1 * (q - 1) / sig_q[-1]))
+    ax_q.set_title("significance of the oblateness (θ marginalized, PA known)", fontsize=9)
+    ax_q.legend(fontsize=8, loc="upper left")
+    q_txt = ax_q.text(0.97, 0.05, "", transform=ax_q.transAxes, ha="right", va="bottom", fontsize=9)
+
+    def draw(j, k):
+        uv_pt.set_data([bvec[k, 0]], [bvec[k, 1]])
+        uv_txt.set_text(f"night {j + 1}/{n_nights}\nH = {mids[k]:+.2f} h, alt {alt[k]:.0f}°\nB = {blen[k]:.0f} m at PA {pa_track[k]:.0f}°")
+        for ec in err_containers:
+            ec.remove()
+        err_containers.clear()
+        kmax = k + 1
+        xs, ys, es, cs = [], [], [], []
+        for sl in bin_slices:
+            if sl.start >= kmax:
+                break
+            sl2 = slice(sl.start, min(sl.stop, kmax))
+            m = np.mean([mm[sl2] for mm in meas[:j + 1]], axis=0) if j > 0 else meas[0][sl2]
+            xs.append(blen[sl2].mean()); ys.append(m.mean()); cs.append(pa_track[sl2].mean())
+            es.append(sig / np.sqrt((j + 1) * (sl2.stop - sl2.start)))
+        pts_sc.set_offsets(np.c_[xs, ys]); pts_sc.set_array(np.array(cs))
+        err_containers.append(ax_v.errorbar(xs, ys, yerr=es, fmt="none", ecolor="0.4", capsize=2, lw=0.8, zorder=4))
+        v_txt.set_text(f"{j + 1} night(s) averaged" + (f", block {k + 1}/{n}" if k < n - 1 else "")
+                       + f"\nq = {q_est[j]:.4f} ± {sig_q[j]:.4f}")
+        if k == n - 1:
+            q_pt.set_data([j + 1], [(q - 1) / sig_q[j]])
+            q_txt.set_text(f"after {j + 1} nights: {(q - 1) / sig_q[j]:.1f}σ")
+
+    writer = FFMpegWriter(fps=fps, metadata={"title": f"hbtsim {target.name} oblateness"}) if shutil.which("ffmpeg") else None
+    step = max(1, n // 40)
+    if writer is None:
+        frames_dir = path.with_suffix(""); frames_dir.mkdir(exist_ok=True); f = 0
+        for k in list(range(0, n, step)) + [n - 1]:
+            draw(0, k); fig.savefig(frames_dir / f"frame_{f:04d}.png", dpi=dpi); f += 1
+        for j in range(1, n_nights):
+            draw(j, n - 1); fig.savefig(frames_dir / f"frame_{f:04d}.png", dpi=dpi); f += 1
+        print(f"  ffmpeg not found: {f} PNG frames in {frames_dir}"); plt.close(fig); return
+    with writer.saving(fig, str(path), dpi=dpi):
+        for k in list(range(0, n, step)) + [n - 1]:
+            draw(0, k); writer.grab_frame()
+        for _ in range(fps):
+            writer.grab_frame()
+        for j in range(1, n_nights):
+            draw(j, n - 1)
+            for _ in range(max(1, fps // 3)):
                 writer.grab_frame()
         for _ in range(2 * fps):
             writer.grab_frame()

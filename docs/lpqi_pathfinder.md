@@ -266,6 +266,22 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
   detection in Hα and the null and sidelobe sampled at 2σ and ~1σ: most of
   the precision and the shape test. `options.schedule` lists the backend for
   every night; without it the backends rotate.
+- **δ Ori Aa1, is it oblate?** (`movie_delori_lpqi_oblateness`, Hα on the MPD,
+  40 nights): the target now carries an `ellipse` (axis ratio 1.03 from
+  v sin i = 114 km/s on R = 13.1 R☉, M = 17.8 M☉; major axis at an assumed
+  PA of 0°, the spin axis's sky orientation being unknown). The movie colours
+  each measurement by the baseline's position angle and compares the oblate
+  disk along the track with the equal-area circular disk; the third panel is
+  the significance of q − 1 with θ marginalized and the orientation held
+  fixed. The answer is negative: the NOT–TNG track sweeps only 15°–53° in
+  position angle (not the 90° a longer track would give), the oblate and
+  circular curves differ by at most 0.01 in |V|² against a per-block σ of
+  0.19, and θ and q are 87 % correlated, so σ(q) = 0.45 per night and a 3σ
+  detection of a 3 % flattening would take ~2000 nights (0.4σ after 40). The
+  Pathfinder measures a mean diameter; oblateness needs either a second
+  baseline at a different position angle (the five-telescope network) or the
+  spectrograph's multiplexing. The tidal distortion by the 5.73 d companion,
+  of similar size and rotating with orbital phase, is not modelled.
 - **β Cep, the pulsating diameter** (190 frames): act one is the same night with
   θ(t) breathing by 1 % on the 0.19048 d period (amplitude assumed from the
   radial-velocity curve); act two folds 60 nights on pulsation phase. The honest
