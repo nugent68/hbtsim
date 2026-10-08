@@ -190,4 +190,8 @@ def test_nightmovie_binary_runner_numbers(tmp_path):
     assert g["a68_best_island_mas"][0] >= g["a68_mas"][0] and g["a68_best_island_mas"][1] <= g["a68_mas"][1]
     assert g["n_islands95"] >= 1 and g["n_blocks"] == res["n_blocks"] * 3   # no eclipse night in this plan
     assert abs(g["distance_best_pc"] * g["scale_best"] - res["distance_pc"]) < 1e-6
+    cum = res["cumulative_fit"]                                            # the distance after 1, 2, 3 nights
+    assert len(cum) == 3 and all(c["nights"] == i + 1 for i, c in enumerate(cum))
+    assert cum[-1]["distance_best_pc"] == pytest.approx(g["distance_best_pc"]) and cum[-1]["n_islands95"] == g["n_islands95"]
+    assert all(c["distance68_pc"][0] <= c["distance_best_pc"] <= c["distance68_pc"][1] for c in cum)
     assert "movie" not in res

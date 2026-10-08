@@ -27,13 +27,35 @@
     "night_step_days": 3.6417,
     "third_light_fraction": 0.07,
     "display_bin_blocks": 3,
-    "fit_step_mas": 0.005
+    "fit_step_mas": 0.005,
+    "reference_distances": [
+      {
+        "label": "Gaia DR3, B + C mean (error inflated)",
+        "pc": 378.0,
+        "lo_pc": 355.0,
+        "hi_pc": 401.0
+      },
+      {
+        "label": "Gaia DR3, B alone",
+        "pc": 359.0
+      },
+      {
+        "label": "Gaia DR3, C alone",
+        "pc": 384.0
+      },
+      {
+        "label": "Hipparcos (A, unreliable)",
+        "pc": 714.0,
+        "lo_pc": 617.0,
+        "hi_pc": 847.0
+      }
+    ]
   },
   "outputs": {
     "figures": true
   },
   "notes": [
-    "The best northern binary for the Pathfinder's geometric-distance measurement: V 2.8, separation up to 1.9 mas (several fringes per night), both stars unresolved at 530 m, and a distance in dispute (Hipparcos 714 pc vs the eclipsing orbit's 412 pc).",
+    "The best northern binary for the Pathfinder's geometric-distance measurement: V 2.8, separation up to 2.1 mas (several fringes per night), both stars unresolved at 530 m, and a distance known only through the wide companions' Gaia DR3 parallaxes (B 359 +/- 6 pc and C 384 pc, 3.4 sigma apart; realistic 378 +/- 23 pc); Hipparcos's 714 pc for A is set aside.",
     "Eight nights every 3.64 d (P/8) step the eccentric orbit by 0.125 in mean anomaly: separations 0.2-1.9 mas, no eclipses (i 63 deg).",
     "One red continuum filter (650 nm, proposed) for all nights: the least-resolved disks, the best fringe contrast and the 35 ps MPD, without sitting in H-alpha where the O9 III wind may alter the flux ratio. Bluer filters and red/blue mixes were computed to be worse on every parameter.",
     "Third light 0.07 from the tertiary Ab at 155 mas. node_pa_deg 0 assumed. The closing act fits all nights for the orbit's scale and node angle."

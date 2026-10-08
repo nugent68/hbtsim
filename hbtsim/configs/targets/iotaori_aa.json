@@ -20,7 +20,7 @@
   },
   "period_days": 29.13376,
   "inclination_deg": 62.86,
-  "distance_pc": 412.0,
+  "distance_pc": 378.0,
   "semimajor_au": 0.61535,
   "eccentricity": 0.7452,
   "arg_periastron_deg": 122.15,
@@ -34,12 +34,13 @@
   "dec_deg": -5.9099,
   "ra_hours": 5.5906,
   "sources": [
-    "Wikipedia infobox (read 2026-10-08), citing the BRITE + spectroscopy analysis of the eclipsing orbit (Pablo et al. 2017, MNRAS 467, 2494): P 29.13376 d, e 0.7452 (+0.0010/-0.0014), i 62.86 (+0.17/-0.14) deg, omega 122.15 +/- 0.11 deg, a 132.32 (+1.01/-0.96) Rsun; masses 23.18 (+0.57/-0.53) and 13.44 +/- 0.30 Msun; radii 9.10 (+0.12/-0.10) and 4.94 (+0.16/-0.23) Rsun; T_eff 31 000 K and 18 319 (+531/-758) K; distance 412 (+14/-13) pc",
-    "van Leeuwen 2007 (Hipparcos): parallax 1.40 +/- 0.22 mas = 714 (+140/-100) pc -- inconsistent with the orbit's 412 pc by a factor 1.7; no Gaia parallax (V 2.77)",
-    "Tertiary Ab (7.77 Msun, B2 subgiant) at 155 mas by speckle interferometry; iota Ori B (V 7) at 11 arcsec"
+    "Pablo et al. 2017, MNRAS 467, 2494 (BRITE heartbeat analysis; quoted via the Wikipedia infobox read 2026-10-08): P 29.13376 d, e 0.7452 (+0.0010/-0.0014), i 62.86 (+0.17/-0.14) deg, omega 122.15 +/- 0.11 deg, a 132.32 (+1.01/-0.96) Rsun; masses 23.18 (+0.57/-0.53) and 13.44 +/- 0.30 Msun; radii 9.10 (+0.12/-0.10) and 4.94 (+0.16/-0.23) Rsun; T_eff 31 000 K and 18 319 (+531/-758) K. The paper derives NO distance (it mentions granted NPOI time to resolve the pair).",
+    "Gaia DR3 parallaxes of the wide companions, iota Ori A having none: B (V2451 Ori, B8 III, V 7.0, 11 arcsec) 2.787 +/- 0.048 mas = 359 +/- 6 pc, C (A0, 49 arcsec) 2.606 +/- 0.024 mas = 384 pc; they differ by 0.18 +/- 0.05 mas (3.4 sigma, ~25 pc, far more than any physical depth), B sits in the glare of a V 2.8 star, and bright-star DR3 errors are underestimated by ~1.3x with a few-hundredths-of-a-mas zero point. Inverse-variance mean 2.64 mas = 378 pc with the error inflated for the reduced chi^2 of ~11: +/- 20-25 pc (5-7 %). Maiz Apellaniz & Barba 2020 (A&A 636, A28) quoted 412 (+14/-13) pc from B's DR2 parallax alone.",
+    "van Leeuwen 2007 (Hipparcos): parallax of iota Ori A 1.40 +/- 0.22 mas = 714 (+140/-100) pc -- probably corrupted by A's multiplicity, set aside.",
+    "Tertiary Ab (B2: IV:, ~7.8 Msun) at 155 mas, a ~ 70 AU, P ~ 87 yr (Maiz Apellaniz & Barba 2020; speckle); iota Ori B (V 7) at 11 arcsec"
   ],
   "notes": [
-    "a = 132.32 Rsun = 0.6153 AU; at 412 pc that is 1.494 mas with the stars 0.205 and 0.111 mas across, separations 0.18-1.9 mas around the eccentric orbit (fringe periods 70-900 m at 650 nm). The fringe spacing measures a in mas; against a in AU from the orbit that is a geometric distance which decides between 412 and 714 pc in a night.",
+    "a = 132.32 Rsun = 0.6153 AU; at 378 pc that is 1.628 mas with the stars 0.224 and 0.122 mas across, separations 0.2-2.1 mas around the eccentric orbit (fringe periods 65-800 m at 650 nm). The fringe spacing measures a in mas; against a in AU from the spectroscopic orbit that is the first direct distance of the pair itself, with no appeal to the companions' parallaxes.",
     "Anchor V 2.85 = the Aa1 + Aa2 light (system V 2.77 less the tertiary): Ab at 155 mas is inside any field stop and is taken as 7 % third light (campaign option third_light_fraction 0.07, from a B2 IV against O9 III + B0.8 III); B at 11 arcsec is excluded.",
     "The O9 III primary has a wind and the pair is a colliding-wind X-ray binary: the fringe should be measured in red continuum (650 nm) rather than in H-alpha.",
     "node_pa_deg 0 is ASSUMED (unknown). Claret & Bloemen 2011 Spica law for both components; NewEra does not cover these temperatures.",
@@ -47,15 +48,15 @@
   ],
   "assumptions": [
     "node_pa_deg (unknown)",
-    "distance_pc (412 pc from the orbit solution; Hipparcos says 714)",
+    "distance_pc (378 +/- 23 pc: the Gaia DR3 B+C mean with the error inflated for their 3.4 sigma disagreement; A has no Gaia parallax)",
     "third light from Ab (~7 %)",
-    "Wikipedia-quoted parameters not yet checked against Pablo et al. 2017"
+    "Wikipedia-quoted orbital parameters not yet checked against Pablo et al. 2017"
   ],
   "summary": {
     "short": "ι Ori Aa",
     "components": "O9 III + B0.8 III, 29.1 d, e 0.75",
     "eclipses": "none (i 63)",
     "newera": "blackbody",
-    "sources": "Pablo et al. 2017 (BRITE); Hipparcos"
+    "sources": "Pablo et al. 2017 (BRITE); Gaia DR3 of companions B and C"
   }
 }

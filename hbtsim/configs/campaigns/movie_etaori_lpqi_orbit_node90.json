@@ -27,7 +27,15 @@
     "night_step_days": 1.0,
     "third_light_fraction": 0.214,
     "display_bin_blocks": 3,
-    "fit_step_mas": 0.005
+    "fit_step_mas": 0.005,
+    "reference_distances": [
+      {
+        "label": "Hipparcos",
+        "pc": 300.0,
+        "lo_pc": 227.0,
+        "hi_pc": 441.0
+      }
+    ]
   },
   "outputs": {
     "figures": true

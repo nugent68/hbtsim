@@ -179,12 +179,13 @@ def test_iotaori_binary_target_and_red_filter():
     s = cat.load_target("iotaori_aa")
     assert s.period_days == pytest.approx(29.13376) and s.eccentricity == pytest.approx(0.7452)
     assert s.semimajor_au == pytest.approx(132.32 * 0.00465047, rel=1e-3)
-    assert s.angular_semimajor_mas == pytest.approx(1.494, abs=0.003)
-    assert 2 * s.angular_radius_mas(s.primary) == pytest.approx(0.205, abs=0.002)
-    assert 2 * s.angular_radius_mas(s.secondary) == pytest.approx(0.112, abs=0.002)
+    assert s.distance_pc == 378.0                       # Gaia DR3 B + C mean (A has no parallax)
+    assert s.angular_semimajor_mas == pytest.approx(1.628, abs=0.003)
+    assert 2 * s.angular_radius_mas(s.primary) == pytest.approx(0.224, abs=0.002)
+    assert 2 * s.angular_radius_mas(s.secondary) == pytest.approx(0.122, abs=0.002)
     import numpy as np
     rho = np.array([float(positions_at(s, p).rho) for p in np.linspace(0, 1, 200, endpoint=False)])
-    assert 0.15 < rho.min() < 0.25 and 1.8 < rho.max() < 2.0
+    assert 0.15 < rho.min() < 0.30 and 1.9 < rho.max() < 2.2
     assert not any(in_eclipse(s, positions_at(s, p)) for p in np.linspace(0, 1, 200, endpoint=False))
     f = cat.load_spectrograph("filter_lpqi_650_1nm")
     assert f.channel_centers_nm[0] == pytest.approx(650.0) and f.channel_widths_nm[0] == pytest.approx(1.0)
@@ -193,5 +194,7 @@ def test_iotaori_binary_target_and_red_filter():
     camp = cat.load_campaign("movie_iotaori_lpqi_orbit")
     assert camp.option("options.night_step_days") == pytest.approx(29.13376 / 8, abs=1e-3)
     assert camp.option("options.third_light_fraction") == pytest.approx(0.07) and camp.option("options.nights") == 8
+    refs = camp.option("options.reference_distances")
+    assert [r["pc"] for r in refs] == [378.0, 359.0, 384.0, 714.0] and "lo_pc" not in refs[1]
     raw = cat.raw("target", "iotaori_aa")
     assert any("Pablo" in a for a in raw["assumptions"]) and any("node_pa_deg" in a for a in raw["assumptions"])

@@ -317,19 +317,23 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
   per block) would need ~30 orbits. The unknown node angle matters: Ω = 45°
   (node along the NOT–TNG baseline) gives 3.7 %, Ω = 0, 90, 135° give
   8.5–8.9 %; the movie uses the assumed Ω = 0.
-  Those are local (Fisher) precisions. The movie closes with the global
-  fit (`options.global_fit`, four seconds): the χ² of every out-of-eclipse
-  block of every night over the orbit's angular scale (0.5–1.5 × the
-  assumed a, all angular sizes scaling with it) and the node-angle offset
-  (0–180°), the two unknowns of a spectroscopic pair seen with one
-  baseline. The χ² surface takes the left panel's place, the orbit panel
-  shows the family of orbits allowed at 68 % with the best fit in red and
-  the truth in grey, and `results.json` carries `global_fit`. For the
-  rendered realization the best fit is a = 0.673 mas (68 % in its island
-  0.579–0.724), d = 323 pc (300–375), with 3 separate 95 % islands, the
-  fringe aliases of the stripes. Over 20 noise realizations the truth lies
-  in the deepest island only a quarter of the time and the rms error of the
-  best-fit scale is 15 %, not 8.5 %.
+  Those are local (Fisher) precisions. The right panel therefore shows
+  the global fit instead (`options.global_fit`): the χ² of every
+  out-of-eclipse block of the nights so far over the orbit's angular scale
+  (0.5–1.5 × the assumed a, all angular sizes scaling with it) and the
+  node-angle offset (0–180°), the two unknowns of a spectroscopic pair seen
+  with one baseline, converted to a distance through a in AU. After each
+  night the deepest solution is drawn with its 68 % range and every other
+  solution surviving at 95 % (the fringe aliases) as a hollow marker, against
+  the model distance and the Hipparcos band (`options.reference_distances`).
+  The closing act puts the χ² map in the left panel and the family of orbits
+  allowed at 68 % in the middle, and `results.json` carries `global_fit` and
+  `cumulative_fit`. For the rendered realization the first night leaves the
+  distance unconstrained (200–600 pc), the second gives 405 pc with eight
+  alias solutions, and all eight nights give a = 0.673 mas (68 % in its
+  island 0.579–0.724), d = 323 pc (300–375) with 3 solutions left. Over 20
+  noise realizations the truth lies in the deepest island only a quarter of
+  the time and the rms error of the best-fit scale is 15 %, not 8.5 %.
   Two follow-up questions, answered the same way:
   - *A second orbit months later.* Nothing rotates: the uv track of a
     fixed declination is the same every night (only the transit time moves,
@@ -409,10 +413,19 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
   figure of merit (V ≲ 4, both stars unresolved at 530 m, comparable fluxes,
   separation 1–3 mas so the sweep crosses several fringes, a disputed
   distance) singled out Hatysa: O9 III + B0.8 III, P 29.13 d, e 0.745,
-  a = 132.3 R☉ from the BRITE eclipsing-orbit solution (Pablo et al. 2017),
-  which puts it at 412 pc while Hipparcos says 1.40 ± 0.22 mas = 714 pc;
-  Gaia has no parallax. At 412 pc a = 1.494 mas with the stars 0.205 and
-  0.111 mas across and separations of 0.2–1.9 mas around the orbit. It is
+  a = 132.3 R☉ from the BRITE eclipsing-orbit solution (Pablo et al. 2017,
+  which derives no distance). ι Ori A has no Gaia parallax. Its distance
+  rests on the wide companions: Gaia DR3 gives B (V 7.0, 11″) 2.787 ± 0.048
+  mas = 359 ± 6 pc and C (A0, 49″) 2.606 ± 0.024 mas = 384 pc, which
+  disagree by 3.4σ (25 pc, far more than any physical depth of the triple);
+  B sits in the glare of a V 2.8 star and bright-star DR3 errors run ~1.3×
+  underestimated, so the realistic value is the B + C mean, 2.64 mas =
+  378 pc, with the error inflated for the reduced χ² of ~11 to ±20–25 pc
+  (5–7 %). Maíz Apellániz & Barbá 2020 quoted 412 +14/−13 pc from B's DR2
+  parallax alone; Hipparcos's 1.40 ± 0.22 mas = 714 pc for A is probably
+  corrupted by the multiplicity. No one has measured the distance of the
+  pair itself. At 378 pc a = 1.628 mas with the stars 0.224 and 0.122 mas
+  across and separations of 0.2–2.1 mas around the orbit. It is
   1.7 mag brighter than η Ori (σ(|V|²) = 0.23 per 10-min block against
   0.89), and the eccentric orbit sampled every P/8 spreads the fringe
   spacing from 70 to 900 m, which is what kills the aliases. The other
@@ -433,14 +446,19 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
   movie uses a proposed 1 nm filter at 650 nm (`filter_lpqi_650_1nm`,
   backend `lpqi_mpd_650`), red continuum 6 nm blueward of Hα, for all
   nights. The movie: separations and fringe periods change night by night,
-  the best night detects its fringe at 4σ (η Ori: 1.5σ), and the closing
-  fit of all eight nights has a single 95 % island at the truth,
-  a = 1.494 mas with 68 % range 1.449–1.523 (±2.5 %), d = 412 pc; the
-  Fisher σ(d)/d is 1.5 % (fringe only 2.0 %). Over 20 noise realizations
+  the best night detects its fringe at 4σ (η Ori: 1.5σ), and the distance
+  panel converges against the Gaia B + C band, the B and C lines and the
+  Hipparcos band: 386 pc (344–434) with three alias solutions after night
+  one, 382 pc (367–398) with five after four, a single solution from night
+  six on, and after all eight a = 1.628 mas with 68 % range 1.595–1.660
+  (±2 %), d = 378 pc (371–386); the Fisher σ(d)/d is 1.6 % (fringe only
+  2.0 %). Over 20 noise realizations
   the rms scale error is 1.5 % with the truth in the deepest island 85 % of
-  the time. Hipparcos's 714 pc would give a fringe period 1.7 times longer
-  and is excluded in one night. Caveats: node angle assumed 0 (90° gives
-  0.9 %); third light 7 % from Ab at 155 mas; the infobox parameters should
+  the time. Hipparcos's 714 pc would give a fringe period 1.9 times longer
+  and is excluded in one night; the 359 and 384 pc of the two companions
+  differ by 7 % and are separated after four nights; the result is the
+  first direct distance of the pair, independent of the companions. Caveats: node angle assumed 0 (90° gives
+  ~1 %); third light 7 % from Ab at 155 mas; the infobox parameters should
   be checked against Pablo et al. 2017; the 650 nm filter is not in the
   confirmed LPQI set.
 

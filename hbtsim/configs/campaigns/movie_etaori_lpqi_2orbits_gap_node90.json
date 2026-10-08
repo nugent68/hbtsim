@@ -31,7 +31,15 @@
     "gap": {
       "after_night": 8,
       "days": 323
-    }
+    },
+    "reference_distances": [
+      {
+        "label": "Hipparcos",
+        "pc": 300.0,
+        "lo_pc": 227.0,
+        "hi_pc": 441.0
+      }
+    ]
   },
   "outputs": {
     "figures": true
