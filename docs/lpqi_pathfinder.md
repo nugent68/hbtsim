@@ -387,6 +387,21 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
   6.1–6.3 %. The alias that caught the one-orbit PA 90 fit at a node offset
   of 38° is gone; the surviving islands are the ones a second baseline
   direction would remove.
+- **Two orbits 323 days apart, node at PA 90** (`movie_etaori_lpqi_2orbits_gap_node90`,
+  `options.gap` {after_night 8, days 323}): 323 / 7.98763 = 40.44 orbits, so
+  the second eight nights sample the orbit half a step (0.0625 in phase)
+  from the first, the largest offset a whole-night gap can give, and the
+  season is six weeks earlier, still with the full window. This time the
+  offset pays. The second run has no eclipse nights (eight fringe nights at
+  ρ = 0.27 and 0.67 mas instead of six), and over 20 realizations the PA 90
+  gapped plan gives a 4.5 % rms scale error with 2.2 islands and the truth
+  in the deepest one 55 % of the time, against 6.4 %, 3.0 and 35 % for
+  sixteen consecutive nights (a 150-day gap, offset 0.029, sits between at
+  4.9 %). The PA 0 orientation did not gain from the offset because its
+  near-eclipse phases, separated North–South, are swept poorly by the
+  NOT–TNG track; with the pair East–West they are swept well. The rendered
+  realization's global fit is a = 0.709 mas (68 % 0.637–0.789), d = 306 pc,
+  node offset 3°, three islands.
 
 The movies are written to `output/campaigns/<campaign>/<campaign>.mp4`
 (PNG frames when ffmpeg is absent); `--no-figures` computes the numbers only.

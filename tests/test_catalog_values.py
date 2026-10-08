@@ -163,6 +163,8 @@ def test_etaori_binary_target():
         c2 = cat.load_campaign(nm)
         assert c2.option("options.nights") == 16 and c2.runner == "nightmovie"
     assert cat.load_campaign("movie_etaori_lpqi_2orbits_node90").target.node_pa_deg == 90.0
+    cg = cat.load_campaign("movie_etaori_lpqi_2orbits_gap_node90")
+    assert cg.option("options.gap") == {"after_night": 8, "days": 323} and cg.option("options.nights") == 16
     camp = cat.load_campaign("movie_etaori_lpqi_orbit")
     assert camp.runner == "nightmovie" and camp.option("options.third_light_fraction") == pytest.approx(0.214)
     assert len(camp.backends) == 1 and camp.backends[0].name.startswith("LPQI 1 nm H-alpha")

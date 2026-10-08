@@ -169,7 +169,7 @@ def test_nightmovie_binary_runner_numbers(tmp_path):
     cat0 = Catalog(env=False)
     d = cat0.raw("campaign", "movie_etaori_lpqi_orbit")
     d.update(name="tiny_orbit", night={"block_minutes": 60.0, "min_alt_deg": 30.0})
-    d["options"].update(nights=3, phase0=0.0, fit_step_mas=0.02)
+    d["options"].update(nights=3, phase0=0.0, fit_step_mas=0.02, gap={"after_night": 2, "days": 323})
     (tmp_path / "campaigns").mkdir()
     (tmp_path / "campaigns" / "tiny_orbit.json").write_text(json.dumps(d))
     cat = Catalog(paths=[tmp_path], env=False)
@@ -178,15 +178,16 @@ def test_nightmovie_binary_runner_numbers(tmp_path):
     assert abs(res["semimajor_mas"] - 0.724) < 0.002 and res["third_light_fraction"] == 0.214
     assert res["ab_mag_collected"] < res["ab_mag_pair"]                   # the companion adds light
     n1, n2, n3 = res["nights"]
-    assert n1["eclipse_fraction"] == 0.0 and n3["eclipse_fraction"] > 0.5  # phases 0, 0.125, 0.25
-    assert n1["best_fit_mas"] is not None and n3["best_fit_mas"] is None
+    assert (n1["day"], n2["day"], n3["day"]) == (0.0, 1.0, 325.0)         # the gap moves night 3 by 323 days
+    assert abs(n3["phase_mid"] - (325.0 / 7.98763) % 1.0) < 1e-6 and n3["eclipse_fraction"] == 0.0
+    assert n1["eclipse_fraction"] == 0.0 and n1["best_fit_mas"] is not None
     assert n1["region68_area_mas2"] > 0 and abs(abs(n1["truth_mas"][1]) - 0.724) < 0.01
     assert max(n2["vis2_true"]) - min(n2["vis2_true"]) > 0.2                # fringes swept by the track
     sig = [n["sigma_distance_frac_cumulative"] for n in res["nights"]]
-    assert sig[1] < sig[0] and sig[2] == sig[1]                            # the eclipse night adds nothing
+    assert sig[2] < sig[1] < sig[0]
     g = res["global_fit"]                                                  # the closing act's chi^2 over (scale, node)
     assert 0.5 <= g["scale_best"] <= 1.5 and g["a68_mas"][0] <= g["a_best_mas"] <= g["a68_mas"][1]
     assert g["a68_best_island_mas"][0] >= g["a68_mas"][0] and g["a68_best_island_mas"][1] <= g["a68_mas"][1]
-    assert g["n_islands95"] >= 1 and g["n_blocks"] == res["n_blocks"] * 2   # the eclipse night is left out
+    assert g["n_islands95"] >= 1 and g["n_blocks"] == res["n_blocks"] * 3   # no eclipse night in this plan
     assert abs(g["distance_best_pc"] * g["scale_best"] - res["distance_pc"]) < 1e-6
     assert "movie" not in res

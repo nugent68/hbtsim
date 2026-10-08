@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_etaori_lpqi_2orbits_gap_node90",
+  "label": "Movie: eta Ori Aa, two 8-night orbits 323 days apart, line of nodes rotated by 90 deg (H-alpha, MPD)",
+  "runner": "nightmovie",
+  "target": "etaori_ab_node90",
+  "instrument": {
+    "array": "lpqi_pathfinder"
+  },
+  "backends": [
+    "lpqi_mpd_halpha"
+  ],
+  "night": {
+    "block_minutes": 10.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "fps": 20,
+    "dpi": 110,
+    "seed": 11,
+    "nights": 16,
+    "phase0": 0.0,
+    "night_step_days": 1.0,
+    "third_light_fraction": 0.214,
+    "display_bin_blocks": 3,
+    "fit_step_mas": 0.005,
+    "gap": {
+      "after_night": 8,
+      "days": 323
+    }
+  },
+  "outputs": {
+    "figures": true
+  },
+  "notes": [
+    "The movie_etaori_lpqi_orbit_node90 plan twice, with a 323-day break between the two eight-night runs: 323 / 7.98763 = 40.44 orbits, so the second run samples the orbit half a step (0.0625 in phase) away from the first -- the largest offset a whole-night gap can give, and the only way to sample other phases with P so close to 8 days. Both runs assume the full hour-angle window (323 days later the season is six weeks earlier, still within October-March).",
+    "The question is whether the offset phases break the fringe-alias islands that the consecutive 16-night plan leaves.",
+    "The eclipse nights, the third light and the per-night fit are as in the PA 0 campaign; compare the two movies' fringe amplitudes and the final sigma(a)/a."
+  ]
+}

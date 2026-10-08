@@ -10,6 +10,7 @@ options:
   nights                 consecutive nights (default 8)
   phase0                 orbital phase at the middle of the first night (default 0.0)
   night_step_days        days between the nights' midpoints (default 1.0)
+  gap                    optional {after_night, days}: a break in the run (a second orbit a season later)
   third_light_fraction   fraction of the collected light from unresolved companions
                          (adds photons, dilutes the fringe by (1 - f)^2; default 0)
   display_bin_blocks     blocks per displayed |V|^2 point (default 3)
@@ -224,15 +225,17 @@ def run_binary(campaign, cat, opts, out_dir: Path) -> dict:
 
     nights = []
     phases_all, bvecs_all = [], []
+    gap = opt("options.gap")                                   # {"after_night": 8, "days": 323}: a break in the run
+    day_of = [j * step_days + (float(gap["days"]) if gap and j >= int(gap["after_night"]) else 0.0) for j in range(n_nights)]
     for j in range(n_nights):
-        ph_mid = (phase0 + j * step_days / P) % 1.0
+        ph_mid = (phase0 + day_of[j] / P) % 1.0
         phases = (ph_mid + (mids - mids.mean()) / 24.0 / P) % 1.0
         pos_track = [positions_at(system, float(ph)) for ph in phases]
         ecl = np.array([bool(in_eclipse(system, p)) for p in pos_track])
         v2_true = np.array([float(np.abs(np.asarray(spectral_vis(p, bvec[k:k + 1], [lam], system, grid))[0, 0]) ** 2)
                             for k, p in enumerate(pos_track)])
         v2_meas = v2_true + rng.normal(0.0, bud["sigma_v2"], size=v2_true.size)
-        night = dict(phase_mid=ph_mid, phases=phases, pos=pos_track, eclipse=ecl, v2_true=v2_true, v2_meas=v2_meas,
+        night = dict(phase_mid=ph_mid, day=day_of[j], phases=phases, pos=pos_track, eclipse=ecl, v2_true=v2_true, v2_meas=v2_meas,
                      rho_mid=float(pos_track[len(pos_track) // 2].rho),
                      pa_mid=float(pos_track[len(pos_track) // 2].position_angle_deg))
         if ecl.mean() < 0.5:
@@ -281,7 +284,7 @@ def run_binary(campaign, cat, opts, out_dir: Path) -> dict:
            "semimajor_mas": float(system.angular_semimajor_mas), "distance_pc": float(system.distance_pc),
            "third_light_fraction": f3, "sigma_vis2_pair": bud["sigma_v2"], "rate_cps": bud["rate_cps"],
            "ab_mag_pair": bud["mag_pair"], "ab_mag_collected": bud["mag_total"],
-           "nights": [{"phase_mid": n["phase_mid"], "rho_mid_mas": n["rho_mid"], "pa_mid_deg": n["pa_mid"],
+           "nights": [{"phase_mid": n["phase_mid"], "day": n["day"], "rho_mid_mas": n["rho_mid"], "pa_mid_deg": n["pa_mid"],
                        "eclipse_fraction": float(n["eclipse"].mean()),
                        "vis2_true": n["v2_true"].tolist(),
                        "best_fit_mas": (n["fit"].tolist() if "fit" in n else None),
@@ -380,7 +383,8 @@ def _render_binary(path, system, backend, arr, mids, alt, bvec, blen, nights, bu
         ang = np.arctan2(bvec[k, 1], bvec[k, 0])
         bline.set_data([-lim * np.cos(ang), lim * np.cos(ang)], [-lim * np.sin(ang), lim * np.sin(ang)])
         fr = lam * 1e-9 / max(float(pos.rho), 1e-3) / MAS
-        sky_txt.set_text(f"night {j + 1}, phase {nn['phases'][k]:.3f}\nH = {mids[k]:+.2f} h, alt {alt[k]:.0f}°\n"
+        day_lbl = f" (day {nn['day']:.0f})" if nn["day"] != j else ""
+        sky_txt.set_text(f"night {j + 1}{day_lbl}, phase {nn['phases'][k]:.3f}\nH = {mids[k]:+.2f} h, alt {alt[k]:.0f}°\n"
                          f"ρ = {float(pos.rho):.3f} mas, B = {blen[k]:.0f} m\nfringe λ/ρ = {fr:.0f} m"
                          + ("\nECLIPSE" if nn["eclipse"][k] else ""))
         model_line.set_data(mids[:k + 1], nn["v2_true"][:k + 1])
