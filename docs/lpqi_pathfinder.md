@@ -236,14 +236,16 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
 5-min block, with the MPD behind the 550 nm filter (whose first null at 1.22 λ/θ
 ≈ 430 m lies inside the night's 330–530 m sweep):
 
-- **δ Ori Aa1, one night** (89 frames): the projected NOT–TNG baseline on the
-  (u, v) plane with the first-null circle; the 30-min-binned |V|² measurements
-  walking along the disk curve from beyond the null back up the first lobe, with
-  the θ ± 5 % curves they discriminate; and the coincidence histogram's excess
-  over the accidentals, matched-filtered, in units of its shot noise — the g²
-  bump stays within the noise in a single night (expected +0.7σ), which is why
-  the diameter is a multi-night statistic (4.4 nights to 5 % at 550 nm, 1.4 in
-  Hα).
+- **δ Ori Aa1: one night, then twenty** (108 frames): act one is the night, one
+  frame per 5-min block — the projected NOT–TNG baseline on the (u, v) plane
+  with the first-null circle; the 30-min-binned |V|² measurements walking along
+  the disk curve from beyond the null back up the first lobe, with the θ ± 5 %
+  curves they discriminate; and the coincidence histogram's excess over the
+  accidentals, matched-filtered, in units of its shot noise. The g² bump stays
+  inside the noise after one night (+0.7σ expected). Act two adds the same
+  track night after night, one frame per night: the bins average down as
+  1/√n, the bump rises to +3σ after 20 nights (147 h on source), and the
+  diameter's error band narrows from 10 % to 2.3 %.
 - **β Cep, the pulsating diameter** (190 frames): act one is the same night with
   θ(t) breathing by 1 % on the 0.19048 d period (amplitude assumed from the
   radial-velocity curve); act two folds 60 nights on pulsation phase. The honest

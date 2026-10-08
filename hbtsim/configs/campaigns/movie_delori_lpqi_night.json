@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "campaign",
   "name": "movie_delori_lpqi_night",
-  "label": "Movie: one night of delta Ori Aa1 on the LPQI-Pathfinder, the diameter from the null crossing (550 nm, MPD)",
+  "label": "Movie: delta Ori Aa1 on the LPQI-Pathfinder, one night through the null and then 20 nights accumulated (550 nm, MPD)",
   "runner": "nightmovie",
   "target": "delori_aa",
   "instrument": {
@@ -30,13 +30,15 @@
       "bin_ps": 3.125,
       "lag_half_range_ps": 400.0
     },
-    "display_bin_blocks": 6
+    "display_bin_blocks": 6,
+    "nights": 20
   },
   "outputs": {
     "figures": true
   },
   "notes": [
     "550 nm filter: its first null (1.22 lambda/theta = 430 m) lies inside the night's 330-530 m sweep; in H-alpha the null sits at the far end of the track.",
-    "Three panels: the projected NOT-TNG baseline on the uv plane with the first-null circle; the measurements walking along |V|^2(B) through the null with their per-block error bars (model curves for theta and theta +/- 5 %); the coincidence histogram accumulating over the night."
+    "Three panels: the projected NOT-TNG baseline on the uv plane with the first-null circle; the measurements walking along |V|^2(B) through the null with their per-block error bars (model curves for theta and theta +/- 5 %); the coincidence histogram accumulating over the night.",
+    "Act two: 20 nights of the same track accumulate; the 30-min bins average down, the g2 bump rises out of the matched-filter noise and the diameter band narrows to ~2 %."
   ]
 }

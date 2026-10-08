@@ -12,6 +12,10 @@ options:
   histogram                     {bin_ps, lag_half_range_ps} of the coincidence panel, which shows the
                                 excess over the accidentals smoothed with the matched filter, in units
                                 of its shot noise, so the g2 bump rises out of the noise over the night
+  nights                        optional: a second act accumulates this many nights (each a new
+                                noise realization of the same track): the binned points average
+                                down, the g2 bump rises out of the matched-filter noise, and the
+                                diameter's error band narrows
   pulsation                     optional {period_days, amplitude_frac, phase0, fold_nights,
                                 phase_bins}: theta(t) = theta0 (1 + A sin(2 pi (t - t0)/P))
                                 breathes along the night, and a second act folds
@@ -192,6 +196,32 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
               f"phase-binned diameter has sigma/theta {last_sig:.4f} per bin "
               f"({'resolves' if last_sig < A / 2 else 'does not resolve'} the {100 * A:.1f} % breathing)")
 
+    multi = None
+    n_more = int(opt("options.nights", 0) or 0)
+    if n_more > 1 and not puls:
+        v2_nights = [v2_meas]
+        hist_tot = hist_blocks[-1].copy()
+        mf_nights = [mf_blocks[-1]]
+        th_est, th_sig = [], []
+        f_night = float(fisher_blocks.sum())
+        for j in range(1, n_more):
+            v2_nights.append(v2_true + rng.normal(0.0, bud["sigma_v2"], size=v2_true.size))
+            h = np.zeros_like(lags)
+            for v2 in v2_true:
+                expect = acc * (1.0 + bud["n_sig_unit"] * v2 / (bud["b1b2"] * block_s) * (kern / hbin))
+                h = h + rng.poisson(expect)
+            hist_tot = hist_tot + h
+            mf_nights.append(mf(hist_tot, (j + 1) * mids.size))
+        for j in range(n_more):
+            sig = 1.0 / np.sqrt(f_night * (j + 1))
+            th_sig.append(float(sig))
+            # the Fisher-weighted estimate from the nights so far (statistically faithful draw)
+            th_est.append(float(theta0 + rng.normal(0.0, sig)))
+        multi = dict(n_nights=n_more, v2_nights=np.array(v2_nights), mf_nights=mf_nights,
+                     theta_est=th_est, theta_sig=th_sig)
+        print(f"  {n_more} nights: sigma(theta)/theta {th_sig[-1] / theta0:.3f} "
+              f"({100 * th_sig[-1] / theta0:.1f} %); matched-filter bump {mf_nights[-1][int(np.argmin(np.abs(lags)))]:+.1f} sigma")
+
     out = {"target": target.name, "backend": b.name, "theta_ld_mas": theta0, "wavelength_nm": lam,
            "block_minutes": block_minutes, "n_blocks": int(mids.size), "baseline_m": blen.tolist(),
            "altitude_deg": alt.tolist(), "vis2_true": v2_true.tolist(), "vis2_measured": v2_meas.tolist(),
@@ -199,6 +229,9 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
            "tau_c_ps": bud["tau_c"] * 1e12, "sigma_pair_ps": bud["sigma_pair"] * 1e12,
            "readout_scale": bud["readout_scale"], "sigma_theta_night_frac": float(sig_theta_night / theta0),
            "nights_to_5pct": float(nights_5pct)}
+    if multi:
+        out["nights"] = {"n_nights": multi["n_nights"], "sigma_theta_frac": [x / theta0 for x in multi["theta_sig"]],
+                         "theta_est_mas": multi["theta_est"]}
     if fold:
         out["pulsation"] = {k: v for k, v in fold.items() if k != "per_night"}
         out["pulsation"]["final_sigma_theta_frac_per_bin"] = [float(x / theta0) for x in fold["per_night"][-1][1]]
@@ -207,13 +240,14 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
         path = out_dir / f"{campaign.name}.mp4"
         _render(path, target, b, arr, mids, alt, bvec, blen, v2_true, v2_meas, bud, B_grid, curves, alts,
                 null_m, lags, mf_blocks, mf_expect, theta0, theta_t, lam, fold, nbin_show,
-                fps=int(opt("options.fps", 12)), dpi=int(opt("options.dpi", 110)))
+                fps=int(opt("options.fps", 12)), dpi=int(opt("options.dpi", 110)), multi=multi)
         out["movie"] = str(path)
     return out
 
 
 def _render(path, target, backend, arr, mids, alt, bvec, blen, v2_true, v2_meas, bud, B_grid, curves, alts,
-            null_m, lags, mf_blocks, mf_expect, theta0, theta_t, lam, fold, nbin_show, fps=12, dpi=110):
+            null_m, lags, mf_blocks, mf_expect, theta0, theta_t, lam, fold, nbin_show, fps=12, dpi=110,
+            multi=None):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -221,6 +255,7 @@ def _render(path, target, backend, arr, mids, alt, bvec, blen, v2_true, v2_meas,
 
     n = mids.size
     n_fold = fold["n_nights"] if fold else 0
+    n_multi = multi["n_nights"] - 1 if multi else 0        # night 1 is act one
     fig = plt.figure(figsize=(14, 5.2))
     gs = fig.add_gridspec(1, 3, width_ratios=[1.0, 1.5, 1.2], wspace=0.32, left=0.05, right=0.985, bottom=0.14, top=0.86)
     ax_uv, ax_v, ax_h = (fig.add_subplot(gs[0, k]) for k in range(3))
@@ -260,7 +295,7 @@ def _render(path, target, backend, arr, mids, alt, bvec, blen, v2_true, v2_meas,
     # histogram panel
     lags_ps = lags * 1e12
     mf_line, = ax_h.plot(lags_ps, mf_blocks[0], color="0.3", lw=1.0)
-    ax_h.plot(lags_ps, mf_expect, color="tab:red", lw=1.2, ls="--", label="expected after the night")
+    exp_line, = ax_h.plot(lags_ps, mf_expect, color="tab:red", lw=1.2, ls="--", label="expected signal")
     ax_h.axhline(0, color="0.6", lw=0.8); ax_h.axhspan(-1, 1, color="0.9", zorder=0)
     ax_h.set_xlabel("lag τ [ps]"); ax_h.set_ylabel("excess coincidences / shot noise  [σ]")
     ax_h.set_ylim(min(-4, 1.1 * mf_blocks.min()), max(5, 1.25 * max(mf_expect.max(), mf_blocks.max())))
@@ -321,7 +356,37 @@ def _render(path, target, backend, arr, mids, alt, bvec, blen, v2_true, v2_meas,
         v_txt.set_text(f"act two: {j + 1} of {fold['n_nights']} nights folded\nσ(θ) per bin {100 * s_bin:.2f} % "
                        f"vs amplitude {100 * A:.1f} %\n(~{need:.0f} nights for σ = amplitude/3)")
 
-    frames = n + n_fold
+    band_lo, = ax_v.plot([], [], color="tab:blue", lw=0.9, alpha=0.7)
+    band_hi, = ax_v.plot([], [], color="tab:blue", lw=0.9, alpha=0.7)
+    nb_full = n // nbin_show + (1 if n % nbin_show else 0)
+    bin_slices = [slice(i * nbin_show, min((i + 1) * nbin_show, n)) for i in range(nb_full)]
+    bin_B = np.array([blen[sl].mean() for sl in bin_slices])
+    scale_v = 1.0  # placeholder to keep closures simple
+
+    def act3(j):
+        """Night j+1 (j >= 1) accumulated: averaged points, growing bump, narrowing theta band."""
+        nonlocal pts
+        nn = j + 1
+        v2n = multi["v2_nights"][:nn]
+        ys = np.array([v2n[:, sl].mean() for sl in bin_slices])
+        es = np.array([bud["sigma_v2"] / np.sqrt(nn * (sl.stop - sl.start)) for sl in bin_slices])
+        pts.remove()
+        pts = ax_v.errorbar(bin_B, ys, yerr=es, fmt="o", color="tab:blue", ms=5, capsize=2, lw=1)
+        th, sg = multi["theta_est"][j], multi["theta_sig"][j]
+        band_lo.set_data(B_grid, np.interp(B_grid * (th - sg) / theta0, B_grid, curves[0.0]))
+        band_hi.set_data(B_grid, np.interp(B_grid * (th + sg) / theta0, B_grid, curves[0.0]))
+        cur.set_data([], [])
+        v_txt.set_text(f"{nn} nights averaged ({nn * n} blocks)\nθ = {th:.4f} ± {sg:.4f} mas "
+                       f"({100 * sg / theta0:.1f} %); blue band: θ ± σ")
+        mf_line.set_ydata(multi["mf_nights"][j])
+        exp_line.set_ydata(mf_expect * np.sqrt(nn))          # the bump grows as sqrt(nights), the noise stays at 1 sigma
+        T = nn * n
+        h_txt.set_text(f"{nn} nights, {T * (mids[1] - mids[0]) if n > 1 else 0:.0f} h on source\n"
+                       f"bump at τ = 0: {multi['mf_nights'][j][i0]:+.1f} σ (expected {mf_expect[i0] * np.sqrt(nn):+.1f} σ)")
+        ax_h.set_ylim(min(-4, 1.1 * multi["mf_nights"][j].min()), max(5, 1.3 * mf_expect.max() * np.sqrt(nn)))
+        uv_txt.set_text(f"night {nn} of {multi['n_nights']}\nsame track each night")
+
+    frames = n + n_fold + n_multi
     writer = FFMpegWriter(fps=fps, metadata={"title": f"hbtsim {target.name}"}) if shutil.which("ffmpeg") else None
     if writer is None:
         frames_dir = path.with_suffix("")
@@ -329,6 +394,8 @@ def _render(path, target, backend, arr, mids, alt, bvec, blen, v2_true, v2_meas,
         for f in range(frames):
             if f < n:
                 pts = act1(f)
+            elif multi:
+                act3(f - n + 1)
             else:
                 act2(f - n)
             fig.savefig(frames_dir / f"frame_{f:04d}.png", dpi=dpi)
@@ -342,6 +409,13 @@ def _render(path, target, backend, arr, mids, alt, bvec, blen, v2_true, v2_meas,
                 writer.grab_frame()
                 if f == n - 1:
                     for _ in range(fps):          # hold the finished night
+                        writer.grab_frame()
+            elif multi:
+                act3(f - n + 1)
+                for _ in range(max(1, fps // 3)):          # a third of a second per night
+                    writer.grab_frame()
+                if f == frames - 1:
+                    for _ in range(2 * fps):
                         writer.grab_frame()
             else:
                 act2(f - n)

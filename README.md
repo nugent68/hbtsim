@@ -391,7 +391,7 @@ traced to its inputs. `suite_phase6` runs everything (`--jobs 4`).
 | `mc_sirius_b_eonsii` | montecarlo | Sirius B diameter Monte Carlo with the EON-SII pair (paper Table 2 cross-check) |
 | `mc_sirius_b_lpqi_pathfinder` | montecarlo | Sirius B diameter Monte Carlo on the LPQI-Pathfinder (NOT + TNG, 550 m, one 1 nm filter) |
 | `movie_betcep_lpqi_pulsation` | nightmovie | Movie: beta Cep on the LPQI-Pathfinder, the pulsating diameter (one night, then a season folded on the 4.57 h period; 550 nm, MPD) |
-| `movie_delori_lpqi_night` | nightmovie | Movie: one night of delta Ori Aa1 on the LPQI-Pathfinder, the diameter from the null crossing (550 nm, MPD) |
+| `movie_delori_lpqi_night` | nightmovie | Movie: delta Ori Aa1 on the LPQI-Pathfinder, one night through the null and then 20 nights accumulated (550 nm, MPD) |
 | `redclump_ii_dwarf` | scale | Red-clump scale precision (Kim & Kaiser comparison) with the 4800 K / log g 4.5 dwarf stand-in |
 | `redclump_ii_supergiant` | scale | Red-clump scale precision (Kim & Kaiser comparison) with the 5000 K / log g 0 supergiant stand-in |
 | `suite_phase6` | suite | Everything behind docs/three_telescope_feasibility.md and the paper tables (output/logs/run_*.sh) |
