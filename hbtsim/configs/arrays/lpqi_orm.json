@@ -15,43 +15,50 @@
     },
     {
       "name": "TNG",
-      "east_m": -298.3,
-      "north_m": -364.7,
+      "east_m": -387.2,
+      "north_m": -364.5,
       "up_m": -12.0,
       "telescope": "tng_3p58m",
       "detector": "lpqi_spad64_i2cass"
     },
     {
       "name": "GTC",
-      "east_m": -677.5,
-      "north_m": -74.5,
+      "east_m": -668.8,
+      "north_m": -68.0,
       "up_m": -115.0,
       "telescope": "gtc_10p4m",
       "detector": "lpqi_spad64_i2cass"
     },
     {
       "name": "WHT",
-      "east_m": 325.6,
-      "north_m": 375.8,
-      "up_m": -38.0,
+      "east_m": 335.8,
+      "north_m": 373.7,
+      "up_m": -50.0,
       "telescope": "wht_4p2m",
       "detector": "lpqi_spad64_i2cass"
     },
     {
       "name": "INT",
-      "east_m": 738.9,
-      "north_m": 547.1,
-      "up_m": 14.0,
+      "east_m": 725.7,
+      "north_m": 531.3,
+      "up_m": -46.0,
       "telescope": "int_2p54m",
       "detector": "lpqi_spad64_i2cass"
     }
   ],
   "sources": [
-    "lapalmaqi.es (project site, read 2026-10-06): LPQI-Pathfinder = NOT + TNG '550 metres apart'; extension to GTC, WHT, INT, baselines to 1.5 km",
-    "Wikipedia infoboxes (read 2026-10-06): NOT 28.75728 N -17.88508 E 2382 m; TNG 28.754 N -17.88814 E 2370 m; GTC 28.75661 N -17.89203 E 2267 m; WHT 28.76066 N -17.88174 E 2344 m; INT 28.7622 N -17.8775 E 2396 m"
+    "NOT technical details page (not.iac.es), GPS position 28 45 26.2 N, 17 53 06.3 W, 2382 m",
+    "Caporali & Barbieri, 'The astronomic and geodetic coordinates of the Telescopio Nazionale Galileo, Canary Island': WGS84 geodetic 28 45 14.4 N, 342 06 39.4 E (GPS, 1996-11-22, planimetric uncertainty ~5 m); the astronomic coordinates (28 45 28.3, 342 06 22.1) are the local-vertical values and are NOT used",
+    "gtc.iac.es: 'Latitude: 28 45 24 N, Longitude: 17 53 31 W, elevation about 2300 m'; altitude 2267 m from Wikipedia. NOTE: GTC FITS headers (LATITUDE +28:45:43.2, LONGITUD +17:52:39.5, HEIGHT 2348) carry the INT's position to within 6 m, not the GTC's, and were not used",
+    "ING whtcoord.html: 28 45 38.3 N, 17 52 53.9 W, 2332 m (ground floor, not the axis intersection), GPS 1993 (1994 ING Observers' Guide 1.2)",
+    "ING intcoord.html: 28 45 43.4 N, 17 52 39.5 W, 2336 m (ground floor)"
   ],
   "notes": [
-    "ENU relative to the NOT from the Wikipedia dome coordinates (arc-second precision): pairwise 447 m (WHT-INT) to 1547 m (GTC-INT, the project's '1.5 km'); NOT-TNG comes out 471 m against the published 550 m -- TO BE CONFIRMED.",
-    "The five-telescope network is the planned extension of the Pathfinder; every station carries the Pathfinder detector here."
+    "ENU relative to the NOT from the surveyed / published dome coordinates: NOT GPS, TNG geodetic survey (~5 m), WHT and INT ING GPS pages, GTC web page (arc-second). Pairwise 409 m (TNG-GTC) to 1518 m (GTC-INT, the project's '1.5 km'); NOT-TNG 532 m against the published 550 m.",
+    "up_m from the quoted altitudes (ground floor for WHT / INT, dome for the others): indicative only.",
+    "The five-telescope network is the planned extension of the Pathfinder; every station carries the Pathfinder's published detector here."
+  ],
+  "assumptions": [
+    "stations (GTC position at arc-second precision; up_m)"
   ]
 }

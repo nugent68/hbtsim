@@ -269,9 +269,9 @@ def test_cli_smoke(capsys):
 
 
 def test_pair_generator_with_two_telescopes(tmp_path):
-    arr = cat.load_array("lpqi_pathfinder", baseline_m=471.0)
+    arr = cat.load_array("lpqi_pathfinder", baseline_m=550.0)      # the project's rounded figure
     (_, _, b), = arr.pairs()
-    assert float((b**2).sum()) ** 0.5 == pytest.approx(471.0)
+    assert float((b**2).sum()) ** 0.5 == pytest.approx(550.0)
     assert arr.stations[1].telescope.name.startswith("Telescopio Nazionale")
     # telescope2 may also be given as an object
     keck = cat.load_telescope("keck_10m")
@@ -281,4 +281,4 @@ def test_pair_generator_with_two_telescopes(tmp_path):
     cfg = MCConfig.from_target(cat.load_target("sirius_b"), cat.load_array("lpqi_pathfinder"),
                                cat.load_spectrograph("filter_lpqi_500_1nm"))
     assert cfg.telescope.area_m2 == pytest.approx((arr.stations[0].telescope.area_m2 * arr.stations[1].telescope.area_m2) ** 0.5)
-    assert cfg.ground_baseline_m == pytest.approx(550.0) and "geometric mean" in cfg.telescope.name
+    assert cfg.ground_baseline_m == pytest.approx(531.8, abs=0.1) and "geometric mean" in cfg.telescope.name

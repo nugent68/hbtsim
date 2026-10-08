@@ -7,7 +7,7 @@
   "longitude_deg": -17.88508,
   "elevation_m": 2382.0,
   "sources": [
-    "Wikipedia infoboxes (read 2026-10-06): NOT 28.75728 N -17.88508 E 2382 m; TNG 28.754 N -17.88814 E 2370 m; GTC 28.75661 N -17.89203 E 2267 m; WHT 28.76066 N -17.88174 E 2344 m; INT 28.7622 N -17.8775 E 2396 m"
+    "NOT technical details page (not.iac.es), GPS position 28 45 26.2 N, 17 53 06.3 W, 2382 m"
   ],
   "notes": [
     "ENU origin of the LPQI arrays (arrays/lpqi_pathfinder, arrays/lpqi_orm); sites/orm is the MAGIC / LST-1 point of the same observatory."

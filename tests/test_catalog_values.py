@@ -95,13 +95,13 @@ def test_lpqi_pathfinder():
     """The LPQI-Pathfinder entries (docs/lpqi_pathfinder.md)."""
     pf = cat.load_array("lpqi_pathfinder")
     (_, _, b), = pf.pairs()
-    assert np.hypot(*b) == pytest.approx(550.0)                      # published NOT-TNG baseline
-    assert np.degrees(np.arctan2(b[0], b[1])) % 360 == pytest.approx(219.3, abs=0.1)
+    assert np.hypot(*b) == pytest.approx(531.8, abs=0.1)                # surveyed NOT-TNG baseline (project quotes 550 m)
+    assert np.degrees(np.arctan2(b[0], b[1])) % 360 == pytest.approx(226.7, abs=0.1)
     assert (pf.stations[0].telescope.diameter_m, pf.stations[1].telescope.diameter_m) == (2.56, 3.58)
     assert pf.site.latitude_deg == pytest.approx(28.75728)
     orm = cat.load_array("lpqi_orm")
     lengths = sorted(float(np.hypot(*b)) for _, _, b in orm.pairs())
-    assert lengths[0] == pytest.approx(447, abs=2) and lengths[-1] == pytest.approx(1547, abs=5)   # WHT-INT, GTC-INT
+    assert lengths[0] == pytest.approx(409, abs=2) and lengths[-1] == pytest.approx(1518, abs=5)   # TNG-GTC, GTC-INT
     assert {s.telescope.diameter_m for s in orm.stations} == {2.56, 3.58, 10.4, 4.2, 2.54}
     d = cat.load_detector("lpqi_spad64_i2cass")
     assert d.pde(550.0) == pytest.approx(0.026) and d.jitter_fwhm_ps == 500.0 and d.n_pixels == 25
@@ -122,4 +122,4 @@ def test_lpqi_pathfinder():
         assert cat.load_backend(f"lpqi_{key}").detector == d
         assert cat.load_backend(f"lpqi_nextgen_{key}").detector == n
         assert cat.load_backend(f"lpqi_mpd_{key}").detector == (mb if key == "425" else m)
-    assert "TO BE CONFIRMED" in " ".join(cat.raw("array", "lpqi_pathfinder")["notes"])
+    assert "surveyed" in " ".join(cat.raw("array", "lpqi_pathfinder")["notes"])        # Caporali & Barbieri + NOT GPS

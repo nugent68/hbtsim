@@ -158,7 +158,7 @@ def test_g2_array_track_mode(tmp_path):
     rows = res["rows"]
     assert len(rows) == 3 and all(r["pair"] == "NOT-TNG" for r in rows)
     for r in rows:
-        assert 300 < r["baseline_min_m"] <= r["baseline_max_m"] <= 550.0 + 1e-6
+        assert 300 < r["baseline_min_m"] <= r["baseline_max_m"] <= 531.8 + 1e-6
         assert 0 <= r["vis2_min"] <= r["vis2_max"] < 0.05           # resolved out at 550 m
         assert r["snr_night"] > 0 and r["nights_detection"] > 1 and r["n_blocks"] >= 2
     by = {r["backend"]: r for r in rows}

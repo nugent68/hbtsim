@@ -41,8 +41,17 @@ prints the provenance).
   procurement for the GTC.
 - lapalmaqi.es, IAC and IAA press releases (2026): telescopes, 550 m, 1.5 km,
   "50 µas", "160 µas", spring 2028.
-- Wikipedia infoboxes (read 2026-10-06) for the five telescopes' coordinates,
-  altitudes, apertures and collecting areas.
+- Telescope positions: NOT technical-details page (GPS: 28°45′26.2″ N,
+  17°53′06.3″ W, 2382 m; focal length 28.16 m, f/11); Caporali & Barbieri,
+  "The astronomic and geodetic coordinates of the Telescopio Nazionale Galileo,
+  Canary Island" (WGS84 geodetic 28°45′14.4″ N, 342°06′39.4″ E from a GPS
+  survey on 1996-11-22, ~5 m; the astronomic coordinates are the local-vertical
+  values and are not used); ING `whtcoord.html` (28°45′38.3″ N, 17°52′53.9″ W,
+  2332 m, GPS 1993) and `intcoord.html` (28°45′43.4″ N, 17°52′39.5″ W, 2336 m);
+  gtc.iac.es (28°45′24″ N, 17°53′31″ W, "about 2300 m"; 2267 m from
+  Wikipedia). GTC FITS headers carry LATITUDE +28:45:43.2, LONGITUD
+  +17:52:39.5, which is the INT's position to within 6 m, not the GTC's, and
+  were not used. Apertures and collecting areas from Wikipedia.
 - F. Prada (LPQI PI), email of 2026-10-07: the two Pathfinder detector cases
   (the next IMSE-LPQI 64×64 array with microlenses, and the MPD single-pixel
   back-up) and the filter set with a fifth filter at 425 nm.
@@ -53,8 +62,8 @@ prints the provenance).
 |  | value | source / status |
 |---|---|---|
 | site | Roque de los Muchachos, Nordic Optical Telescope (LPQI reference point): 28.7573°, -17.8851°, 2382 m | Wikipedia (NOT infobox) |
-| Pathfinder pair | NOT 2.56 m + TNG 3.58 m, B = 550 m at PA 219° | 550 m published (lapalmaqi.es); coordinates give 471 m — **to be confirmed** |
-| five-telescope network | NOT 2.56 m, TNG 3.58 m, GTC 10.4 m, WHT 4.2 m, INT 2.54 m; baselines 447–1547 m | Wikipedia coordinates, arc-second precision |
+| Pathfinder pair | NOT 2.56 m + TNG 3.58 m, B = 532 m at PA 227° | surveyed positions (NOT GPS; TNG geodetic survey, ~5 m); the project quotes 550 m |
+| five-telescope network | NOT 2.56 m, TNG 3.58 m, GTC 10.4 m, WHT 4.2 m, INT 2.54 m; baselines 409–1518 m | NOT, WHT, INT GPS pages; TNG survey; GTC web page (arc-second) |
 | telescope throughput | 0.3, 0.3 | hbtsim default (**assumed**) |
 | detector (published) | IMSE 64×64: PDE 0.026 (fill factor 3.5 % × PDP 75 %), 500 ps FWHM, dead 10 ns, dark 1.68 cps/pixel, 25 pixels, readout ≤ 6.7e+06 cps | Quintana et al. 2026, Sensors 26, 5757; timing = White Rabbit target (**assumed**), n_pixels **assumed** |
 | detector (next IMSE-LPQI 64×64) | PDE 0.50 flat 400–550 nm, 0.20 at 650 nm (microlenses); 500 ps FWHM, 4 pixels, dead 10 ns, dark 1.68 cps/pixel, readout ≤ 6.7e+06 cps | F. Prada 2026-10-07; PDE shape and timing **assumed** |
@@ -72,16 +81,18 @@ the same 6.7×10⁶ cps capture ceiling), and the **MPD single-pixel 50 µm SPAD
 back-up** (PDE 0.30, 35 ps FWHM above 470 nm but 250–300 ps at 400 nm, so the
 425 nm filter uses a 275 ps variant; dead time 55 ns, 50 cps dark, time-tag
 ceiling unknown and therefore not applied).
-The arrays' ENU positions come from arc-second Wikipedia coordinates (≈ 30 m
-per coordinate): they give NOT–TNG = 471 m against the project's 550 m, and
-GTC–INT = 1547 m, the project's "1.5 km". `arrays/lpqi_pathfinder` adopts the
-published 550 m along the coordinate-derived position angle (219°);
-`load_array("lpqi_pathfinder", baseline_m=471.0)` uses the coordinate length.
+The arrays' ENU positions come from the surveyed coordinates above (the NOT
+and TNG ends of the Pathfinder to GPS / 5 m precision; GTC at arc-second
+precision): NOT–TNG = 531.8 m at position angle 226.7°, 18 m short of the
+project's rounded "550 m" (`load_array("lpqi_pathfinder", baseline_m=550.0)`
+uses the published figure), and the five-telescope network spans 409 m
+(TNG–GTC) to 1518 m (GTC–INT), the project's "1.5 km". The earlier Wikipedia
+longitude of the TNG was 97 m too far east (NOT–TNG 471 m).
 
 ## What the Pathfinder does for hbtsim's targets
 
-**Resolution.** At B = 550 m and 500 nm the first null of a uniform disk sits
-at θ = 1.22 λ/B = 0.23 mas, so every star in the catalog is resolved out:
+**Resolution.** At B = 532 m and 500 nm the first null of a uniform disk sits
+at θ = 1.22 λ/B = 0.24 mas, so every star in the catalog is resolved out:
 the binary components (0.45–1.1 mas), Sirius A (6.0 mas) and Vega (3.3 mas)
 all sit many nulls beyond. The Pathfinder is built for 50–200 µas sources
 (white dwarfs, hot compact stars); for our binaries the one-night |V|² is
@@ -116,37 +127,37 @@ table (45 rows) is `output/campaigns/g2_binaries_lpqi_pathfinder/table.md`.
 
 | target | SED | filter | detector | B [m] | |V|² over the night | SNR/night | nights (3σ) |
 |---|---|---|---|---|---|---|---|
-| β Aur | NewEra | 550 nm | IMSE 64×64 | 314–550 | 2×10⁻⁵–2×10⁻³ | 1.4×10⁻³ | 4.7×10⁶ |
-| β Aur | NewEra | 550 nm | next IMSE (readout-limited) | 314–550 | 2×10⁻⁵–2×10⁻³ | 7.8×10⁻³ | 1.5×10⁵ |
-| β Aur | NewEra | 550 nm | MPD single pixel | 314–550 | 2×10⁻⁵–2×10⁻³ | 0.039 | 6.0×10³ |
-| β Aur | NewEra | Hα | MPD single pixel | 314–550 | 1×10⁻⁴–2×10⁻³ | 0.029 | 1.1×10⁴ |
-| β Aur | NewEra | 425 nm | MPD (275 ps) | 314–550 | 7×10⁻⁶–4×10⁻⁴ | 2.0×10⁻³ | 2.3×10⁶ |
-| Algol | NewEra (A) | 550 nm | IMSE 64×64 | 331–550 | 4×10⁻⁶–2×10⁻³ | 1.4×10⁻³ | 4.5×10⁶ |
-| Algol | NewEra (A) | 550 nm | next IMSE (readout-limited) | 331–550 | 4×10⁻⁶–2×10⁻³ | 0.010 | 8.4×10⁴ |
-| Algol | NewEra (A) | Hα | MPD single pixel | 331–550 | 8×10⁻⁶–3×10⁻³ | 0.052 | 3.4×10³ |
-| Spica | blackbody | Hα | IMSE 64×64 | 314–550 | 1×10⁻⁴–3×10⁻³ | 0.007 | 1.8×10⁵ |
-| Spica | blackbody | Hα | next IMSE (readout-limited) | 314–550 | 1×10⁻⁴–3×10⁻³ | 0.019 | 2.6×10⁴ |
-| Spica | blackbody | Hα | MPD single pixel | 314–550 | 1×10⁻⁴–3×10⁻³ | 0.14 | 452 |
-| Spica | blackbody | 550 nm | MPD single pixel | 314–550 | 2×10⁻⁵–3×10⁻³ | 0.11 | 728 |
+| β Aur | NewEra | 550 nm | IMSE 64×64 | 289–532 | 6×10⁻⁵–2×10⁻³ | 1.1×10⁻³ | 7.4×10⁶ |
+| β Aur | NewEra | 550 nm | next IMSE (readout-limited) | 289–532 | 6×10⁻⁵–2×10⁻³ | 6.2×10⁻³ | 2.4×10⁵ |
+| β Aur | NewEra | 550 nm | MPD single pixel | 289–532 | 6×10⁻⁵–2×10⁻³ | 0.031 | 9.4×10³ |
+| β Aur | NewEra | Hα | MPD single pixel | 289–532 | 3×10⁻⁵–3×10⁻³ | 0.045 | 4.4×10³ |
+| β Aur | NewEra | 425 nm | MPD (275 ps) | 289–532 | 1×10⁻⁵–2×10⁻⁴ | 1.6×10⁻³ | 3.4×10⁶ |
+| Algol | NewEra (A) | 550 nm | IMSE 64×64 | 300–532 | 4×10⁻⁵–2×10⁻³ | 1.5×10⁻³ | 4.2×10⁶ |
+| Algol | NewEra (A) | 550 nm | next IMSE (readout-limited) | 300–532 | 4×10⁻⁵–2×10⁻³ | 0.011 | 7.7×10⁴ |
+| Algol | NewEra (A) | Hα | MPD single pixel | 300–532 | 1×10⁻⁵–5×10⁻³ | 0.069 | 1.9×10³ |
+| Spica | blackbody | Hα | IMSE 64×64 | 289–531 | 4×10⁻⁴–3×10⁻³ | 0.009 | 1.1×10⁵ |
+| Spica | blackbody | Hα | next IMSE (readout-limited) | 289–531 | 4×10⁻⁴–3×10⁻³ | 0.024 | 1.5×10⁴ |
+| Spica | blackbody | Hα | MPD single pixel | 289–531 | 4×10⁻⁴–3×10⁻³ | 0.19 | 261 |
+| Spica | blackbody | 550 nm | MPD single pixel | 289–531 | 5×10⁻⁶–3×10⁻³ | 0.11 | 808 |
 
 Filter set (five filters, one per night, nights added): β Aur 6×10⁸ nights
-(IMSE) / 2×10⁷ (next IMSE) / 4×10⁵ + 2×10⁶ (MPD, the 425 nm night dominating);
-Algol 7×10⁷ / 2.5×10⁶ / 3×10⁴ + 5×10⁵; Spica 3×10⁶ / 1.3×10⁶ / 3.8×10³ + 8×10⁴.
-Every next-IMSE row is readout-limited (×0.1–0.3 at the 6.7×10⁶ cps capture
-ceiling); the published array never is, and the MPD has no ceiling in the
-model because none has been specified.
+(IMSE) / 2.3×10⁷ (next IMSE) / 3.4×10⁵ + 3.4×10⁶ (MPD, the 425 nm night
+dominating); Algol 4×10⁷ / 1.2×10⁶ / 2.3×10⁴ + 2×10⁵; Spica 2×10⁶ / 9×10⁵ /
+4.8×10³ + 3.9×10⁴. Every next-IMSE row is readout-limited (×0.1–0.3 at the
+6.7×10⁶ cps capture ceiling); the published array never is, and the MPD has no
+ceiling in the model because none has been specified.
 
 ### Sirius B on NOT + TNG (`hbtsim run mc_sirius_b_lpqi_pathfinder`)
 
 The Pathfinder's own use case: a 28.5 µas white dwarf (V = 8.44), 10 h at
 zenith angles 46°, 52.5°, 60° (Sirius culminates at 45.5° from the NOT), one
-500 nm / 1 nm filter, unpolarized, geometric-mean aperture √(A_NOT A_TNG).
+500 nm / 1 nm filter, unpolarized, geometric-mean aperture √(A_NOT A_TNG), projected baselines 488–531 m.
 
 | detector | pair σ_t | analytic σ(θ)/θ in 10 h | hours to 10 % | with PBS at the 2400 m optimum |
 |---|---|---|---|---|
-| IMSE 64×64 (published) | 300 ps | 1.8×10³ (no measurement) | 3.4×10⁹ | 2.6×10⁷ |
-| next IMSE 64×64 | 300 ps | 96 | 9.1×10⁶ | 6.9×10⁴ |
-| MPD single pixel | 21 ps | 41 | 1.7×10⁶ | 1.3×10⁴ |
+| IMSE 64×64 (published) | 300 ps | 1.9×10³ (no measurement) | 3.6×10⁹ | 2.5×10⁷ |
+| next IMSE 64×64 | 300 ps | 99 | 9.7×10⁶ | 6.8×10⁴ |
+| MPD single pixel | 21 ps | 42 | 1.8×10⁶ | 1.3×10⁴ |
 
 At V = 8.44 the rates are far below any ceiling, so here the sensor counts:
 the next IMSE array gains the full factor 19 in precision over the published
@@ -164,8 +175,10 @@ class of timing to approach it.
 1. The filter list is confirmed (Hα, Hβ, 500, 550, 425 nm; 1 nm; one per
    night); the exact central wavelengths, widths and the 0.9 throughput are
    still working values.
-2. The NOT–TNG baseline (550 m published vs 471 m from the dome coordinates)
-   and the station positions of the five-telescope network.
+2. The NOT–TNG baseline: 532 m from the two surveyed positions against the
+   project's "550 m"; the GTC position (arc-second web value only; its FITS
+   headers carry the INT's coordinates) and whether the WHT / INT ground-floor
+   points are the ones the fibre links terminate at.
 3. The published IMSE array: its PDE curve (2.6 % flat assumed), the
    time-stamp resolution reached with White Rabbit (500 ps target), the
    pixels the seeing disk covers (25), the cooled dark count rate.

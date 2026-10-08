@@ -6,8 +6,8 @@
   "site": "orm_not",
   "generator": {
     "type": "pair",
-    "baseline_m": 550.0,
-    "pa_deg": 219.28,
+    "baseline_m": 531.8,
+    "pa_deg": 226.73,
     "station_names": [
       "NOT",
       "TNG"
@@ -18,12 +18,12 @@
     "detector2": "lpqi_spad64_i2cass"
   },
   "sources": [
-    "lapalmaqi.es (project site, read 2026-10-06): LPQI-Pathfinder = NOT + TNG '550 metres apart'; extension to GTC, WHT, INT, baselines to 1.5 km",
-    "Wikipedia infoboxes (read 2026-10-06): NOT 28.75728 N -17.88508 E 2382 m; TNG 28.754 N -17.88814 E 2370 m; GTC 28.75661 N -17.89203 E 2267 m; WHT 28.76066 N -17.88174 E 2344 m; INT 28.7622 N -17.8775 E 2396 m"
+    "NOT technical details page (not.iac.es), GPS position 28 45 26.2 N, 17 53 06.3 W, 2382 m",
+    "Caporali & Barbieri, 'The astronomic and geodetic coordinates of the Telescopio Nazionale Galileo, Canary Island': WGS84 geodetic 28 45 14.4 N, 342 06 39.4 E (GPS, 1996-11-22, planimetric uncertainty ~5 m); the astronomic coordinates (28 45 28.3, 342 06 22.1) are the local-vertical values and are NOT used",
+    "lapalmaqi.es: the Pathfinder pair is quoted as '550 metres apart'"
   ],
   "notes": [
-    "Baseline 550 m as published by the project; the Wikipedia coordinates of the two domes give 471 m (arc-second precision, ~30 m per coordinate) -- TO BE CONFIRMED against the LPQI station file.",
-    "Position angle 219.3 deg (TNG south-west of the NOT) from the coordinates; load_array('lpqi_pathfinder', baseline_m=471.0) uses the coordinate-derived length instead.",
+    "Baseline 531.8 m at position angle 226.7 deg (TNG south-west of the NOT) from the two surveyed positions (NOT GPS; TNG WGS84 geodetic survey of Caporali & Barbieri, ~5 m): this supersedes the 471 m of the Wikipedia coordinates and is 18 m short of the project's rounded '550 m'. load_array('lpqi_pathfinder', baseline_m=550.0) uses the published figure.",
     "Unequal pair: the generator's telescope2 / detector2 give the TNG its own telescope; the photon budget uses sqrt(A1 A2)."
   ]
 }

@@ -159,9 +159,9 @@ def lpqi_parameters() -> str:
     rows += [("site", f"{pf.site.name}: {pf.site.latitude_deg:g}°, {pf.site.longitude_deg:g}°, {pf.site.elevation_m:g} m", "Wikipedia (NOT infobox)"),
              ("Pathfinder pair", f"{pf.stations[0].name} {pf.stations[0].telescope.diameter_m:g} m + {pf.stations[1].name} "
                                  f"{pf.stations[1].telescope.diameter_m:g} m, B = {np.hypot(*b):.0f} m at PA {pa:.0f}°",
-              "550 m published (lapalmaqi.es); coordinates give 471 m — **to be confirmed**"),
+              "surveyed positions (NOT GPS; TNG geodetic survey, ~5 m); the project quotes 550 m"),
              ("five-telescope network", ", ".join(f"{s.name} {s.telescope.diameter_m:g} m" for s in orm.stations)
-              + f"; baselines {min(lengths.values()):.0f}–{max(lengths.values()):.0f} m", "Wikipedia coordinates, arc-second precision"),
+              + f"; baselines {min(lengths.values()):.0f}–{max(lengths.values()):.0f} m", "NOT, WHT, INT GPS pages; TNG survey; GTC web page (arc-second)"),
              ("telescope throughput", ", ".join(f"{s.telescope.throughput:g}" for s in pf.stations), "hbtsim default (**assumed**)"),
              ("detector (published)", f"IMSE 64×64: PDE {d.pde(550.0):.3f} (fill factor 3.5 % × PDP 75 %), {d.jitter_fwhm_ps:.0f} ps FWHM, "
                                       f"dead {d.dead_time_ns:g} ns, dark {d.dark_cps_per_pixel:g} cps/pixel, "
