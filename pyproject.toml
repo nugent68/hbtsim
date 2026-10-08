@@ -1,6 +1,6 @@
 [project]
 name = "hbtsim"
-version = "0.2.1"
+version = "0.2.2"
 description = "Photon-counting intensity interferometry (Hanbury Brown-Twiss) of bright binary and single stars: visibilities, closure phases, photon budgets, campaigns"
 readme = "README.md"
 license = {file = "LICENSE"}
