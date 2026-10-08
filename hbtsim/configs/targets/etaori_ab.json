@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "etaori_ab",
+  "label": "eta Ori Aa (Aa1 + Aa2, B1 V + B3 V eclipsing pair, 7.988 d)",
+  "type": "binary",
+  "primary": {
+    "label": "eta Ori Aa1 (B1 V)",
+    "mass_msun": 10.87,
+    "radius_rsun": 6.477,
+    "teff_k": 26600.0,
+    "ld_table": "claret11_spica"
+  },
+  "secondary": {
+    "label": "eta Ori Aa2 (B3 V)",
+    "mass_msun": 10.54,
+    "radius_rsun": 4.79,
+    "teff_k": 25950.0,
+    "ld_table": "claret11_spica"
+  },
+  "period_days": 7.98763,
+  "inclination_deg": 87.62,
+  "distance_pc": 300.0,
+  "semimajor_au": 0.21715,
+  "eccentricity": 0.0,
+  "arg_periastron_deg": 0.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 4.24
+    }
+  ],
+  "node_pa_deg": 0.0,
+  "dec_deg": -2.397,
+  "ra_hours": 5.408,
+  "sources": [
+    "Wikipedia infobox (read 2026-10-08) and the papers it cites: P 7.98763(22) d, i 87.62 +/- 0.42 deg, e 0.0095 +/- 0.0010, omega 164 +/- 18 deg; masses 10.87 / 10.54 Msun, radii 6.477 / 4.79 Rsun, T_eff 26 600 / 25 950 K (TESS eclipsing-binary analysis); component V magnitudes Aa 4.50, Ab 5.90, Ac 5.65, B 4.95",
+    "van Leeuwen 2007 (Hipparcos): parallax 3.34 +/- 1.07 mas -> 300 pc (+140/-70); no Gaia parallax for this bright multiple",
+    "De Mey et al. 1996: spectroscopic orbit of the eclipsing pair"
+  ],
+  "notes": [
+    "Semi-major axis 0.2171 AU from Kepler's law with the masses and period; at 300 pc that is 0.724 mas with the components 0.201 / 0.149 mas across -- all three scale with the 32 % uncertain Hipparcos distance, which the fringe spacing would measure (a in mas against a in AU: a geometric distance).",
+    "Anchor V 4.24 = Aa1 + Aa2 (4.50 + 5.90); the tertiary Ac (V 5.65, B3 V, 44 mas away in a 9.4 yr orbit) sits inside any field stop and adds ~21 % third light that dilutes the fringe contrast by (1 - f3)^2 = 0.62 (campaign option third_light_fraction); eta Ori B (V 4.95, 1.7 arcsec) is excluded.",
+    "Eccentricity 0.0095 approximated as circular (eclipses at phases 0.25 and 0.75 in this convention; the disks overlap for |rho| < 0.18 mas, about a fifth of the orbit).",
+    "node_pa_deg 0 is ASSUMED: the ascending node of this spectroscopic pair has never been measured -- it is what the Pathfinder's nightly fringe orientation would give.",
+    "Claret & Bloemen 2011 Spica law for both components; NewEra does not cover 26 000 K."
+  ],
+  "assumptions": [
+    "node_pa_deg (unknown)",
+    "distance_pc (Hipparcos, 32 %)",
+    "primary.radius_rsun / secondary.radius_rsun (component diameters from radii and distance)",
+    "eccentricity (0.0095 -> 0)"
+  ],
+  "summary": {
+    "short": "η Ori Aa",
+    "components": "B1 V + B3 V eclipsing pair, 7.99 d",
+    "eclipses": "grazing-to-partial at i 87.6",
+    "newera": "blackbody",
+    "sources": "TESS EB analysis; De Mey et al. 1996; Hipparcos"
+  }
+}

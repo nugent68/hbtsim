@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_etaori_lpqi_orbit",
+  "label": "Movie: eta Ori Aa through one 8-day orbit on the LPQI-Pathfinder, eight consecutive nights (H-alpha, MPD)",
+  "runner": "nightmovie",
+  "target": "etaori_ab",
+  "instrument": {
+    "array": "lpqi_pathfinder"
+  },
+  "backends": [
+    "lpqi_mpd_halpha"
+  ],
+  "night": {
+    "block_minutes": 10.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "fps": 15,
+    "dpi": 110,
+    "seed": 11,
+    "nights": 8,
+    "phase0": 0.0,
+    "night_step_days": 1.0,
+    "third_light_fraction": 0.214,
+    "display_bin_blocks": 3,
+    "fit_step_mas": 0.005
+  },
+  "outputs": {
+    "figures": true
+  },
+  "notes": [
+    "Eight consecutive nights step the 7.988 d orbit by 0.125 in phase: six nights of fringes (lambda/rho = 190-260 m, swept by the 330-530 m baseline) and two eclipse nights where the disks overlap and the fringe disappears -- the rendered two-disk image is the model there.",
+    "Third light 0.214: eta Ori Ac (V 5.65, 44 mas, 9.4 yr) is inside any field stop and dilutes the fringe by 0.62 while adding to the photon rate; eta Ori B (V 4.95, 1.7 arcsec) is assumed excluded.",
+    "Each night is fitted for the pair's separation (dx, dy) on a chi^2 grid with the spectroscopic ephemeris' differential motion; the panel shows the 1-sigma ellipses landing on the apparent orbit. The 180-degree twin of each fit is resolved by the orbit.",
+    "The cumulative Fisher precision on (ln a_mas, Omega) is the headline: a_mas against the spectroscopic a (AU) is a geometric distance, where Hipparcos gives 32 % and Gaia nothing.",
+    "node_pa_deg = 0 is assumed (unknown); the movie's orientation is illustrative, the precision is not."
+  ]
+}

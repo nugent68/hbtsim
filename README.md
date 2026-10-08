@@ -395,6 +395,7 @@ traced to its inputs. `suite_phase6` runs everything (`--jobs 4`).
 | `movie_delori_lpqi_night` | nightmovie | Movie: delta Ori Aa1 on the LPQI-Pathfinder, one night through the null and then 20 nights accumulated (550 nm, MPD) |
 | `movie_delori_lpqi_oblateness` | nightmovie | Movie: is delta Ori Aa1 oblate? H-alpha nights on the LPQI-Pathfinder against the equal-area circular disk (MPD, 40 nights) |
 | `movie_delori_lpqi_weighted` | nightmovie | Movie: delta Ori Aa1 on the LPQI-Pathfinder, a weighted filter schedule (12 nights H-alpha, 4 at 550 nm, 2 at 500 nm, 2 at H-beta; MPD) |
+| `movie_etaori_lpqi_orbit` | nightmovie | Movie: eta Ori Aa through one 8-day orbit on the LPQI-Pathfinder, eight consecutive nights (H-alpha, MPD) |
 | `redclump_ii_dwarf` | scale | Red-clump scale precision (Kim & Kaiser comparison) with the 4800 K / log g 4.5 dwarf stand-in |
 | `redclump_ii_supergiant` | scale | Red-clump scale precision (Kim & Kaiser comparison) with the 5000 K / log g 0 supergiant stand-in |
 | `suite_phase6` | suite | Everything behind docs/three_telescope_feasibility.md and the paper tables (output/logs/run_*.sh) |

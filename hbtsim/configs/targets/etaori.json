@@ -28,7 +28,8 @@
     "No interferometric diameter exists: theta_LD = 2R/d = 0.201 mas from the quoted radius and distance; the Pathfinder would be its first measurement.",
     "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
     "V 3.42 is the whole system (Aa, Ab, Ac, B); the Aa component carries roughly half of it, so the rates here are ~2x optimistic: flag.",
-    "Aa-Ab is an eclipsing 7.99 d pair with components ~0.2 and 0.15 mas: a fringe test at 300-530 m once the components are modelled as a binary."
+    "Aa-Ab is an eclipsing 7.99 d pair with components ~0.2 and 0.15 mas: a fringe test at 300-530 m once the components are modelled as a binary.",
+    "The eclipsing pair is modelled as a binary in targets/etaori_ab (the fringe target); this single-star entry treats Aa1 alone with the whole system's light."
   ],
   "assumptions": [
     "theta_ld_mas (2R/d, no measurement)",

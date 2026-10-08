@@ -139,3 +139,23 @@ def test_lpqi_hot_star_targets():
         assert any("theta_ld_mas" in a for a in raw["assumptions"])
     camp = cat.load_campaign("g2_singles_lpqi_pathfinder")
     assert len(camp.targets) == 8 and len(camp.backends) == 10 and camp.option("options.diameter_precision") == 0.05
+
+
+def test_etaori_binary_target():
+    """eta Ori Aa as a binary (the orbit movie): Kepler semi-major axis from
+    the masses, the angular scales at the Hipparcos distance, the eclipses
+    at quadrature +/- 0.25 and the flagged assumptions."""
+    from hbtsim.orbit import positions_at
+    from hbtsim.params import in_eclipse
+    s = cat.load_target("etaori_ab")
+    assert s.period_days == pytest.approx(7.98763) and s.inclination_deg == pytest.approx(87.62)
+    assert s.semimajor_au == pytest.approx(((s.primary.mass_msun + s.secondary.mass_msun) * (s.period_days / 365.25) ** 2) ** (1 / 3), rel=1e-3)
+    assert s.angular_semimajor_mas == pytest.approx(0.724, abs=0.002)
+    assert 2 * s.angular_radius_mas(s.primary) == pytest.approx(0.201, abs=0.002)
+    assert 2 * s.angular_radius_mas(s.secondary) == pytest.approx(0.149, abs=0.002)
+    assert not in_eclipse(s, positions_at(s, 0.0)) and in_eclipse(s, positions_at(s, 0.25)) and in_eclipse(s, positions_at(s, 0.75))
+    raw = cat.raw("target", "etaori_ab")
+    assert any("node_pa_deg" in a for a in raw["assumptions"]) and any("distance_pc" in a for a in raw["assumptions"])
+    camp = cat.load_campaign("movie_etaori_lpqi_orbit")
+    assert camp.runner == "nightmovie" and camp.option("options.third_light_fraction") == pytest.approx(0.214)
+    assert len(camp.backends) == 1 and camp.backends[0].name.startswith("LPQI 1 nm H-alpha")

@@ -22,6 +22,8 @@ options:
                                 breathes along the night, and a second act folds
                                 fold_nights nights on pulsation phase to show the
                                 diameter curve emerging (beta Cep).
+A binary target switches to hbtsim.runners.nightmovie_binary (nights through
+the orbit: fringes, fitted separations, the angular semi-major axis).
 Outputs <name>.mp4 (frames as PNG when ffmpeg is missing or opts.figures is off),
 and results.json with the per-block numbers.
 """
@@ -80,11 +82,14 @@ def _budget(target, lam, w, block_s, t1, t2, det, pol, throughput):
 
 def run(campaign, cat, opts, out_dir: Path) -> dict:
     target = campaign.target
-    if not hasattr(target, "theta_ld_mas"):
-        raise SystemExit("runner nightmovie needs a single-star target")
     array = campaign.array
     if array is None or len(array.stations) != 2:
         raise SystemExit("runner nightmovie needs a two-station array (instrument.array)")
+    if hasattr(target, "period_days"):                          # a binary: nights through the orbit
+        from hbtsim.runners.nightmovie_binary import run_binary
+        return run_binary(campaign, cat, opts, out_dir)
+    if not hasattr(target, "theta_ld_mas"):
+        raise SystemExit("runner nightmovie needs a single-star or binary target")
     if len(campaign.backends) > 1:
         return run_rotation(campaign, cat, opts, out_dir)        # a different filter each night
     if campaign.option("options.oblateness", False):

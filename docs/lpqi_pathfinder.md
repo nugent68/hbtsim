@@ -230,7 +230,7 @@ disputed at the factor-two level; λ Ori A's parallax is 15 % uncertain); the
 multiples' light is attributed to one star; the MPD link ceiling is unknown; a
 field stop must exclude λ Ori B (4″) and η Ori's companions.
 
-## Movies (`hbtsim run movie_delori_lpqi_night`, `movie_betcep_lpqi_pulsation`)
+## Movies (`hbtsim run movie_delori_lpqi_night`, `movie_betcep_lpqi_pulsation`, `movie_etaori_lpqi_orbit`)
 
 Two campaigns of the `nightmovie` runner animate the measurement, one frame per
 5-min block, with the MPD behind the 550 nm filter (whose first null at 1.22 λ/θ
@@ -290,6 +290,34 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
   pulsation with one 1 nm channel (it would take ~10⁴ nights); a spectrograph's
   multiplexing is what would make it possible.
 
+- **η Ori Aa through one orbit** (`movie_etaori_lpqi_orbit`, Hα on the MPD,
+  eight consecutive nights, 400 frames): the binary mode of the runner
+  (`hbtsim/runners/nightmovie_binary.py`), on a new binary target
+  `etaori_ab` (B1 V + B3 V, P = 7.98763 d, i = 87.62°, a = 0.2171 AU from the
+  masses; at the Hipparcos 300 pc that is a = 0.724 mas with the stars
+  0.201 and 0.149 mas across). Eight nights step the orbit by 0.125 in phase:
+  six nights of fringes with λ/ρ = 190–260 m swept by the 317–532 m
+  baseline, and two eclipse nights (phases 0.25 and 0.75) where the disks
+  overlap, the fringe is gone and the rendered two-disk image is the model.
+  The panels are the pair on the sky with the baseline direction, the night's
+  |V|² fringes with the 30-min bins, and the 68 % region of that night's
+  fitted separation on the apparent orbit, with the orbit drawn at a ± 1σ
+  from the Fisher information accumulated so far on (ln a, Ω). η Ori Ac
+  (V 5.65 at 44 mas) is inside any field stop: its 21 % of the light adds to
+  the rates and dilutes the fringe by 0.62 (`options.third_light_fraction`);
+  η Ori B (V 4.95 at 1.7″) is assumed excluded. The honest numbers: σ(|V|²)
+  = 0.51 per 30-min bin against fringe amplitudes of 0.1–0.3, so a single
+  night detects its fringe at only ~2σ and its separation region is a set
+  of stripes (one baseline direction fixes the separation only along itself,
+  a fringe period apart), but the orbit's scale accumulates: σ(a)/a = 28 %
+  after night 1, 16 % after two, 8.5 % after the eight. Since a in AU is
+  known from the spectroscopic masses, that is a geometric distance to
+  ±8.5 % from one orbit, against Hipparcos's 32 % and no Gaia parallax at
+  all; a second orbit would bring it to 6 %, the lensed IMSE array (σ = 4.8
+  per block) would need ~30 orbits. The unknown node angle matters: Ω = 45°
+  (node along the NOT–TNG baseline) gives 3.7 %, Ω = 0, 90, 135° give
+  8.5–8.9 %; the movie uses the assumed Ω = 0.
+
 The movies are written to `output/campaigns/<campaign>/<campaign>.mp4`
 (PNG frames when ffmpeg is absent); `--no-figures` computes the numbers only.
 
@@ -314,5 +342,5 @@ The movies are written to `output/campaigns/<campaign>/<campaign>.mp4`
    use an overall 0.5). The NOT (f/11, 28.16 m) and TNG (Nasmyth, 38.5 m)
    focal lengths set the plate scales; which focus the cameras use is to be
    confirmed.
-6. The field stop at the camera: λ Ori B (V 5.6 at 4.4″), η Ori's and β Cep's
+6. The field stop at the camera: λ Ori B (V 5.6 at 4.4″), η Ori B (V 4.95 at 1.7″; the binary movie assumes it excluded, Ac at 44 mas cannot be), β Cep's
    companions must be excluded for the hot-star diameters above.
