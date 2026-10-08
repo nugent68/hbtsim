@@ -482,8 +482,23 @@ def run_rotation(campaign, cat, opts, out_dir: Path) -> dict:
         print(f"  {q['label']:46s} lambda {q['lam']:.0f} nm: null at {q['null_m']:.0f} m, |V|^2 {q['v2'].min():.2g}-{q['v2'].max():.2g}, "
               f"sigma/block {q['sigma']:.3g}, one night: sigma(theta)/theta {1 / np.sqrt(q['fisher'].sum()) / theta0:.3f}, "
               f"detection {np.sqrt(q['snr2']):.2f} sigma")
-    # the nights
-    sched = [j % len(per) for j in range(n_nights)]
+    # the nights: options.schedule (backend names per night) or a plain rotation
+    names = [b.name for b in backends]
+    sched_opt = opt("options.schedule")
+    if sched_opt:
+        catalog_names = [campaign.spec["backends"][i] if isinstance(campaign.spec["backends"][i], str) else names[i]
+                         for i in range(len(names))]
+        sched = []
+        for x in sched_opt:
+            if x in catalog_names:
+                sched.append(catalog_names.index(x))
+            elif x in names:
+                sched.append(names.index(x))
+            else:
+                raise SystemExit(f"options.schedule entry {x!r} is not one of the campaign's backends {catalog_names}")
+        n_nights = len(sched)
+    else:
+        sched = [j % len(per) for j in range(n_nights)]
     meas = []                       # (filter index, measured |V|^2 per block)
     fisher_tot, snr2_f = 0.0, np.zeros(len(per))
     sig_theta, det_sig = [], []
@@ -497,7 +512,9 @@ def run_rotation(campaign, cat, opts, out_dir: Path) -> dict:
     # the single-filter comparison: every night on the best filter
     best = int(np.argmax([q["fisher"].sum() for q in per]))
     sig_best = 1.0 / np.sqrt(n_nights * per[best]["fisher"].sum())
-    print(f"  rotation after {n_nights} nights: sigma(theta)/theta = {sig_theta[-1] / theta0:.4f}; every night on "
+    counts = {per[i]["lam"]: sched.count(i) for i in range(len(per))}
+    print("  schedule: " + ", ".join(f"{c} x {lam:.0f} nm" for lam, c in counts.items() if c))
+    print(f"  after {n_nights} nights: sigma(theta)/theta = {sig_theta[-1] / theta0:.4f}; every night on "
           f"{per[best]['label']} instead: {sig_best / theta0:.4f}; detection per filter "
           + ", ".join(f"{q['label'].split(',')[0].replace('LPQI 1 nm ', '')} {d:.1f} sigma" for q, d in zip(per, det_sig[-1])))
     theta_est = [float(theta0 + rng.normal(0.0, s)) for s in sig_theta]
@@ -568,7 +585,7 @@ def _render_rotation(path, target, arr, mids, alt, bvec, blen, per, sched, meas,
 
     # the diameter panel: sigma(theta)/theta vs nights, and the detection per filter
     nights_ax = np.arange(1, len(sched) + 1)
-    ax_d.plot(nights_ax, 100 * np.array(sig_theta) / theta0, color="tab:blue", lw=1.5, label="rotation")
+    ax_d.plot(nights_ax, 100 * np.array(sig_theta) / theta0, color="tab:blue", lw=1.5, label="this schedule")
     best = int(np.argmax([q["fisher"].sum() for q in per]))
     ax_d.plot(nights_ax, 100 / np.sqrt(nights_ax * per[best]["fisher"].sum()) / theta0, color="0.5", lw=1.2, ls="--",
               label=f"{per[best]['lam']:.0f} nm every night")
@@ -611,12 +628,11 @@ def _render_rotation(path, target, arr, mids, alt, bvec, blen, per, sched, meas,
         if k == n - 1:
             band_lo.set_data(B_grid, np.interp(B_grid * (th - sg) / theta0, B_grid, curve0))
             band_hi.set_data(B_grid, np.interp(B_grid * (th + sg) / theta0, B_grid, curve0))
-            v_txt.set_text(f"{j + 1} night(s): θ = {th:.4f} ± {sg:.4f} mas ({100 * sg / theta0:.1f} %)")
+            v_txt.set_text(f"{j + 1} night(s)\nθ = {th:.4f} ± {sg:.4f} mas\n({100 * sg / theta0:.1f} %)")
             d_pt.set_data([j + 1], [100 * sg / theta0])
             d_txt.set_text("detection per filter: " + ", ".join(f"{qq['lam']:.0f} nm {d:.1f}σ" for qq, d in zip(per, det_sig[j])))
         else:
-            v_txt.set_text(f"night {j + 1}, block {k + 1}/{n}: |V|² = {q['v2'][k]:.3g} at {q['lam']:.0f} nm "
-                           f"(null {q['null_m']:.0f} m)")
+            v_txt.set_text(f"night {j + 1}, block {k + 1}/{n}\n|V|² = {q['v2'][k]:.3g} at {q['lam']:.0f} nm\n(null {q['null_m']:.0f} m)")
 
     writer = FFMpegWriter(fps=fps, metadata={"title": f"hbtsim {target.name} filter rotation"}) if shutil.which("ffmpeg") else None
     step = max(1, n // 30)           # ~30 frames for the first night

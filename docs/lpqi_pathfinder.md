@@ -259,6 +259,13 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
   across the null and sidelobe, i.e. a test of the limb-darkening model that
   a single filter cannot make. A weighted schedule (mostly Hα, a few 550 nm
   nights for the null) keeps most of both.
+- **δ Ori Aa1, the weighted schedule** (`movie_delori_lpqi_weighted`): 12 nights
+  in Hα for the diameter, then 4 at 550 nm for the null and 2 each at 500 nm
+  and Hβ for the sidelobe, none at 425 nm. It ends at σ(θ)/θ = 1.6 % against
+  1.3 % for Hα alone and 2.4 % for the uniform rotation, with an 11σ
+  detection in Hα and the null and sidelobe sampled at 2σ and ~1σ: most of
+  the precision and the shape test. `options.schedule` lists the backend for
+  every night; without it the backends rotate.
 - **β Cep, the pulsating diameter** (190 frames): act one is the same night with
   θ(t) breathing by 1 % on the 0.19048 d period (amplitude assumed from the
   radial-velocity curve); act two folds 60 nights on pulsation phase. The honest

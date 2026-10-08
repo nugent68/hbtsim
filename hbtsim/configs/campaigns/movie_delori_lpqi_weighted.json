@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_delori_lpqi_weighted",
+  "label": "Movie: delta Ori Aa1 on the LPQI-Pathfinder, a weighted filter schedule (12 nights H-alpha, 4 at 550 nm, 2 at 500 nm, 2 at H-beta; MPD)",
+  "runner": "nightmovie",
+  "target": "delori_aa",
+  "instrument": {
+    "array": "lpqi_pathfinder"
+  },
+  "backends": [
+    "lpqi_mpd_halpha",
+    "lpqi_mpd_550",
+    "lpqi_mpd_500",
+    "lpqi_mpd_hbeta"
+  ],
+  "night": {
+    "block_minutes": 5.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "schedule": [
+      "lpqi_mpd_halpha",
+      "lpqi_mpd_halpha",
+      "lpqi_mpd_halpha",
+      "lpqi_mpd_halpha",
+      "lpqi_mpd_halpha",
+      "lpqi_mpd_halpha",
+      "lpqi_mpd_halpha",
+      "lpqi_mpd_halpha",
+      "lpqi_mpd_halpha",
+      "lpqi_mpd_halpha",
+      "lpqi_mpd_halpha",
+      "lpqi_mpd_halpha",
+      "lpqi_mpd_550",
+      "lpqi_mpd_550",
+      "lpqi_mpd_550",
+      "lpqi_mpd_550",
+      "lpqi_mpd_500",
+      "lpqi_mpd_500",
+      "lpqi_mpd_hbeta",
+      "lpqi_mpd_hbeta"
+    ],
+    "fps": 12,
+    "dpi": 110,
+    "theta_alternatives_pct": [
+      -5.0,
+      5.0
+    ],
+    "seed": 7,
+    "display_bin_blocks": 6
+  },
+  "outputs": {
+    "figures": true
+  },
+  "notes": [
+    "First the diameter (12 nights in H-alpha, where the track stays in the first lobe and each night carries the most information), then the null (4 nights at 550 nm) and the sidelobe (2 at 500 nm, 2 at H-beta) to test the limb-darkened shape; no 425 nm nights, where the star is resolved out and the MPD runs at 275 ps.",
+    "options.schedule lists the backend for every night; without it the backends rotate."
+  ]
+}
