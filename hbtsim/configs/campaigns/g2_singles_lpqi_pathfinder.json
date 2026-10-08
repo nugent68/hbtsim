@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g2_singles_lpqi_pathfinder",
+  "label": "Bright northern O/B stars with theta = 0.2-0.4 mas on the LPQI-Pathfinder: diameters from the nightly null crossing",
+  "runner": "g2",
+  "targets": [
+    "lamori_a",
+    "betcep",
+    "etaori",
+    "epsper",
+    "delori_aa",
+    "gampeg",
+    "zettau",
+    "gammacas"
+  ],
+  "instrument": {
+    "array": "lpqi_pathfinder"
+  },
+  "backends": [
+    "lpqi_nextgen_halpha",
+    "lpqi_nextgen_hbeta",
+    "lpqi_nextgen_500",
+    "lpqi_nextgen_550",
+    "lpqi_nextgen_425",
+    "lpqi_mpd_halpha",
+    "lpqi_mpd_hbeta",
+    "lpqi_mpd_500",
+    "lpqi_mpd_550",
+    "lpqi_mpd_425"
+  ],
+  "night": {
+    "block_minutes": 30.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "one_backend_per_night": true,
+    "detection_sigma": 3.0,
+    "diameter_precision": 0.05
+  },
+  "outputs": {
+    "latex": true
+  },
+  "notes": [
+    "Stars whose first null (1.22 lambda/theta = 300-400 m at 500 nm) the Pathfinder's 300-530 m nightly baseline sweep crosses: the null position gives the diameter nearly model-independently. None has an interferometric diameter.",
+    "NewEra covers nothing above 12 000 K, so the stars are blackbodies with the Spica linear law; the V anchor sets the flux."
+  ]
+}

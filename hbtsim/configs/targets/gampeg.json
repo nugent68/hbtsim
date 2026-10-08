@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "gampeg",
+  "label": "gamma Peg (Algenib, B2 IV, beta Cep pulsator)",
+  "type": "single",
+  "star": {
+    "label": "gamma Peg",
+    "mass_msun": 8.8,
+    "teff_k": 22000.0,
+    "ld_table": "claret11_spica",
+    "logg": 3.95
+  },
+  "theta_ld_mas": 0.349,
+  "v_mag": 2.84,
+  "dec_deg": 15.184,
+  "ra_hours": 0.2206,
+  "distance_pc": 144.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 2.84
+    }
+  ],
+  "sources": [
+    "Wikipedia infobox (read 2026-10-08) and the papers it cites: V 2.84, B2 IV, beta Cep hybrid pulsator (P 0.15175 d), T_eff 22000 K, R 5.4 Rsun, M 8.8 Msun, d 144 pc, log g 3.95"
+  ],
+  "notes": [
+    "No interferometric diameter exists: theta_LD = 2R/d = 0.349 mas from the quoted radius and distance; the Pathfinder would be its first measurement.",
+    "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
+    "Radial pulsation P 0.15175 d (ΔV 0.11); a companion at 85.6 mas (2025) is excluded here."
+  ],
+  "assumptions": [
+    "theta_ld_mas (2R/d, no measurement)",
+    "star.ld_table"
+  ],
+  "summary": {
+    "short": "γ Peg",
+    "components": "B2 IV, beta Cep hybrid pulsator (P 0.15175 d)"
+  }
+}

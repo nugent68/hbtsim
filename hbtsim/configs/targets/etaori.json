@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "etaori",
+  "label": "eta Ori Aa (B1 V; Aa+Ab eclipsing, 7.99 d)",
+  "type": "single",
+  "star": {
+    "label": "eta Ori Aa",
+    "mass_msun": 10.87,
+    "teff_k": 26600.0,
+    "ld_table": "claret11_spica"
+  },
+  "theta_ld_mas": 0.201,
+  "v_mag": 3.42,
+  "dec_deg": -2.397,
+  "ra_hours": 5.408,
+  "distance_pc": 300.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 3.42
+    }
+  ],
+  "sources": [
+    "Wikipedia infobox (read 2026-10-08) and the papers it cites: V 3.42, B1 V + B3 V eclipsing pair (7.99 d) + Ac (9.4 yr) + B, T_eff 26600 K, R 6.477 Rsun, M 10.87 Msun, d 300 pc"
+  ],
+  "notes": [
+    "No interferometric diameter exists: theta_LD = 2R/d = 0.201 mas from the quoted radius and distance; the Pathfinder would be its first measurement.",
+    "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
+    "V 3.42 is the whole system (Aa, Ab, Ac, B); the Aa component carries roughly half of it, so the rates here are ~2x optimistic: flag.",
+    "Aa-Ab is an eclipsing 7.99 d pair with components ~0.2 and 0.15 mas: a fringe test at 300-530 m once the components are modelled as a binary."
+  ],
+  "assumptions": [
+    "theta_ld_mas (2R/d, no measurement)",
+    "star.ld_table",
+    "v_mag (system light, not Aa alone)"
+  ],
+  "summary": {
+    "short": "η Ori Aa",
+    "components": "B1 V + B3 V eclipsing pair (7.99 d) + Ac (9.4 yr) + B"
+  }
+}

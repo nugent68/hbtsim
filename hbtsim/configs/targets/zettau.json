@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "zettau",
+  "label": "zeta Tau (B2 IIIpe shell star, SB 133 d)",
+  "type": "single",
+  "star": {
+    "label": "zeta Tau",
+    "mass_msun": 11.2,
+    "teff_k": 15500.0,
+    "ld_table": "claret11_spica"
+  },
+  "theta_ld_mas": 0.365,
+  "v_mag": 3.01,
+  "dec_deg": 21.1425,
+  "ra_hours": 5.6274,
+  "distance_pc": 140.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 3.01
+    }
+  ],
+  "sources": [
+    "Wikipedia infobox (read 2026-10-08) and the papers it cites: V 3.01, B2 IIIpe Be/shell star, SB 133 d, T_eff 15500 K, R 5.5 Rsun, M 11.2 Msun, d 140 pc"
+  ],
+  "notes": [
+    "No interferometric diameter exists: theta_LD = 2R/d = 0.365 mas from the quoted radius and distance; the Pathfinder would be its first measurement.",
+    "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
+    "Be star with a several-mas H-alpha decretion disk: resolved out at 300-530 m, so the H-alpha filter measures the photospheric fraction of the H-alpha light against the 550 nm continuum.",
+    "T_eff 15 500 K as quoted (low for B2 III; the disk veils the photosphere)."
+  ],
+  "assumptions": [
+    "theta_ld_mas (2R/d, no measurement)",
+    "star.ld_table",
+    "star.teff_k"
+  ],
+  "summary": {
+    "short": "ζ Tau",
+    "components": "B2 IIIpe Be/shell star, SB 133 d"
+  }
+}

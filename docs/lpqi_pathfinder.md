@@ -171,6 +171,65 @@ star in 1.5 h (MCP-PMT) because it has 1000 channels, 27 ps and a 20 % PDE:
 the Pathfinder needs a spectrograph (hundreds of channels) on top of the MPD
 class of timing to approach it.
 
+## Northern targets: hot stars at the first null (`hbtsim run g2_singles_lpqi_pathfinder`)
+
+The Pathfinder's niche in the northern sky is the overlap of two constraints:
+it resolves out everything larger than ≈ 0.25 mas, and with one 1 nm channel
+on 2.6 + 3.6 m apertures it reaches V ≲ 3.5. That overlap is the bright, hot,
+compact end of the sky: O and early-B stars at 150–400 pc with θ = 0.2–0.4 mas,
+none of which has an interferometric diameter (CHARA and the VLTI do not
+resolve them in the visible). Over a night the projected NOT–TNG baseline sweeps
+300–530 m, so for these stars the track crosses the first null of the disk
+visibility: the null position gives the diameter nearly model-independently
+and the sidelobe level the limb darkening. The nights below are the time to a
+5 % diameter from the Fisher information of |V|²(θ) along the track (nights
+add), uniform-disk limb darkening from the Spica Claret law, blackbody fluxes
+anchored to V (NewEra covers nothing above 12 000 K), the catalog throughput
+0.3 × 0.9, and the MPD without a link ceiling.
+
+| star | type | V | θ (mas) | B over the night [m] | |V|² (Hα) | nights to 5 % θ: MPD Hα | MPD 550 nm | lensed array Hα | lensed array 550 nm | all five filters, MPD |
+|---|---|---|---|---|---|---|---|---|---|---|
+| lambda Ori A | O9 III | 3.7 | 0.238 | 392–532 | 7.1e-02–0.28 | **3.7** | 7.8 | 105 | 33 | 7.9 |
+| beta Cep | B1 IV, β Cep pulsator | 3.23 | 0.320 | 334–507 | 1.2e-03–0.18 | **4.0** | 14 | 106 | 56 (rl) | 11 |
+| eta Ori Aa | B1 V, eclipsing 7.99 d | 3.42 | 0.201 | 323–532 | 1.8e-01–0.56 | **1.9** | 2.3 | 50 | 9.3 | 2.5 |
+| epsilon Per | B0.5 III, SB 14 d | 2.88 | 0.363 | 302–532 | 3.4e-06–0.16 | **6.2** | 23 | 152 | 156 (rl) | 16 |
+| delta Ori Aa1 | O9.5 II, eclipsing 5.73 d | 2.23 | 0.319 | 334–531 | 2.8e-06–0.18 | **1.4** | 4.4 | 28 | 75 (rl) | 3.7 |
+| gamma Peg | B2 IV, β Cep pulsator | 2.84 | 0.349 | 421–532 | 5.4e-05–0.02 | **26** | 120 | 629 | 873 (rl) | 64 |
+| zeta Tau | B2 IIIpe shell star | 3.01 | 0.365 | 390–531 | 1.2e-05–0.02 | **43** | 186 | 1.1×10³ | 1.0×10³ (rl) | 97 |
+| gamma Cas | B0.5 IVe, disk | 2.39 | 0.532 | 297–527 | 7.8e-05–0.01 | **35** | 86 | 748 | 1.2×10³ (rl) | 79 |
+
+(rl) = readout-limited at the 6.7×10⁶ cps capture ceiling. The last column
+rotates the five filters one per night on the MPD; the 425 nm filter, where the
+MPD runs at 275 ps, costs the set roughly a factor two.
+
+What this says:
+
+- **Diameters of hot stars in a few nights.** η Ori Aa (θ ≈ 0.20 mas), δ Ori Aa1,
+  λ Ori A and β Cep reach 5 % in 1–4 nights per filter with the MPD; ε Per in a
+  week. These radii anchor the upper main sequence and test hot-star limb
+  darkening where no measurement exists. The η Ori and δ Ori figures use the
+  whole system's light and are optimistic by about a factor two in rate.
+- **Pulsation and binarity in the same stars.** β Cep and γ Peg are the prototype
+  β Cephei pulsators: a few-percent radius change moves the null by tens of
+  metres, within reach over a season. ε Per, δ Ori Aa and η Ori Aa are close
+  hot binaries whose components are themselves below the null; modelled as
+  binaries they give fringes in |V|² versus projected baseline, the two-telescope
+  version of the closure-phase science elsewhere in hbtsim.
+- **Hα against the continuum.** For the Be stars ζ Tau and γ Cas the decretion
+  disk (several mas) is gone at 300 m, so the Hα filter measures the fraction of
+  Hα light from the unresolved photosphere against the 550 nm continuum, night by
+  night. The same contrast on Alnilam (ε Ori, 0.7 mas, V 1.7) would probe its
+  wind, but its second lobe sits at |V|² ≲ 0.004.
+- **Not reachable:** white dwarfs and hot subdwarfs have the right size and the
+  wrong magnitude (V > 8); every star brighter than V ≈ 1.5 in the north is a
+  cool or A-type star already resolved out; all of this needs the MPD-class
+  timing — the lensed array at 500 ps is 5–15× slower on the same stars.
+
+Caveats: θ is 2R/d from literature radii and distances (δ Ori's distance is
+disputed at the factor-two level; λ Ori A's parallax is 15 % uncertain); the
+multiples' light is attributed to one star; the MPD link ceiling is unknown; a
+field stop must exclude λ Ori B (4″) and η Ori's companions.
+
 ## Assumptions to confirm with the LPQI team
 
 1. The filter list is confirmed (Hα, Hβ, 500, 550, 425 nm; 1 nm; one per
@@ -192,3 +251,5 @@ class of timing to approach it.
    use an overall 0.5). The NOT (f/11, 28.16 m) and TNG (Nasmyth, 38.5 m)
    focal lengths set the plate scales; which focus the cameras use is to be
    confirmed.
+6. The field stop at the camera: λ Ori B (V 5.6 at 4.4″), η Ori's and β Cep's
+   companions must be excluded for the hot-star diameters above.

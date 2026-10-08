@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "lamori_a",
+  "label": "lambda Ori A (Meissa, O9 III)",
+  "type": "single",
+  "star": {
+    "label": "lambda Ori A",
+    "mass_msun": 28.0,
+    "teff_k": 36000.0,
+    "ld_table": "claret11_spica",
+    "logg": 3.9
+  },
+  "theta_ld_mas": 0.238,
+  "v_mag": 3.7,
+  "dec_deg": 9.934,
+  "ra_hours": 5.5856,
+  "distance_pc": 390.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 3.7
+    }
+  ],
+  "sources": [
+    "Wikipedia infobox (read 2026-10-08) and the papers it cites: V 3.7, O9 III((f)) giant, T_eff 36000 K, R 10.0 Rsun, M 28.0 Msun, d 390 pc, log g 3.9"
+  ],
+  "notes": [
+    "No interferometric diameter exists: theta_LD = 2R/d = 0.238 mas from the quoted radius and distance; the Pathfinder would be its first measurement.",
+    "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
+    "V 3.7 is the A component; lambda Ori B (B0.5 V, V 5.6, 4.4 arcsec away) must be excluded by the camera's field stop.",
+    "Distance 390 pc from the Gaia parallax 2.59 +/- 0.40 mas (uncertain: +/- 15 %)."
+  ],
+  "assumptions": [
+    "theta_ld_mas (2R/d, no measurement)",
+    "star.ld_table",
+    "distance_pc (15 % parallax uncertainty)"
+  ],
+  "summary": {
+    "short": "λ Ori A",
+    "components": "O9 III((f)) giant"
+  }
+}

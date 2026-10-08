@@ -169,7 +169,38 @@ def test_g2_array_track_mode(tmp_path):
     sets = res["filter_set_nights"]["Spica"]
     imse_name = "IMSE 64x64 SPAD array as published (3.5 % fill factor, no microlenses; reference only)"
     imse = [r for r in rows if r["detector"] == imse_name]
-    assert len(imse) == 2 and sets[imse_name] == \
+    assert len(imse) == 2 and sets[imse_name]["detection"] == \
         pytest.approx(sum(r["nights_detection"] for r in imse))          # one filter per night: nights add
+    assert "diameter" not in sets[imse_name]                            # binaries carry no diameter metric
     assert (out / "tiny_lpqi" / "table.md").read_text().count("NOT-TNG") == 3
     assert (out / "tiny_lpqi" / "results.json").exists()
+
+
+def test_g2_array_track_single_stars(tmp_path):
+    """Single-star targets on an array: the limb-darkened disk along the track and
+    the nights to a diameter precision; binaries and singles may be mixed."""
+    import json
+    from hbtsim.catalog import Catalog
+    from hbtsim.run_campaign import RunOptions, run
+    cat0 = Catalog(env=False)
+    d = cat0.raw("campaign", "g2_singles_lpqi_pathfinder")
+    d.update(name="tiny_singles", targets=["gammacas", "lamori_a", "spica"], backends=["lpqi_mpd_550"],
+             night={"block_minutes": 120.0, "min_alt_deg": 30.0}, atmosphere={"use": False})
+    (tmp_path / "campaigns").mkdir()
+    (tmp_path / "campaigns" / "tiny_singles.json").write_text(json.dumps(d))
+    cat = Catalog(paths=[tmp_path], env=False)
+    out = tmp_path / "out"
+    res = run(cat, cat.load_campaign("tiny_singles"), RunOptions(out_dir=out, figures=False, latex=False))
+    rows = {r["target"]: r for r in res["rows"]}
+    assert set(rows) == {"gamma Cas", "lambda Ori A", "Spica"}
+    for name in ("gamma Cas", "lambda Ori A"):
+        r = rows[name]
+        assert r["single"] and r["nights_diameter"] is not None and r["nights_diameter"] > 0
+        assert r["diameter_precision"] == 0.05 and r["v_mag"] > 2
+        assert 0 <= r["vis2_min"] <= r["vis2_max"] < 0.6
+    assert rows["lambda Ori A"]["nights_diameter"] < rows["gamma Cas"]["nights_diameter"]   # 0.24 vs 0.53 mas
+    assert rows["lambda Ori A"]["vis2_max"] > 0.05                                        # inside the first lobe
+    assert not rows["Spica"]["single"] and rows["Spica"]["nights_diameter"] is None
+    assert res["filter_set_nights"]["lambda Ori A"]["LPQI MPD single-pixel 50 um SPAD (back-up)"]["diameter"] == \
+        pytest.approx(rows["lambda Ori A"]["nights_diameter"])                              # one filter: set = filter
+    assert "nights (5 % theta)" in (out / "tiny_singles" / "table.md").read_text()

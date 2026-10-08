@@ -382,6 +382,7 @@ traced to its inputs. `suite_phase6` runs everything (`--jobs 4`).
 | `g2_c2pu` | g2 | Two-telescope g2 sensitivity of the four binaries on the C2PU 1 m pair |
 | `g2_eonsii` | g2 | Two-telescope g2 sensitivity of the four binaries on the EON-SII pair |
 | `g2_keck` | g2 | Two-telescope g2 sensitivity of the four binaries on the Keck pair |
+| `g2_singles_lpqi_pathfinder` | g2 | Bright northern O/B stars with theta = 0.2-0.4 mas on the LPQI-Pathfinder: diameters from the nightly null crossing |
 | `g3_algol_maunakea` | g3 | Algol closure phases with Subaru + Keck I + Keck II |
 | `g3_betaaur_maunakea` | g3 | beta Aur closure phases with Subaru + Keck I + Keck II |
 | `g3_deltavel_eonsii_paranal` | g3_campaign | delta Vel closure-phase campaign with three EON-SII units at Paranal |

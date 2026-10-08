@@ -123,3 +123,19 @@ def test_lpqi_pathfinder():
         assert cat.load_backend(f"lpqi_nextgen_{key}").detector == n
         assert cat.load_backend(f"lpqi_mpd_{key}").detector == (mb if key == "425" else m)
     assert "surveyed" in " ".join(cat.raw("array", "lpqi_pathfinder")["notes"])        # Caporali & Barbieri + NOT GPS
+
+
+def test_lpqi_hot_star_targets():
+    """The northern O/B targets of g2_singles_lpqi_pathfinder: theta_LD = 2R/d
+    from the quoted radii and distances (no interferometric diameters)."""
+    expect = {"lamori_a": (0.238, 9.934, 3.7), "betcep": (0.320, 70.561, 3.23), "etaori": (0.201, -2.397, 3.42),
+              "epsper": (0.363, 40.010, 2.88), "delori_aa": (0.319, -0.299, 2.23), "gampeg": (0.349, 15.184, 2.84),
+              "zettau": (0.365, 21.1425, 3.01)}
+    for name, (theta, dec, v) in expect.items():
+        t = cat.load_target(name)
+        assert t.theta_ld_mas == pytest.approx(theta, abs=0.001) and t.dec_deg == pytest.approx(dec) and t.v_mag == v
+        assert t.star.teff > 15000 and t.mag_anchors[0][0] == 551.0
+        raw = cat.raw("target", name)
+        assert any("theta_ld_mas" in a for a in raw["assumptions"])
+    camp = cat.load_campaign("g2_singles_lpqi_pathfinder")
+    assert len(camp.targets) == 8 and len(camp.backends) == 10 and camp.option("options.diameter_precision") == 0.05

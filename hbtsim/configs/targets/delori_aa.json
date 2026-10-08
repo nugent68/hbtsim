@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "delori_aa",
+  "label": "delta Ori Aa1 (Mintaka, O9.5 II; eclipsing 5.73 d)",
+  "type": "single",
+  "star": {
+    "label": "delta Ori Aa1",
+    "mass_msun": 17.8,
+    "teff_k": 31400.0,
+    "ld_table": "claret11_spica"
+  },
+  "theta_ld_mas": 0.319,
+  "v_mag": 2.23,
+  "dec_deg": -0.299,
+  "ra_hours": 5.5334,
+  "distance_pc": 382.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 2.23
+    }
+  ],
+  "sources": [
+    "Wikipedia infobox (read 2026-10-08) and the papers it cites: V 2.23, O9.5 II + B eclipsing pair (5.73 d), T_eff 31400 K, R 13.1 Rsun, M 17.8 Msun, d 382 pc"
+  ],
+  "notes": [
+    "No interferometric diameter exists: theta_LD = 2R/d = 0.319 mas from the quoted radius and distance; the Pathfinder would be its first measurement.",
+    "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
+    "V 2.23 is Aa + Ab (2.50 + 3.90); the Aa1 primary dominates. Distance 382 pc (cluster / spectroscopic) against the Hipparcos 212 +/- 30 pc: the diameter scales with it.",
+    "Aa1-Aa2 eclipsing orbit: a 40.1 Rsun, i 79.1 deg, e 0.081."
+  ],
+  "assumptions": [
+    "theta_ld_mas (2R/d, no measurement)",
+    "star.ld_table",
+    "distance_pc (382 vs 212 pc)",
+    "v_mag (Aa + Ab)"
+  ],
+  "summary": {
+    "short": "δ Ori Aa",
+    "components": "O9.5 II + B eclipsing pair (5.73 d)"
+  }
+}

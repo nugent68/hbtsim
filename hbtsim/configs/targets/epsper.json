@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "epsper",
+  "label": "epsilon Per (B0.5 III, spectroscopic binary 14.07 d)",
+  "type": "single",
+  "star": {
+    "label": "epsilon Per",
+    "mass_msun": 13.5,
+    "teff_k": 26500.0,
+    "ld_table": "claret11_spica"
+  },
+  "theta_ld_mas": 0.363,
+  "v_mag": 2.88,
+  "dec_deg": 40.01,
+  "ra_hours": 3.9642,
+  "distance_pc": 196.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 2.88
+    }
+  ],
+  "sources": [
+    "Wikipedia infobox (read 2026-10-08) and the papers it cites: V 2.88, B0.5 III, SB 14.07 d, T_eff 26500 K, R 7.66 Rsun, M 13.5 Msun, d 196 pc"
+  ],
+  "notes": [
+    "No interferometric diameter exists: theta_LD = 2R/d = 0.363 mas from the quoted radius and distance; the Pathfinder would be its first measurement.",
+    "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
+    "Spectroscopic binary (P 14.07 d) whose secondary contributes little light; a tertiary (~26 yr) is unconfirmed."
+  ],
+  "assumptions": [
+    "theta_ld_mas (2R/d, no measurement)",
+    "star.ld_table"
+  ],
+  "summary": {
+    "short": "ε Per",
+    "components": "B0.5 III, SB 14.07 d"
+  }
+}

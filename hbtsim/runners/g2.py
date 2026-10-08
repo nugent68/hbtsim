@@ -137,12 +137,39 @@ def g2_table(instrument: str, tel, backends, systems, b_scan, phase_spec="max_se
     return rows, best
 
 
+def _is_single(target) -> bool:
+    return hasattr(target, "theta_ld_mas")
+
+
+def _tabled_any(target) -> str:
+    if _is_single(target):
+        return "NewEra" if target.star.flux_table is not None else "blackbody"
+    return _tabled(target)
+
+
+def _single_vis2_fn(target, pupils):
+    """pair_track vis2_fn for a SingleStar: the pupil-averaged limb-darkened
+    disk (hbtsim.single.single_star_vis2) at the projected baseline length."""
+    from hbtsim.single import single_star_vis2
+
+    def fn(bvecs, lambda_nm, phase, diameters):
+        b = np.asarray(bvecs, dtype=float)
+        lengths = np.hypot(b[:, 0], b[:, 1])
+        return single_star_vis2(target, lengths, float(lambda_nm), diameters if pupils else None)[0]
+    return fn
+
+
 def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=30.0,
                    phase_spec="max_separation", one_backend_per_night=True, pupils=True,
-                   n_sigma=3.0):
+                   n_sigma=3.0, diameter_precision=0.05):
     """One night of every (target, backend) on the array's station pairs.
-    Returns (rows, filter_set_nights)."""
+    Targets may be binaries (BinarySystem: fringes of the two disks along
+    the track) or single stars (SingleStar: the limb-darkened disk; the row
+    then also carries nights_diameter, the nights to a relative diameter
+    precision `diameter_precision` from the Fisher information of |V|^2 on
+    theta along the track).  Returns (rows, filter_set_nights)."""
     from hbtsim.iact import binary_vis2_fn, pair_track
+    from hbtsim.single import prepare_single
     if array.site is None:
         raise SystemExit("runner g2 array mode needs an array with a site")
     names = "+".join(s.name for s in array.stations)
@@ -154,33 +181,56 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
     for system in systems:
         if system.dec_deg is None:
             raise SystemExit(f"{system.name} has no declination")
-        phase = (max_separation_phase(system) if phase_spec in ("max_separation", None)
-                 else float(phase_spec))
-        pos = positions_at(system, phase)
-        tabled, short = _tabled(system), system.name.split()[0]
-        print(f"\n  {system.name} [{tabled}]: rho = {float(pos.rho):.2f} mas at phase {phase:.3f}, "
-              f"dec {system.dec_deg:+.1f}")
-        per_det = {}
+        single = _is_single(system)
+        # binaries keep the first word (the docs' "Beta", "Algol", "Spica"); single stars
+        # need the constellation too ("gamma Peg" vs "gamma Cas")
+        tabled = _tabled_any(system)
+        short = system.name.split(" (")[0].strip() if single else system.name.split()[0]
+        if single:
+            phase, period, rho = 0.0, None, float(system.theta_ld_mas)
+            print(f"\n  {system.name} [{tabled}]: theta_LD = {rho:.3f} mas (drawn {system.drawn_diameter_mas:.3f}), "
+                  f"V = {system.v_mag:.2f}, dec {system.dec_deg:+.1f}")
+        else:
+            phase = (max_separation_phase(system) if phase_spec in ("max_separation", None)
+                     else float(phase_spec))
+            pos = positions_at(system, phase)
+            period, rho = system.period_days, float(pos.rho)
+            print(f"\n  {system.name} [{tabled}]: rho = {rho:.2f} mas at phase {phase:.3f}, "
+                  f"dec {system.dec_deg:+.1f}")
+        per_det, per_det_fisher = {}, {}
         for label, spec, det, pol in backends:
             arr = Array(tuple(replace(s, detector=det) for s in array.stations), array.site)
             n_streams = polarization_streams(pol)[0]
             nm, widths = spec.channel_centers_nm, spec.channel_widths_nm
             pairs = arr.pairs()
             snr2 = np.zeros(len(pairs))
+            fisher = np.zeros(len(pairs))          # sum (d|V|^2/dtheta / sigma)^2 over blocks, singles only
             v2min, v2max = np.full(len(pairs), np.inf), np.full(len(pairs), -np.inf)
             bmin, bmax = np.full(len(pairs), np.inf), np.full(len(pairs), -np.inf)
             rate = np.zeros(len(pairs))
             scale_min, load_max, n_blocks, hours = 1.0, 0.0, 0, 0.0
+            if single:
+                tgt = prepare_single(system, spec)
+                vis_fn = _single_vis2_fn(tgt, pupils)
+                dth = 0.01 * tgt.theta_ld_mas
+                vis_fn_up = _single_vis2_fn(replace(tgt, theta_ld_mas=tgt.theta_ld_mas + dth), pupils)
+                vis_fn_dn = _single_vis2_fn(replace(tgt, theta_ld_mas=tgt.theta_ld_mas - dth), pupils)
+            else:
+                tgt, vis_fn = system, binary_vis2_fn(system, pupils)
             for lam, w in zip(nm, widths):
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    tr = pair_track(arr, system.dec_deg, float(lam), binary_vis2_fn(system, pupils),
-                                    block_minutes=block_minutes, min_alt_deg=min_alt_deg,
-                                    phase0=phase, period_days=system.period_days)
+                    tr = pair_track(arr, system.dec_deg, float(lam), vis_fn, block_minutes=block_minutes,
+                                    min_alt_deg=min_alt_deg, phase0=phase, period_days=period)
+                    if single:
+                        up = pair_track(arr, system.dec_deg, float(lam), vis_fn_up, block_minutes=block_minutes,
+                                        min_alt_deg=min_alt_deg)
+                        dn = pair_track(arr, system.dec_deg, float(lam), vis_fn_dn, block_minutes=block_minutes,
+                                        min_alt_deg=min_alt_deg)
                 if tr.hour_angle_h.size == 0:
                     continue
                 n_blocks, hours = tr.hour_angle_h.size, tr.hour_angle_h.size * tr.block_s / 3600.0
-                mag = float(system_ab_mag(system, float(lam)))
+                mag = float(tgt.ab_mag(float(lam))) if single else float(system_ab_mag(system, float(lam)))
                 obs = Observation(wavelength_nm=float(lam), filter_width_nm=float(w), t_int_s=tr.block_s,
                                   polarization_mode=pol, backend_throughput=spec.throughput)
                 for p, (i, j, _) in enumerate(pairs):
@@ -193,7 +243,13 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
                         warnings.simplefilter("ignore")
                         r = g2_snr(tr.vis2[p], mag_eff, obs, telescope1=t1, telescope2=t2,
                                    detector1=det)
-                    snr2[p] += float(np.sum(np.asarray(r.snr, float) ** 2))
+                        snr_b = np.asarray(r.snr, float)
+                        if single:
+                            sig = np.asarray(g2_snr(1.0, mag_eff, obs, telescope1=t1, telescope2=t2,
+                                                    detector1=det).snr, float)   # sigma(|V|^2) = 1 / SNR(|V|^2 = 1)
+                            dv = (up.vis2[p] - dn.vis2[p]) / (2.0 * dth)
+                            fisher[p] += float(np.sum((dv * sig) ** 2))
+                    snr2[p] += float(np.sum(snr_b ** 2))
                     v2min[p], v2max[p] = min(v2min[p], tr.vis2[p].min()), max(v2max[p], tr.vis2[p].max())
                     bmin[p], bmax[p] = min(bmin[p], tr.baseline_len_m[p].min()), max(bmax[p], tr.baseline_len_m[p].max())
                     rate[p] += max(r1, r2)
@@ -205,10 +261,17 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
             snr_night = float(np.sqrt(snr2.sum()))
             nights = (n_sigma / snr_night) ** 2 if snr_night > 0 else np.inf
             per_det.setdefault(det.name, []).append(nights)
+            nights_theta = None
+            if single:
+                f_tot = float(fisher.sum())
+                sig_theta = 1.0 / np.sqrt(f_tot) if f_tot > 0 else np.inf        # one night
+                nights_theta = (sig_theta / (diameter_precision * tgt.theta_ld_mas)) ** 2
+                per_det_fisher.setdefault(det.name, []).append(f_tot)
             print(f"    {label:40s} {n_blocks} x {block_minutes:g} min ({hours:.1f} h): "
                   f"SNR2/night = {snr_night:.3g}; nights to {n_sigma:g} sigma on |V|^2: "
                   f"{nights:.3g}; |V|^2 {v2min.min():.3g}-{v2max.max():.3g}; "
-                  f"rate {rate.max():.2e} cps/tel{' READOUT-LIMITED x%.1e' % scale_min if scale_min < 1 else ''}, "
+                  + (f"nights to {100 * diameter_precision:g} % on theta: {nights_theta:.3g}; " if single else "")
+                  + f"rate {rate.max():.2e} cps/tel{' READOUT-LIMITED x%.1e' % scale_min if scale_min < 1 else ''}, "
                   f"dead-time load {load_max:.2f}")
             for p, (i, j, _) in enumerate(pairs):
                 s_p = float(np.sqrt(snr2[p]))
@@ -220,17 +283,31 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
                              "vis2_min": float(v2min[p]), "vis2_max": float(v2max[p]),
                              "snr_night": s_p, "snr_night_all_pairs": snr_night,
                              "nights_detection": None if not np.isfinite(nights) else float(nights),
+                             "nights_diameter": (None if nights_theta is None or not np.isfinite(nights_theta)
+                                                 else float(nights_theta)),
+                             "diameter_precision": diameter_precision if single else None,
                              "n_blocks": int(n_blocks), "hours": float(hours),
                              "rate_cps": float(rate[p]), "readout_limited": scale_min < 1.0,
                              "readout_scale": float(scale_min), "dead_time_load": float(load_max),
-                             "phase": float(phase), "rho_mas": float(pos.rho)})
+                             "phase": float(phase), "rho_mas": rho, "single": single,
+                             "v_mag": float(system.v_mag) if single else None})
         if per_det:
             set_nights[short] = {}
             for dname, lst in per_det.items():
                 tot = float(sum(lst)) if one_backend_per_night else float(1.0 / np.sqrt(sum(1.0 / x**2 for x in lst)))
-                set_nights[short][dname] = None if not np.isfinite(tot) else tot
+                entry = {"detection": None if not np.isfinite(tot) else tot}
+                if dname in per_det_fisher:
+                    # one filter per night: the Fisher information of the set is the sum of
+                    # the per-filter informations, each bought with its own night
+                    f_set = sum(per_det_fisher[dname])
+                    k = len(per_det_fisher[dname])
+                    sig_set = 1.0 / np.sqrt(f_set / k) if f_set > 0 else np.inf   # per night of the rotation
+                    entry["diameter"] = None if not np.isfinite(sig_set) else float((sig_set / (diameter_precision * system.theta_ld_mas)) ** 2)
+                set_nights[short][dname] = entry
                 rule = "one filter per night: nights ADD" if one_backend_per_night else "simultaneous: quadrature"
-                print(f"    filter set on {dname}: {tot:.3g} nights to {n_sigma:g} sigma ({rule})")
+                print(f"    filter set on {dname}: {tot:.3g} nights to {n_sigma:g} sigma ({rule})"
+                      + (f"; rotating the filters, {entry['diameter']:.3g} nights to {100 * diameter_precision:g} % on theta"
+                         if entry.get("diameter") else ""))
     return rows, set_nights
 
 
@@ -258,14 +335,21 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
             min_alt_deg=float(campaign.option("night.min_alt_deg", 30.0)),
             phase_spec=campaign.option("options.phase", "max_separation"),
             one_backend_per_night=bool(campaign.option("options.one_backend_per_night", True)),
-            n_sigma=float(campaign.option("options.detection_sigma", 3.0)))
+            n_sigma=float(campaign.option("options.detection_sigma", 3.0)),
+            diameter_precision=float(campaign.option("options.diameter_precision", 0.05)))
+        any_single = any(r["single"] for r in rows)
+        def _f(x, fmt=".3g"):
+            return "inf" if x is None else format(x, fmt)
         table = [[r["target"], r["tabled"], r["backend"], r["pair"],
                   f"{r['baseline_min_m']:.0f}-{r['baseline_max_m']:.0f}",
                   f"{r['vis2_min']:.3g}-{r['vis2_max']:.3g}", f"{r['snr_night']:.3g}",
-                  "inf" if r["nights_detection"] is None else f"{r['nights_detection']:.3g}"] for r in rows]
-        write_tables(out_dir, table, ["target", "SED", "backend", "pair", "B [m]", "|V|^2",
-                                      "SNR2/night", f"nights ({campaign.option('options.detection_sigma', 3.0):g} sigma)"],
-                     latex=bool(opts.latex))
+                  _f(r["nights_detection"])] + ([_f(r["nights_diameter"]) if r["single"] else "-"] if any_single else [])
+                 for r in rows]
+        header = ["target", "SED", "backend", "pair", "B [m]", "|V|^2", "SNR2/night",
+                  f"nights ({campaign.option('options.detection_sigma', 3.0):g} sigma)"]
+        if any_single:
+            header.append(f"nights ({100 * float(campaign.option('options.diameter_precision', 0.05)):g} % theta)")
+        write_tables(out_dir, table, header, latex=bool(opts.latex))
         return {"mode": "array_track", "instrument": inst, "rows": rows, "filter_set_nights": set_nights,
                 "one_backend_per_night": bool(campaign.option("options.one_backend_per_night", True))}
     if tel is None:

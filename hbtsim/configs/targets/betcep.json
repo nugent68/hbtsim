@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "betcep",
+  "label": "beta Cep (Alfirk, B1 IV, beta Cep pulsator)",
+  "type": "single",
+  "star": {
+    "label": "beta Cep",
+    "mass_msun": 12.0,
+    "teff_k": 23600.0,
+    "ld_table": "claret11_spica"
+  },
+  "theta_ld_mas": 0.32,
+  "v_mag": 3.23,
+  "dec_deg": 70.561,
+  "ra_hours": 21.4777,
+  "distance_pc": 210.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 3.23
+    }
+  ],
+  "sources": [
+    "Wikipedia infobox (read 2026-10-08) and the papers it cites: V 3.23, B1 IV, beta Cep pulsator (P 0.19048 d, 0.11 mag), T_eff 23600 K, R 7.22 Rsun, M 12.0 Msun, d 210 pc"
+  ],
+  "notes": [
+    "No interferometric diameter exists: theta_LD = 2R/d = 0.32 mas from the quoted radius and distance; the Pathfinder would be its first measurement.",
+    "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
+    "Radial pulsation period 0.19048 d with a 0.11 mag amplitude: the radius change moves the first null by tens of metres over a night.",
+    "Triple: the Be companion Ab (81 yr orbit, ~5 Msun) and the V 7.8 companion B at 13.6 arcsec are excluded here.",
+    "Mass 12 Msun adopted for a B1 IV star (the infobox quotes 7.4 Msun for the primary, inconsistent with its radius and gravity)."
+  ],
+  "assumptions": [
+    "theta_ld_mas (2R/d, no measurement)",
+    "star.ld_table",
+    "star.mass_msun"
+  ],
+  "summary": {
+    "short": "β Cep",
+    "components": "B1 IV, beta Cep pulsator (P 0.19048 d, 0.11 mag)"
+  }
+}
