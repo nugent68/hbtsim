@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "campaign",
   "name": "g2_binaries_lpqi_pathfinder",
-  "label": "The four binaries on the LPQI-Pathfinder (NOT + TNG, 550 m, five 1 nm filters, one filter per night, three detector cases)",
+  "label": "The four binaries on the LPQI-Pathfinder (NOT + TNG, 532 m, five 1 nm filters, one filter per night; lensed IMSE array and MPD single pixel)",
   "runner": "g2",
   "targets": [
     "betaaur",
@@ -14,11 +14,6 @@
     "array": "lpqi_pathfinder"
   },
   "backends": [
-    "lpqi_halpha",
-    "lpqi_hbeta",
-    "lpqi_500",
-    "lpqi_550",
-    "lpqi_425",
     "lpqi_nextgen_halpha",
     "lpqi_nextgen_hbeta",
     "lpqi_nextgen_500",
@@ -47,6 +42,7 @@
     "latex": true
   },
   "notes": [
-    "At 471-550 m every catalog binary is resolved out (first null of a 1 mas disk at ~140 m for 500 nm): the table quantifies how far."
+    "At 471-550 m every catalog binary is resolved out (first null of a 1 mas disk at ~140 m for 500 nm): the table quantifies how far.",
+    "The bare (3.5 % fill factor) IMSE array of the Sensors paper is not a Pathfinder option any more (F. Prada, 2026-10-07); its backends lpqi_<filter> stay in the catalog as the published reference and can be added back with --set."
   ]
 }

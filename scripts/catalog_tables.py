@@ -163,17 +163,15 @@ def lpqi_parameters() -> str:
              ("five-telescope network", ", ".join(f"{s.name} {s.telescope.diameter_m:g} m" for s in orm.stations)
               + f"; baselines {min(lengths.values()):.0f}–{max(lengths.values()):.0f} m", "NOT, WHT, INT GPS pages; TNG survey; GTC web page (arc-second)"),
              ("telescope throughput", ", ".join(f"{s.telescope.throughput:g}" for s in pf.stations), "hbtsim default (**assumed**)"),
-             ("detector (published)", f"IMSE 64×64: PDE {d.pde(550.0):.3f} (fill factor 3.5 % × PDP 75 %), {d.jitter_fwhm_ps:.0f} ps FWHM, "
-                                      f"dead {d.dead_time_ns:g} ns, dark {d.dark_cps_per_pixel:g} cps/pixel, "
-                                      f"{d.n_pixels} pixels, readout ≤ {d.max_total_cps:.1e} cps",
-              "Quintana et al. 2026, Sensors 26, 5757; timing = White Rabbit target (**assumed**), n_pixels **assumed**"),
-             ("detector (next IMSE-LPQI 64×64)", f"PDE {n.pde(500.0):.2f} flat 400–550 nm, {n.pde(650.0):.2f} at 650 nm (microlenses); "
+             ("detector (Pathfinder: lensed IMSE-LPQI 64×64)", f"PDE {n.pde(500.0):.2f} flat 400–550 nm, {n.pde(650.0):.2f} at 650 nm (microlenses); "
                                                  f"{n.jitter_fwhm_ps:.0f} ps FWHM, {n.n_pixels} pixels, dead {n.dead_time_ns:g} ns, "
                                                  f"dark {n.dark_cps_per_pixel:g} cps/pixel, readout ≤ {n.max_total_cps:.1e} cps",
               "F. Prada 2026-10-07; PDE shape and timing **assumed**"),
-             ("detector (MPD single pixel, back-up)", f"PDE {m.pde(550.0):.2f} flat 400–700 nm, {m.jitter_fwhm_ps:.0f} ps FWHM (275 ps below 470 nm), "
+             ("detector (Pathfinder: MPD single pixel, back-up)", f"PDE {m.pde(550.0):.2f} flat 400–700 nm, {m.jitter_fwhm_ps:.0f} ps FWHM (275 ps below 470 nm), "
                                                    f"dead {m.dead_time_ns:g} ns, dark {m.dark_cps_per_pixel:g} cps, 1 pixel, link ceiling unknown",
               "F. Prada 2026-10-07; flat PDE **assumed**, ceiling **unknown**"),
+             ("bare IMSE array (reference only)", f"PDE {d.pde(550.0):.3f} = fill factor 3.5 % × PDP 75 %, otherwise as the lensed array with {d.n_pixels} pixels",
+              "Quintana et al. 2026, Sensors 26, 5757; not a Pathfinder option"),
              ("filters", "; ".join(f"{f.channel_centers_nm[0]:.1f} nm ({f.channel_width_nm:.1f} nm)" for f in filters)
               + f"; throughput {filters[0].throughput:g}; one per night", "wavelengths **to be confirmed**; width and one-per-night from the user")]
     out = ["| " + " | ".join(rows[0]) + " |", "|---|---|---|"]

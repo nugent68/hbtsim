@@ -7,7 +7,7 @@
   "throughput": 0.3,
   "collecting_area_m2": 13.8,
   "sources": [
-    "Wikipedia: William Herschel Telescope, 4.2 m, collecting area 13.8 m^2"
+    "ING (ing.iac.es): 4.2 m primary, collecting area 13.8 m^2 (Wikipedia); position 28 45 38.3 N, 17 52 53.9 W, 2332 m ground floor (GPS 1993, ING Observers' Guide 1994 1.2)"
   ],
   "notes": [
     "Throughput 0.3 (atmosphere + telescope optics to the camera, excl. filter and PDE) is the hbtsim default, not an LPQI number; Prada et al. 2026 (ELTI) adopt an overall instrumental efficiency of 0.5 for a SPAD camera at the focus."

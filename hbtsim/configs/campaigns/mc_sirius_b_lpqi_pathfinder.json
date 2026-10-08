@@ -9,7 +9,6 @@
     "array": "lpqi_pathfinder"
   },
   "backends": [
-    "lpqi_500",
     "lpqi_nextgen_500",
     "lpqi_mpd_500"
   ],

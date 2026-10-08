@@ -7,10 +7,11 @@
   "throughput": 0.3,
   "collecting_area_m2": 78.54,
   "sources": [
-    "Wikipedia: Gran Telescopio Canarias, 10.4 m segmented primary, collecting area 78.54 m^2"
+    "gtc.iac.es: 10.4 m segmented primary (36 hexagonal segments), 28 45 24 N, 17 53 31 W, about 2300 m; Wikipedia: collecting area 78.54 m^2, altitude 2267 m"
   ],
   "notes": [
-    "Throughput 0.3 (atmosphere + telescope optics to the camera, excl. filter and PDE) is the hbtsim default, not an LPQI number; Prada et al. 2026 (ELTI) adopt an overall instrumental efficiency of 0.5 for a SPAD camera at the focus."
+    "Throughput 0.3 (atmosphere + telescope optics to the camera, excl. filter and PDE) is the hbtsim default, not an LPQI number; Prada et al. 2026 (ELTI) adopt an overall instrumental efficiency of 0.5 for a SPAD camera at the focus.",
+    "GTC FITS headers carry the INT's coordinates (LATITUDE +28:45:43.2, LONGITUD +17:52:39.5) and are not a GTC position."
   ],
   "assumptions": [
     "throughput",

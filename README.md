@@ -378,7 +378,7 @@ traced to its inputs. `suite_phase6` runs everything (`--jobs 4`).
 |---|---|---|
 | `chromatic_c2pu_regression` | chromatic | Chromatic-diameter regression: Sirius A and Vega, 2 x 1 m, 320 ch at R = 5000 around H-beta, 6 h |
 | `chromatic_sirius_vega_eonsii` | chromatic | Chromatic (wavelength-dependent) diameters of Sirius A and Vega with the EON-SII pair from Teide |
-| `g2_binaries_lpqi_pathfinder` | g2 | The four binaries on the LPQI-Pathfinder (NOT + TNG, 550 m, five 1 nm filters, one filter per night, three detector cases) |
+| `g2_binaries_lpqi_pathfinder` | g2 | The four binaries on the LPQI-Pathfinder (NOT + TNG, 532 m, five 1 nm filters, one filter per night; lensed IMSE array and MPD single pixel) |
 | `g2_c2pu` | g2 | Two-telescope g2 sensitivity of the four binaries on the C2PU 1 m pair |
 | `g2_eonsii` | g2 | Two-telescope g2 sensitivity of the four binaries on the EON-SII pair |
 | `g2_keck` | g2 | Two-telescope g2 sensitivity of the four binaries on the Keck pair |

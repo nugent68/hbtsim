@@ -164,10 +164,10 @@ def test_g2_array_track_mode(tmp_path):
     by = {r["backend"]: r for r in rows}
     # the next array has 20x the PDE but runs into the same 6.7e6 cps capture
     # ceiling on a bright star, so the gain is modest (and readout-limited)
-    nxt, pub = by["LPQI 1 nm 500 nm continuum, next IMSE 64x64"], by["LPQI 1 nm 500 nm continuum, IMSE 64x64"]
+    nxt, pub = by["LPQI 1 nm 500 nm continuum, next IMSE 64x64"], by["LPQI 1 nm 500 nm continuum, bare IMSE 64x64 (reference)"]
     assert nxt["snr_night"] > pub["snr_night"] and nxt["readout_limited"] and not pub["readout_limited"]
     sets = res["filter_set_nights"]["Spica"]
-    imse_name = "LPQI-Pathfinder IMSE 64x64 SPAD array (I2CASS, LiDAR heritage)"
+    imse_name = "IMSE 64x64 SPAD array as published (3.5 % fill factor, no microlenses; reference only)"
     imse = [r for r in rows if r["detector"] == imse_name]
     assert len(imse) == 2 and sets[imse_name] == \
         pytest.approx(sum(r["nights_detection"] for r in imse))          # one filter per night: nights add

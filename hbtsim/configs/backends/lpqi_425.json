@@ -2,12 +2,12 @@
   "schema_version": 1,
   "kind": "backend",
   "name": "lpqi_425",
-  "label": "LPQI 1 nm 425 nm continuum, IMSE 64x64",
+  "label": "LPQI 1 nm 425 nm continuum, bare IMSE 64x64 (reference)",
   "model": "counting",
   "spectrograph": "filter_lpqi_425_1nm",
   "detector": "lpqi_spad64_i2cass",
   "polarization_mode": "unpolarized",
   "notes": [
-    "One filter at a time: a night on this backend excludes the other LPQI filters (campaign option one_backend_per_night)."
+    "Reference case on the bare 3.5 %-fill-factor array of the Sensors paper, not a Pathfinder option; the campaigns use lpqi_nextgen_* and lpqi_mpd_*."
   ]
 }

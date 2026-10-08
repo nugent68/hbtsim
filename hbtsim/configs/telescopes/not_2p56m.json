@@ -6,10 +6,11 @@
   "diameter_m": 2.56,
   "throughput": 0.3,
   "sources": [
-    "Wikipedia: Nordic Optical Telescope, primary 2.560 m; focal length 28.16 m (f/11)"
+    "NOT technical details (not.iac.es/telescope/tti/technical-details.html): primary 2560 mm Zerodur f/2, (Super) Ritchey-Chretien, system focal length 28160 mm (f/11), focal-plane scale 7.33 arcsec/mm, altitude-azimuth mount, 30 arcmin field; GPS position 28 45 26.2 N, 17 53 06.3 W, 2382 m"
   ],
   "notes": [
-    "Throughput 0.3 (atmosphere + telescope optics to the camera, excl. filter and PDE) is the hbtsim default, not an LPQI number; Prada et al. 2026 (ELTI) adopt an overall instrumental efficiency of 0.5 for a SPAD camera at the focus."
+    "Throughput 0.3 (atmosphere + telescope optics to the camera, excl. filter and PDE) is the hbtsim default, not an LPQI number; Prada et al. 2026 (ELTI) adopt an overall instrumental efficiency of 0.5 for a SPAD camera at the focus.",
+    "Plate scale 0.18 arcsec per 24.5 um pixel at the f/11 focus (the Sensors paper's figure follows from the 28.16 m focal length)."
   ],
   "assumptions": [
     "throughput"
