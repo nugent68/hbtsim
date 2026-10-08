@@ -298,7 +298,7 @@ def _render_binary(path, system, backend, arr, mids, alt, bvec, blen, nights, bu
     ax_orb.set_xlim(lim, -lim); ax_orb.set_ylim(-lim, lim); ax_orb.set_aspect("equal")
     ax_orb.set_xlabel("ΔRA [mas]"); ax_orb.set_ylabel("ΔDec [mas]")
     ax_orb.set_title("this night's 68 % region of the separation (stripes: one baseline\n"
-                     "direction fixes it only along itself); dashed: orbit at a ± 1σ (Fisher, local)", fontsize=9)
+                     "direction fixes it only along itself); dashed: a ± 1σ (Fisher)", fontsize=9)
     orb_txt = ax_orb.text(0.03, 0.03, "", transform=ax_orb.transAxes, va="bottom", fontsize=9)
     orb_true, = ax_orb.plot([], [], "o", color="tab:orange", ms=6, zorder=5)
     ox, oy = np.asarray(porb.x2) - np.asarray(porb.x1), np.asarray(porb.y2) - np.asarray(porb.y1)

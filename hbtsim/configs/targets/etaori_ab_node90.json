@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "etaori_ab_node90",
+  "extends": "etaori_ab",
+  "label": "eta Ori Aa with the line of nodes rotated by 90 deg (orbit along East-West)",
+  "node_pa_deg": 90.0,
+  "notes": [
+    "The same pair as etaori_ab with node_pa_deg 90: the ascending node of the spectroscopic orbit is unknown, so the apparent orbit (an almost edge-on line) may lie at any position angle; this entry puts it East-West, perpendicular to etaori_ab's North-South assumption, to show how the NOT-TNG fringe geometry depends on it."
+  ],
+  "assumptions": [
+    "node_pa_deg (unknown; 90 chosen as the alternative to 0)",
+    "distance_pc (Hipparcos, 32 %)"
+  ]
+}

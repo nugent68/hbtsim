@@ -346,6 +346,20 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
     One caveat on Hα itself: a 1 nm filter on a B1 V star sits in the
     photospheric Hα absorption, which the blackbody model ignores; a red
     continuum filter beside the line would be strictly better.
+- **η Ori Aa with the node rotated by 90°** (`movie_etaori_lpqi_orbit_node90`,
+  target `etaori_ab_node90`, which extends `etaori_ab` with `node_pa_deg` 90):
+  the same eight nights with the apparent orbit East–West instead of
+  North–South, since the node angle is unknown. The fringe geometry changes
+  visibly: at quadrature the NOT–TNG track now sweeps a full fringe (|V|²
+  0.02–0.56 against 0.08–0.14 at PA 0) because the baseline's east component
+  is what varies most through the night, and the stripes of the per-night
+  region run across the orbit instead of along it. The precision does not:
+  σ(a)/a = 8.8 % (Fisher) after the eight nights against 8.5 %, with the
+  global check giving a 10 % rms scale error and 4 alias islands for one
+  orbit, 4.9 % and 2 islands for two. The scale information comes from how
+  the fringe period changes along the orbit, which a single baseline samples
+  about equally at either orientation; the 3.7 % at Ω = 45° is the special
+  case of the node along the baseline.
 
 The movies are written to `output/campaigns/<campaign>/<campaign>.mp4`
 (PNG frames when ffmpeg is absent); `--no-figures` computes the numbers only.

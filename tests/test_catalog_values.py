@@ -156,6 +156,9 @@ def test_etaori_binary_target():
     assert not in_eclipse(s, positions_at(s, 0.0)) and in_eclipse(s, positions_at(s, 0.25)) and in_eclipse(s, positions_at(s, 0.75))
     raw = cat.raw("target", "etaori_ab")
     assert any("node_pa_deg" in a for a in raw["assumptions"]) and any("distance_pc" in a for a in raw["assumptions"])
+    s90 = cat.load_target("etaori_ab_node90")
+    assert s90.node_pa_deg == 90.0 and s90.semimajor_au == s.semimajor_au and s90.mag_anchors == s.mag_anchors
+    assert cat.load_campaign("movie_etaori_lpqi_orbit_node90").target.node_pa_deg == 90.0
     camp = cat.load_campaign("movie_etaori_lpqi_orbit")
     assert camp.runner == "nightmovie" and camp.option("options.third_light_fraction") == pytest.approx(0.214)
     assert len(camp.backends) == 1 and camp.backends[0].name.startswith("LPQI 1 nm H-alpha")
