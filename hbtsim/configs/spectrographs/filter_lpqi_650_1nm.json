@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "filter_lpqi_650_1nm",
+  "label": "LPQI 1 nm filter, 650 nm red continuum beside H-alpha (650 nm)",
+  "lambda_min_nm": 649.5,
+  "lambda_max_nm": 650.5,
+  "n_channels": 1,
+  "throughput": 0.9,
+  "sources": [
+    "PROPOSED here (2026-10-08), not in F. Prada's confirmed set: a 1 nm red continuum filter 6 nm blueward of H-alpha, for binaries whose hot primaries have winds or line emission (iota Ori) -- keeps the red filter's advantages (least-resolved disks, best fringe contrast, 35 ps MPD) without sitting in the line."
+  ],
+  "notes": [
+    "Same width and throughput as the confirmed LPQI filters; 650.0 nm avoids H-alpha (656.3), C II 657.8/658.3 and He I 667.8.",
+    "Throughput 0.9 = FILTER_THROUGHPUT (filter + relay optics); the telescope file carries the rest."
+  ],
+  "assumptions": [
+    "lambda_min_nm",
+    "lambda_max_nm",
+    "the filter itself (proposed, to be discussed with the LPQI team)"
+  ]
+}

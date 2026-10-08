@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "iotaori_aa",
+  "label": "iota Ori Aa (Hatysa: O9 III + B0.8 III/IV, 29.13 d, e 0.745)",
+  "type": "binary",
+  "primary": {
+    "label": "iota Ori Aa1 (O9 III)",
+    "mass_msun": 23.18,
+    "radius_rsun": 9.1,
+    "teff_k": 31000.0,
+    "ld_table": "claret11_spica"
+  },
+  "secondary": {
+    "label": "iota Ori Aa2 (B0.8 III/IV)",
+    "mass_msun": 13.44,
+    "radius_rsun": 4.94,
+    "teff_k": 18319.0,
+    "ld_table": "claret11_spica"
+  },
+  "period_days": 29.13376,
+  "inclination_deg": 62.86,
+  "distance_pc": 412.0,
+  "semimajor_au": 0.61535,
+  "eccentricity": 0.7452,
+  "arg_periastron_deg": 122.15,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 2.85
+    }
+  ],
+  "node_pa_deg": 0.0,
+  "dec_deg": -5.9099,
+  "ra_hours": 5.5906,
+  "sources": [
+    "Wikipedia infobox (read 2026-10-08), citing the BRITE + spectroscopy analysis of the eclipsing orbit (Pablo et al. 2017, MNRAS 467, 2494): P 29.13376 d, e 0.7452 (+0.0010/-0.0014), i 62.86 (+0.17/-0.14) deg, omega 122.15 +/- 0.11 deg, a 132.32 (+1.01/-0.96) Rsun; masses 23.18 (+0.57/-0.53) and 13.44 +/- 0.30 Msun; radii 9.10 (+0.12/-0.10) and 4.94 (+0.16/-0.23) Rsun; T_eff 31 000 K and 18 319 (+531/-758) K; distance 412 (+14/-13) pc",
+    "van Leeuwen 2007 (Hipparcos): parallax 1.40 +/- 0.22 mas = 714 (+140/-100) pc -- inconsistent with the orbit's 412 pc by a factor 1.7; no Gaia parallax (V 2.77)",
+    "Tertiary Ab (7.77 Msun, B2 subgiant) at 155 mas by speckle interferometry; iota Ori B (V 7) at 11 arcsec"
+  ],
+  "notes": [
+    "a = 132.32 Rsun = 0.6153 AU; at 412 pc that is 1.494 mas with the stars 0.205 and 0.111 mas across, separations 0.18-1.9 mas around the eccentric orbit (fringe periods 70-900 m at 650 nm). The fringe spacing measures a in mas; against a in AU from the orbit that is a geometric distance which decides between 412 and 714 pc in a night.",
+    "Anchor V 2.85 = the Aa1 + Aa2 light (system V 2.77 less the tertiary): Ab at 155 mas is inside any field stop and is taken as 7 % third light (campaign option third_light_fraction 0.07, from a B2 IV against O9 III + B0.8 III); B at 11 arcsec is excluded.",
+    "The O9 III primary has a wind and the pair is a colliding-wind X-ray binary: the fringe should be measured in red continuum (650 nm) rather than in H-alpha.",
+    "node_pa_deg 0 is ASSUMED (unknown). Claret & Bloemen 2011 Spica law for both components; NewEra does not cover these temperatures.",
+    "Parameters are the infobox's; check against Pablo et al. 2017 before observing."
+  ],
+  "assumptions": [
+    "node_pa_deg (unknown)",
+    "distance_pc (412 pc from the orbit solution; Hipparcos says 714)",
+    "third light from Ab (~7 %)",
+    "Wikipedia-quoted parameters not yet checked against Pablo et al. 2017"
+  ],
+  "summary": {
+    "short": "ι Ori Aa",
+    "components": "O9 III + B0.8 III, 29.1 d, e 0.75",
+    "eclipses": "none (i 63)",
+    "newera": "blackbody",
+    "sources": "Pablo et al. 2017 (BRITE); Hipparcos"
+  }
+}

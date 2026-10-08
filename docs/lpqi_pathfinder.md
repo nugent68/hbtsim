@@ -68,7 +68,7 @@ prints the provenance).
 | detector (Pathfinder: lensed IMSE-LPQI 64×64) | PDE 0.50 flat 400–550 nm, 0.20 at 650 nm (microlenses); 500 ps FWHM, 4 pixels, dead 10 ns, dark 1.68 cps/pixel, readout ≤ 6.7e+06 cps | F. Prada 2026-10-07; PDE shape and timing **assumed** |
 | detector (Pathfinder: MPD single pixel, back-up) | PDE 0.30 flat 400–700 nm, 35 ps FWHM (275 ps below 470 nm), dead 55 ns, dark 50 cps, 1 pixel, link ceiling unknown | F. Prada 2026-10-07; flat PDE **assumed**, ceiling **unknown** |
 | bare IMSE array (reference only) | PDE 0.026 = fill factor 3.5 % × PDP 75 %, otherwise as the lensed array with 25 pixels | Quintana et al. 2026, Sensors 26, 5757; not a Pathfinder option |
-| filters | 425.0 nm (1.0 nm); 500.0 nm (1.0 nm); 550.0 nm (1.0 nm); 656.3 nm (1.0 nm); 486.1 nm (1.0 nm); throughput 0.9; one per night | wavelengths **to be confirmed**; width and one-per-night from the user |
+| filters | 425.0 nm (1.0 nm); 500.0 nm (1.0 nm); 550.0 nm (1.0 nm); 650.0 nm (1.0 nm); 656.3 nm (1.0 nm); 486.1 nm (1.0 nm); throughput 0.9; one per night | wavelengths **to be confirmed**; width and one-per-night from the user |
 <!-- /catalog -->
 
 The filter set (Hα, Hβ, 500, 550 and 425 nm, 1 nm wide, one per night) was
@@ -230,7 +230,7 @@ disputed at the factor-two level; λ Ori A's parallax is 15 % uncertain); the
 multiples' light is attributed to one star; the MPD link ceiling is unknown; a
 field stop must exclude λ Ori B (4″) and η Ori's companions.
 
-## Movies (`hbtsim run movie_delori_lpqi_night`, `movie_betcep_lpqi_pulsation`, `movie_etaori_lpqi_orbit`)
+## Movies (`hbtsim run movie_delori_lpqi_night`, `movie_betcep_lpqi_pulsation`, `movie_etaori_lpqi_orbit`, `movie_iotaori_lpqi_orbit`)
 
 Two campaigns of the `nightmovie` runner animate the measurement, one frame per
 5-min block, with the MPD behind the 550 nm filter (whose first null at 1.22 λ/θ
@@ -403,6 +403,47 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
   realization's global fit is a = 0.709 mas (68 % 0.637–0.789), d = 306 pc,
   node offset 3°, three islands.
 
+- **ι Ori Aa, the better distance target** (`movie_iotaori_lpqi_orbit`, target
+  `iotaori_aa`, eight nights every 3.64 d, 650 nm red continuum on the MPD):
+  a search of the bright northern double-lined pairs for the Pathfinder's
+  figure of merit (V ≲ 4, both stars unresolved at 530 m, comparable fluxes,
+  separation 1–3 mas so the sweep crosses several fringes, a disputed
+  distance) singled out Hatysa: O9 III + B0.8 III, P 29.13 d, e 0.745,
+  a = 132.3 R☉ from the BRITE eclipsing-orbit solution (Pablo et al. 2017),
+  which puts it at 412 pc while Hipparcos says 1.40 ± 0.22 mas = 714 pc;
+  Gaia has no parallax. At 412 pc a = 1.494 mas with the stars 0.205 and
+  0.111 mas across and separations of 0.2–1.9 mas around the orbit. It is
+  1.7 mag brighter than η Ori (σ(|V|²) = 0.23 per 10-min block against
+  0.89), and the eccentric orbit sampled every P/8 spreads the fringe
+  spacing from 70 to 900 m, which is what kills the aliases. The other
+  candidates fail: δ Ori Aa has the most dramatic distance dispute (212 vs
+  382 pc) but its 0.32 mas primary is resolved out and the fringe contrast
+  is 0.016; σ Ori Aa,Ab would be excellent but CHARA already has its
+  dynamical distance to 0.3 % (Schaefer et al. 2016); Spica, Mizar A and
+  β¹ Sco have resolved disks and precise parallaxes; ζ Ori's 36 mas orbit
+  has a 4 m fringe period; ε Per is single-lined.
+  Filters: with the primary at 0.2 mas every bluer filter is worse (the disk
+  is twice as resolved at Hβ, the 18 300 K secondary's share drops, and the
+  MPD's extra photons are cancelled by the shorter coherence time): fringe-
+  only σ(a)/a over eight nights 2.0 % at Hα, 2.4 % at 550, 3.5 % at Hβ,
+  13 % at 425 nm with the 275 ps blue MPD; alternating red and blue nights is
+  worse than red alone on every parameter (scale, node, primary diameter,
+  secondary temperature), and it doubles the alias islands. The O9 III
+  primary has a wind and the pair is a colliding-wind X-ray source, so the
+  movie uses a proposed 1 nm filter at 650 nm (`filter_lpqi_650_1nm`,
+  backend `lpqi_mpd_650`), red continuum 6 nm blueward of Hα, for all
+  nights. The movie: separations and fringe periods change night by night,
+  the best night detects its fringe at 4σ (η Ori: 1.5σ), and the closing
+  fit of all eight nights has a single 95 % island at the truth,
+  a = 1.494 mas with 68 % range 1.449–1.523 (±2.5 %), d = 412 pc; the
+  Fisher σ(d)/d is 1.5 % (fringe only 2.0 %). Over 20 noise realizations
+  the rms scale error is 1.5 % with the truth in the deepest island 85 % of
+  the time. Hipparcos's 714 pc would give a fringe period 1.7 times longer
+  and is excluded in one night. Caveats: node angle assumed 0 (90° gives
+  0.9 %); third light 7 % from Ab at 155 mas; the infobox parameters should
+  be checked against Pablo et al. 2017; the 650 nm filter is not in the
+  confirmed LPQI set.
+
 The movies are written to `output/campaigns/<campaign>/<campaign>.mp4`
 (PNG frames when ffmpeg is absent); `--no-figures` computes the numbers only.
 
@@ -410,7 +451,8 @@ The movies are written to `output/campaigns/<campaign>/<campaign>.mp4`
 
 1. The filter list is confirmed (Hα, Hβ, 500, 550, 425 nm; 1 nm; one per
    night); the exact central wavelengths, widths and the 0.9 throughput are
-   still working values.
+   still working values. A 650 nm red continuum filter (1 nm, beside Hα) is
+   proposed here for binaries with wind-affected Hα (ι Ori).
 2. The NOT–TNG baseline: 532 m from the two surveyed positions against the
    project's "550 m"; the GTC position (arc-second web value only; its FITS
    headers carry the INT's coordinates) and whether the WHT / INT ground-floor

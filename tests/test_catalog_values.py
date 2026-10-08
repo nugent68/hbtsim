@@ -168,3 +168,30 @@ def test_etaori_binary_target():
     camp = cat.load_campaign("movie_etaori_lpqi_orbit")
     assert camp.runner == "nightmovie" and camp.option("options.third_light_fraction") == pytest.approx(0.214)
     assert len(camp.backends) == 1 and camp.backends[0].name.startswith("LPQI 1 nm H-alpha")
+
+
+def test_iotaori_binary_target_and_red_filter():
+    """iota Ori Aa (the Pathfinder's best geometric-distance binary) and the
+    proposed 650 nm red continuum filter: angular scales at the orbit's
+    412 pc, the eccentric separation range, and the campaign's plan."""
+    from hbtsim.orbit import positions_at
+    from hbtsim.params import in_eclipse
+    s = cat.load_target("iotaori_aa")
+    assert s.period_days == pytest.approx(29.13376) and s.eccentricity == pytest.approx(0.7452)
+    assert s.semimajor_au == pytest.approx(132.32 * 0.00465047, rel=1e-3)
+    assert s.angular_semimajor_mas == pytest.approx(1.494, abs=0.003)
+    assert 2 * s.angular_radius_mas(s.primary) == pytest.approx(0.205, abs=0.002)
+    assert 2 * s.angular_radius_mas(s.secondary) == pytest.approx(0.112, abs=0.002)
+    import numpy as np
+    rho = np.array([float(positions_at(s, p).rho) for p in np.linspace(0, 1, 200, endpoint=False)])
+    assert 0.15 < rho.min() < 0.25 and 1.8 < rho.max() < 2.0
+    assert not any(in_eclipse(s, positions_at(s, p)) for p in np.linspace(0, 1, 200, endpoint=False))
+    f = cat.load_spectrograph("filter_lpqi_650_1nm")
+    assert f.channel_centers_nm[0] == pytest.approx(650.0) and f.channel_widths_nm[0] == pytest.approx(1.0)
+    b = cat.load_backend("lpqi_mpd_650")
+    assert b.detector.name == cat.load_detector("lpqi_spad1_mpd").name
+    camp = cat.load_campaign("movie_iotaori_lpqi_orbit")
+    assert camp.option("options.night_step_days") == pytest.approx(29.13376 / 8, abs=1e-3)
+    assert camp.option("options.third_light_fraction") == pytest.approx(0.07) and camp.option("options.nights") == 8
+    raw = cat.raw("target", "iotaori_aa")
+    assert any("Pablo" in a for a in raw["assumptions"]) and any("node_pa_deg" in a for a in raw["assumptions"])

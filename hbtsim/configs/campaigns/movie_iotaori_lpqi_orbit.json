@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_iotaori_lpqi_orbit",
+  "label": "Movie: iota Ori Aa through one 29-day orbit on the LPQI-Pathfinder, eight nights every 3.64 d (650 nm red continuum, MPD)",
+  "runner": "nightmovie",
+  "target": "iotaori_aa",
+  "instrument": {
+    "array": "lpqi_pathfinder"
+  },
+  "backends": [
+    "lpqi_mpd_650"
+  ],
+  "night": {
+    "block_minutes": 10.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "fps": 15,
+    "dpi": 110,
+    "seed": 11,
+    "nights": 8,
+    "phase0": 0.0,
+    "night_step_days": 3.6417,
+    "third_light_fraction": 0.07,
+    "display_bin_blocks": 3,
+    "fit_step_mas": 0.005
+  },
+  "outputs": {
+    "figures": true
+  },
+  "notes": [
+    "The best northern binary for the Pathfinder's geometric-distance measurement: V 2.8, separation up to 1.9 mas (several fringes per night), both stars unresolved at 530 m, and a distance in dispute (Hipparcos 714 pc vs the eclipsing orbit's 412 pc).",
+    "Eight nights every 3.64 d (P/8) step the eccentric orbit by 0.125 in mean anomaly: separations 0.2-1.9 mas, no eclipses (i 63 deg).",
+    "One red continuum filter (650 nm, proposed) for all nights: the least-resolved disks, the best fringe contrast and the 35 ps MPD, without sitting in H-alpha where the O9 III wind may alter the flux ratio. Bluer filters and red/blue mixes were computed to be worse on every parameter.",
+    "Third light 0.07 from the tertiary Ab at 155 mas. node_pa_deg 0 assumed. The closing act fits all nights for the orbit's scale and node angle."
+  ]
+}

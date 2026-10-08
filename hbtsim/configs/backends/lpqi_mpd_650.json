@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "lpqi_mpd_650",
+  "label": "LPQI 1 nm 650 nm red continuum, MPD single pixel",
+  "model": "counting",
+  "spectrograph": "filter_lpqi_650_1nm",
+  "detector": "lpqi_spad1_mpd",
+  "polarization_mode": "unpolarized",
+  "notes": [
+    "The MPD single-pixel back-up detector (35 ps) behind the proposed 650 nm continuum filter."
+  ]
+}
