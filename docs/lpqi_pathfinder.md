@@ -370,6 +370,23 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
   the fringe period changes along the orbit, which a single baseline samples
   about equally at either orientation; the 3.7 % at Ω = 45° is the special
   case of the node along the baseline.
+- **Two orbits** (`movie_etaori_lpqi_2orbits`, `movie_etaori_lpqi_2orbits_node90`,
+  sixteen consecutive nights, 20 fps): with P = 7.98763 d the nightly phase
+  step is 0.1252, so night 9 falls at phase 1.0016 and the second orbit
+  repeats the first's phases. A gap of whole nights cannot change that
+  (0.0002 of phase per day of gap; half a step after 323 days), the offsets
+  reachable within a season (≤ 0.03 after 150 days) sample phases nearer the
+  eclipses that carry less fringe information, and the 20-realization check
+  agrees: 16 consecutive nights give a 6.2 % rms scale error with the truth
+  in the deepest island 60 % of the time, against 7.8 % / 45 % for a 150-day
+  gap and 6.2 % / 45 % for an 11-month one. So consecutive nights are the
+  right second orbit. The rendered realizations: at PA 0 the global fit is
+  a = 0.717 mas (68 % 0.659–0.746), d = 303 pc, node offset 0°, two 95 %
+  islands left; at PA 90, a = 0.717 mas (68 % 0.659–0.789), d = 303 pc,
+  node offset 3°, three islands. The Fisher σ(d)/d after sixteen nights is
+  6.1–6.3 %. The alias that caught the one-orbit PA 90 fit at a node offset
+  of 38° is gone; the surviving islands are the ones a second baseline
+  direction would remove.
 
 The movies are written to `output/campaigns/<campaign>/<campaign>.mp4`
 (PNG frames when ffmpeg is absent); `--no-figures` computes the numbers only.

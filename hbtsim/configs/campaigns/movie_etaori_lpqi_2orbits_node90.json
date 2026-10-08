@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_etaori_lpqi_2orbits_node90",
+  "label": "Movie: eta Ori Aa through two orbits, sixteen consecutive nights, line of nodes rotated by 90 deg (H-alpha, MPD)",
+  "runner": "nightmovie",
+  "target": "etaori_ab_node90",
+  "instrument": {
+    "array": "lpqi_pathfinder"
+  },
+  "backends": [
+    "lpqi_mpd_halpha"
+  ],
+  "night": {
+    "block_minutes": 10.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "fps": 20,
+    "dpi": 110,
+    "seed": 11,
+    "nights": 16,
+    "phase0": 0.0,
+    "night_step_days": 1.0,
+    "third_light_fraction": 0.214,
+    "display_bin_blocks": 3,
+    "fit_step_mas": 0.005
+  },
+  "outputs": {
+    "figures": true
+  },
+  "notes": [
+    "The movie_etaori_lpqi_orbit_node90 plan continued for a second orbit: sixteen consecutive nights. With P = 7.98763 d the nightly phase step is 0.1252, so night 9 falls at phase 1.0016 and the second orbit repeats the first's phases; a gap of whole nights cannot change that (0.0002 per day of gap, half a step after 323 days), and the offsets reachable within a season sample less informative phases, so consecutive nights are the best second orbit. The closing global fit shows how the fringe-alias islands of one orbit fare.",
+    "The eclipse nights, the third light and the per-night fit are as in the PA 0 campaign; compare the two movies' fringe amplitudes and the final sigma(a)/a."
+  ]
+}
