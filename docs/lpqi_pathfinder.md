@@ -317,6 +317,35 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
   per block) would need ~30 orbits. The unknown node angle matters: Ω = 45°
   (node along the NOT–TNG baseline) gives 3.7 %, Ω = 0, 90, 135° give
   8.5–8.9 %; the movie uses the assumed Ω = 0.
+  Those are local (Fisher) precisions. The global χ² surface over (a, Ω)
+  of the simulated eight nights has 3–4 separate 95 % islands (the fringe
+  aliases of the stripes), the truth lies in the deepest one only a quarter
+  of the time, and the rms error of the best-fit scale is 15 %, not 8.5 %
+  (20 noise realizations; `scratchpad` script, numbers in the text only).
+  Two follow-up questions, answered the same way:
+  - *A second orbit months later.* Nothing rotates: the uv track of a
+    fixed declination is the same every night (only the transit time moves,
+    so a season later the star may be observable for half the window, which
+    costs a factor two in information). A second eight-night orbit adds its
+    photons, √2 in Fisher terms (6.0 %), and thins the aliases: rms 6.2 %,
+    2.5 islands; four orbits give 4.7 % rms, two islands, 95 % range
+    0.89–1.14 in scale. Sampling different orbital phases is not what helps
+    (the shape is already known from spectroscopy); the quadrature nights
+    carry the information, so repeating them is as good as filling in.
+  - *Another filter.* Alone, every bluer filter is worse: the disks are
+    more resolved, so the fringe contrast C falls faster than the photon
+    rate rises (Hβ/500/550 nm 10.5–11.6 %, 425 nm with the 275 ps MPD
+    jitter 77 %). Alternating two filters within one orbit is worse than Hα
+    alone (10.6 % Fisher, 24 % rms, the alias area quadrupled). A second
+    orbit in 550 nm instead of Hα is a wash (7.5 % rms against 6.2 %, with
+    the truth in the deepest island slightly more often). The B/λ leverage
+    that helps a single star's null does not help the binary's scale, which
+    is set by SNR on a fringe whose period scales with λ for every
+    separation. What would break the stripes is a second baseline at a
+    different position angle (TNG–GTC, NOT–WHT), not a second wavelength.
+    One caveat on Hα itself: a 1 nm filter on a B1 V star sits in the
+    photospheric Hα absorption, which the blackbody model ignores; a red
+    continuum filter beside the line would be strictly better.
 
 The movies are written to `output/campaigns/<campaign>/<campaign>.mp4`
 (PNG frames when ffmpeg is absent); `--no-figures` computes the numbers only.

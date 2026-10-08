@@ -298,7 +298,7 @@ def _render_binary(path, system, backend, arr, mids, alt, bvec, blen, nights, bu
     ax_orb.set_xlim(lim, -lim); ax_orb.set_ylim(-lim, lim); ax_orb.set_aspect("equal")
     ax_orb.set_xlabel("ΔRA [mas]"); ax_orb.set_ylabel("ΔDec [mas]")
     ax_orb.set_title("this night's 68 % region of the separation (stripes: one baseline\n"
-                     "direction fixes it only along itself); dashed: orbit at a ± 1σ", fontsize=9)
+                     "direction fixes it only along itself); dashed: orbit at a ± 1σ (Fisher, local)", fontsize=9)
     orb_txt = ax_orb.text(0.03, 0.03, "", transform=ax_orb.transAxes, va="bottom", fontsize=9)
     orb_true, = ax_orb.plot([], [], "o", color="tab:orange", ms=6, zorder=5)
     ox, oy = np.asarray(porb.x2) - np.asarray(porb.x1), np.asarray(porb.y2) - np.asarray(porb.y1)
@@ -349,7 +349,7 @@ def _render_binary(path, system, backend, arr, mids, alt, bvec, blen, nights, bu
             sd = nn["sigma_lna"]
             for sgn, ln in zip((1 - sd, 1 + sd), band):
                 ln.set_data(sgn * ox, sgn * oy)
-            orb_txt.set_text(f"after {j + 1} night(s):\nσ(a)/a = σ(d)/d = {100 * sd:.1f} %  "
+            orb_txt.set_text(f"after {j + 1} night(s), Fisher:\nσ(a)/a = σ(d)/d = {100 * sd:.1f} %  "
                              f"({system.distance_pc:.0f} ± {system.distance_pc * sd:.0f} pc)\n"
                              f"σ(Ω) = {nn['sigma_omega_deg']:.1f}°"
                              + (f"\nthird light {100 * f3:.0f} %: fringe × {bud['dilution']:.2f}" if f3 > 0 else ""))
