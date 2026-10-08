@@ -246,6 +246,19 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
   track night after night, one frame per night: the bins average down as
   1/√n, the bump rises to +3σ after 20 nights (147 h on source), and the
   diameter's error band narrows from 10 % to 2.3 %.
+- **δ Ori Aa1 with a different filter each night** (`movie_delori_lpqi_filters`,
+  20 nights rotating Hα, 550, 500, Hβ, 425 nm on the MPD): the same 330–530 m
+  ground sweep samples the disk curve at πθB/λ from the first lobe (Hα, null
+  at 518 m) through the null (550, 500 nm) into the sidelobe (Hβ, 425 nm);
+  the middle panel plots every night against the equivalent baseline Bλ₀/λ so
+  the filters fall on one curve, the third panel tracks σ(θ)/θ. The answer to
+  "does changing B/λ help" is no for raw precision: the bluer filters sit
+  beyond the null where |V|² and its slope are tiny (and the 425 nm night
+  costs the MPD its timing), so 20 rotated nights give 2.4 % against 1.3 %
+  for 20 nights in Hα alone. What the rotation buys is the shape of the curve
+  across the null and sidelobe, i.e. a test of the limb-darkening model that
+  a single filter cannot make. A weighted schedule (mostly Hα, a few 550 nm
+  nights for the null) keeps most of both.
 - **β Cep, the pulsating diameter** (190 frames): act one is the same night with
   θ(t) breathing by 1 % on the 0.19048 d period (amplitude assumed from the
   radial-velocity curve); act two folds 60 nights on pulsation phase. The honest

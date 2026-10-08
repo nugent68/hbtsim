@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_delori_lpqi_filters",
+  "label": "Movie: delta Ori Aa1 on the LPQI-Pathfinder with a different 1 nm filter each night (MPD), 20 nights",
+  "runner": "nightmovie",
+  "target": "delori_aa",
+  "instrument": {
+    "array": "lpqi_pathfinder"
+  },
+  "backends": [
+    "lpqi_mpd_halpha",
+    "lpqi_mpd_550",
+    "lpqi_mpd_500",
+    "lpqi_mpd_hbeta",
+    "lpqi_mpd_425"
+  ],
+  "night": {
+    "block_minutes": 5.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "nights": 20,
+    "fps": 12,
+    "dpi": 110,
+    "theta_alternatives_pct": [
+      -5.0,
+      5.0
+    ],
+    "seed": 7,
+    "display_bin_blocks": 6
+  },
+  "outputs": {
+    "figures": true
+  },
+  "notes": [
+    "Night j uses filter j mod 5: the same 330-530 m ground sweep samples the disk curve at pi theta B / lambda from the first lobe (H-alpha, null at 518 m) through the null (550, 500 nm) into the sidelobe (H-beta, 425 nm); the second panel plots everything against the equivalent baseline B lambda_0/lambda so the filters fall on one curve.",
+    "The diameter's Fisher information adds over nights; the third panel compares the rotation with spending every night on the best single filter."
+  ]
+}
