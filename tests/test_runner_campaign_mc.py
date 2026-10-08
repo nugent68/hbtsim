@@ -136,3 +136,24 @@ def test_montecarlo_runner(tmp_path):
     # the SPAD backend has the sharper timing, hence the better analytic precision
     assert spad["analytic_precision_10h"] < mcp["analytic_precision_10h"]
     assert (out / "ladder_tiny_mcp.md").exists() and (out / "ladder_tiny_spad_pbs.tex").exists()
+
+
+def test_nightmovie_runner_numbers(tmp_path):
+    """The night-movie runner's numbers without rendering (figures off)."""
+    import json
+    from hbtsim.catalog import Catalog
+    from hbtsim.run_campaign import RunOptions, run
+    cat0 = Catalog(env=False)
+    d = cat0.raw("campaign", "movie_betcep_lpqi_pulsation")
+    d.update(name="tiny_movie", night={"block_minutes": 60.0, "min_alt_deg": 30.0})
+    d["options"]["pulsation"]["fold_nights"] = 3
+    (tmp_path / "campaigns").mkdir()
+    (tmp_path / "campaigns" / "tiny_movie.json").write_text(json.dumps(d))
+    cat = Catalog(paths=[tmp_path], env=False)
+    res = run(cat, cat.load_campaign("tiny_movie"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert res["n_blocks"] >= 8 and len(res["vis2_true"]) == res["n_blocks"]
+    assert 400 < res["null_m"] < 470 and min(res["baseline_m"]) < res["null_m"] < max(res["baseline_m"])
+    assert 0 < res["sigma_vis2"] < 1 and res["nights_to_5pct"] > 1
+    assert res["pulsation"]["n_nights"] == 3 and len(res["pulsation"]["final_sigma_theta_frac_per_bin"]) == 8
+    assert "movie" not in res
+    assert (tmp_path / "out" / "tiny_movie" / "results.json").exists()

@@ -230,6 +230,31 @@ disputed at the factor-two level; λ Ori A's parallax is 15 % uncertain); the
 multiples' light is attributed to one star; the MPD link ceiling is unknown; a
 field stop must exclude λ Ori B (4″) and η Ori's companions.
 
+## Movies (`hbtsim run movie_delori_lpqi_night`, `movie_betcep_lpqi_pulsation`)
+
+Two campaigns of the `nightmovie` runner animate the measurement, one frame per
+5-min block, with the MPD behind the 550 nm filter (whose first null at 1.22 λ/θ
+≈ 430 m lies inside the night's 330–530 m sweep):
+
+- **δ Ori Aa1, one night** (89 frames): the projected NOT–TNG baseline on the
+  (u, v) plane with the first-null circle; the 30-min-binned |V|² measurements
+  walking along the disk curve from beyond the null back up the first lobe, with
+  the θ ± 5 % curves they discriminate; and the coincidence histogram's excess
+  over the accidentals, matched-filtered, in units of its shot noise — the g²
+  bump stays within the noise in a single night (expected +0.7σ), which is why
+  the diameter is a multi-night statistic (4.4 nights to 5 % at 550 nm, 1.4 in
+  Hα).
+- **β Cep, the pulsating diameter** (190 frames): act one is the same night with
+  θ(t) breathing by 1 % on the 0.19048 d period (amplitude assumed from the
+  radial-velocity curve); act two folds 60 nights on pulsation phase. The honest
+  result is negative: after 60 nights the phase-binned diameter has σ(θ)/θ ≈ 6 %
+  per bin against a 1 % amplitude, so the Pathfinder cannot resolve β Cep's
+  pulsation with one 1 nm channel (it would take ~10⁴ nights); a spectrograph's
+  multiplexing is what would make it possible.
+
+The movies are written to `output/campaigns/<campaign>/<campaign>.mp4`
+(PNG frames when ffmpeg is absent); `--no-figures` computes the numbers only.
+
 ## Assumptions to confirm with the LPQI team
 
 1. The filter list is confirmed (Hα, Hβ, 500, 550, 425 nm; 1 nm; one per

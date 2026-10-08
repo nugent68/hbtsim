@@ -16,6 +16,7 @@ RUNNERS = {
     "montecarlo": "montecarlo",
     "scale": "scale",
     "suite": "suite",
+    "nightmovie": "nightmovie",
 }
 
 

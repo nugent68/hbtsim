@@ -184,7 +184,7 @@ FIELDS = {
                Field("reference_results", DICT)),
     "campaign": (Field("runner", STR, required=True,
                        choices=("g3", "g2", "g3_campaign", "chromatic", "montecarlo",
-                                "scale", "suite")),
+                                "scale", "suite", "nightmovie")),
                  Field("target", STR), Field("targets", LIST), Field("array", STR),
                  Field("array_params", DICT), Field("instrument", DICT),
                  Field("backends", LIST), Field("track_backends", LIST),
@@ -383,7 +383,7 @@ def check_kind(where: str, kind: str, d: dict) -> None:
                 raise SchemaError(f"{where}: runner {r!r} needs 'target' or 'targets'")
             if "instrument" not in d:
                 raise SchemaError(f"{where}: runner {r!r} needs 'instrument'")
-        elif r == "montecarlo":
+        elif r in ("montecarlo", "nightmovie"):
             for k in ("target", "instrument"):
                 if k not in d:
-                    raise SchemaError(f"{where}: runner 'montecarlo' needs '{k}'")
+                    raise SchemaError(f"{where}: runner {r!r} needs '{k}'")
