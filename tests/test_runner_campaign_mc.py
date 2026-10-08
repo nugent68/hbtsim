@@ -184,4 +184,9 @@ def test_nightmovie_binary_runner_numbers(tmp_path):
     assert max(n2["vis2_true"]) - min(n2["vis2_true"]) > 0.2                # fringes swept by the track
     sig = [n["sigma_distance_frac_cumulative"] for n in res["nights"]]
     assert sig[1] < sig[0] and sig[2] == sig[1]                            # the eclipse night adds nothing
+    g = res["global_fit"]                                                  # the closing act's chi^2 over (scale, node)
+    assert 0.5 <= g["scale_best"] <= 1.5 and g["a68_mas"][0] <= g["a_best_mas"] <= g["a68_mas"][1]
+    assert g["a68_best_island_mas"][0] >= g["a68_mas"][0] and g["a68_best_island_mas"][1] <= g["a68_mas"][1]
+    assert g["n_islands95"] >= 1 and g["n_blocks"] == res["n_blocks"] * 2   # the eclipse night is left out
+    assert abs(g["distance_best_pc"] * g["scale_best"] - res["distance_pc"]) < 1e-6
     assert "movie" not in res

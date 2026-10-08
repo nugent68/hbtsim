@@ -14,6 +14,10 @@ options:
                          (adds photons, dilutes the fringe by (1 - f)^2; default 0)
   display_bin_blocks     blocks per displayed |V|^2 point (default 3)
   fit_grid_mas, fit_step_mas   half-width and step of the per-night (dx, dy) chi^2 grid
+  global_fit, fit_scale_range, fit_scale_step, fit_node_step_deg
+                         the closing act: chi^2 of all nights over the orbit's angular scale
+                         (default 0.5-1.5 x the assumed a, step 0.01) and node-angle offset
+                         (0-180 deg, step 1.5): best fit, 68 % family of orbits, alias islands
   seed, fps, dpi
 
 The model visibility is the rendered two-disk image (hbtsim.spectral.spectral_vis,
@@ -142,6 +146,42 @@ def _fisher_scale_node(system, pos_phases, bvecs_nights, lam, sig):
     return info
 
 
+def _global_fit(system, nights, bvec, lam, sig, s_grid, om_grid):
+    """chi^2 of every out-of-eclipse block of every night over the orbit's
+    angular scale s (a_mas = s x the assumed value, all angular sizes
+    scaling with it) and the node angle offset Omega (added to the
+    assumed node_pa_deg): the two unknowns of a spectroscopic pair seen
+    with one baseline.  Returns the map, the best point, the 68 % / 95 %
+    extents in s (whole region and the island holding the best point) and
+    the number of separate 95 % islands (the fringe aliases)."""
+    from scipy import ndimage
+    om = np.radians(om_grid)
+    chi2 = np.zeros((s_grid.size, om_grid.size))
+    blocks = [(k, nn) for nn in nights for k in range(len(nn["pos"])) if not nn["eclipse"][k]]
+    for i, sc in enumerate(s_grid):
+        sys_s = replace(system, distance_pc=system.distance_pc / sc)
+        for k, nn in blocks:
+            pos = positions_at(sys_s, float(nn["phases"][k]))
+            a, c = _pair_terms(sys_s, pos, bvec[k:k + 1], lam)
+            dx, dy = float(pos.x2 - pos.x1), float(pos.y2 - pos.y1)
+            u = bvec[k] / (lam * 1e-9)
+            model = a[0] + c[0] * np.cos(2 * np.pi * (u[0] * (dx * np.cos(om) + dy * np.sin(om))
+                                                     + u[1] * (-dx * np.sin(om) + dy * np.cos(om))) * MAS)
+            chi2[i] += ((nn["v2_meas"][k] - model) / sig) ** 2
+    d = chi2 - chi2.min()
+    i, j = np.unravel_index(int(np.argmin(chi2)), chi2.shape)
+    lab, _ = ndimage.label(np.concatenate([d, d], axis=1) < 6.17)          # Omega wraps at 180
+    n95 = len(set(np.unique(lab[:, :om_grid.size])) - {0})
+    best_isl = lab[:, :om_grid.size] == lab[i, j]
+    in68 = d < 2.30
+    s_rng = lambda m: (float(s_grid[m.any(axis=1)].min()), float(s_grid[m.any(axis=1)].max()))
+    return dict(chi2=chi2, dchi2=d, s_grid=s_grid, om_grid=om_grid, s_best=float(s_grid[i]), om_best=float(om_grid[j]),
+                s68=s_rng(in68), s95=s_rng(d < 6.17), s68_best_island=s_rng(in68 & best_isl), n_islands95=n95,
+                om68_best_island=(float(om_grid[(in68 & best_isl).any(axis=0)].min()),
+                                  float(om_grid[(in68 & best_isl).any(axis=0)].max())),
+                n_blocks=len(blocks))
+
+
 def run_binary(campaign, cat, opts, out_dir: Path) -> dict:
     system = campaign.target
     array = campaign.array
@@ -223,6 +263,19 @@ def run_binary(campaign, cat, opts, out_dir: Path) -> dict:
         night.update(sigma_lna=sig_lna, sigma_omega_deg=sig_om)
         print(f"    after {j + 1} night(s): sigma(a)/a = sigma(d)/d = {100 * sig_lna:.1f} %, sigma(Omega) = {sig_om:.1f} deg")
 
+    gfit = None
+    if any("fit" in nn for nn in nights) and opt("options.global_fit", True):
+        s_lo, s_hi = (float(x) for x in opt("options.fit_scale_range", [0.5, 1.5]))
+        s_grid = np.arange(s_lo, s_hi + 1e-9, float(opt("options.fit_scale_step", 0.01)))
+        om_grid = np.arange(0.0, 180.0, float(opt("options.fit_node_step_deg", 1.5)))
+        gfit = _global_fit(system, nights, bvec, lam, bud["sigma_v2"], s_grid, om_grid)
+        a0 = system.angular_semimajor_mas
+        print(f"  global fit of all {n_nights} nights ({gfit['n_blocks']} blocks out of eclipse) over scale x node angle: "
+              f"best a = {gfit['s_best'] * a0:.3f} mas (d = {system.distance_pc / gfit['s_best']:.0f} pc), "
+              f"node offset {gfit['om_best']:+.1f} deg; 68 % in the best island a = {gfit['s68_best_island'][0] * a0:.3f}-"
+              f"{gfit['s68_best_island'][1] * a0:.3f} mas, 68 % overall {gfit['s68'][0] * a0:.3f}-{gfit['s68'][1] * a0:.3f} mas; "
+              f"{gfit['n_islands95']} separate 95 % island(s)")
+
     out = {"target": system.name, "backend": b.name, "wavelength_nm": lam, "block_minutes": block_minutes,
            "n_blocks": int(mids.size), "n_nights": n_nights, "baseline_m": blen.tolist(),
            "semimajor_mas": float(system.angular_semimajor_mas), "distance_pc": float(system.distance_pc),
@@ -237,15 +290,24 @@ def run_binary(campaign, cat, opts, out_dir: Path) -> dict:
                        "truth_in_region68": n.get("truth_in_region"),
                        "sigma_distance_frac_cumulative": n["sigma_lna"],
                        "sigma_omega_deg_cumulative": n["sigma_omega_deg"]} for n in nights]}
+    if gfit is not None:
+        a0 = system.angular_semimajor_mas
+        out["global_fit"] = {"scale_best": gfit["s_best"], "a_best_mas": gfit["s_best"] * a0,
+                             "distance_best_pc": system.distance_pc / gfit["s_best"], "node_offset_best_deg": gfit["om_best"],
+                             "a68_mas": [x * a0 for x in gfit["s68"]], "a95_mas": [x * a0 for x in gfit["s95"]],
+                             "a68_best_island_mas": [x * a0 for x in gfit["s68_best_island"]],
+                             "node68_best_island_deg": list(gfit["om68_best_island"]), "n_islands95": gfit["n_islands95"],
+                             "n_blocks": gfit["n_blocks"]}
     if opts.figures:
         path = out_dir / f"{campaign.name}.mp4"
         _render_binary(path, system, b, arr, mids, alt, bvec, blen, nights, bud, lam, nbin_show, f3,
-                       fps=int(opt("options.fps", 15)), dpi=int(opt("options.dpi", 110)))
+                       fps=int(opt("options.fps", 15)), dpi=int(opt("options.dpi", 110)), gfit=gfit)
         out["movie"] = str(path)
     return out
 
 
-def _render_binary(path, system, backend, arr, mids, alt, bvec, blen, nights, bud, lam, nbin_show, f3, fps=15, dpi=110):
+def _render_binary(path, system, backend, arr, mids, alt, bvec, blen, nights, bud, lam, nbin_show, f3, fps=15, dpi=110,
+                   gfit=None):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -354,6 +416,63 @@ def _render_binary(path, system, backend, arr, mids, alt, bvec, blen, nights, bu
                              f"σ(Ω) = {nn['sigma_omega_deg']:.1f}°"
                              + (f"\nthird light {100 * f3:.0f} %: fringe × {bud['dilution']:.2f}" if f3 > 0 else ""))
 
+    # the final act: the global fit of every night over (scale, node angle)
+    n_final = 4 * fps if gfit is not None else 0
+    if gfit is not None:
+        d, S, OMg = gfit["dchi2"], gfit["s_grid"], gfit["om_grid"]
+        a0 = system.angular_semimajor_mas
+        node0 = system.node_pa_deg or 0.0
+        cand = np.argwhere(d < 2.30)
+        rng_draw = np.random.default_rng(1)
+        if cand.shape[0] > 50:
+            cand = cand[rng_draw.choice(cand.shape[0], 50, replace=False)]
+        order = np.argsort(d[cand[:, 0], cand[:, 1]])[::-1]        # worst first, the best orbit last
+        cand = cand[order]
+        psi = np.linspace(0, 2 * np.pi, 300)
+
+        def orbit_xy(sc, om):
+            pp = sky_positions(psi, replace(system, distance_pc=system.distance_pc / sc, node_pa_deg=node0 + om))
+            return np.asarray(pp.x2) - np.asarray(pp.x1), np.asarray(pp.y2) - np.asarray(pp.y1)
+
+        inset = fig.add_axes(ax_sky.get_position())             # takes the sky panel's place at the end
+        inset.set_visible(False)
+        inset.contourf(OMg, S, d, levels=[0, 2.30, 6.17], colors=["tab:blue", "lightsteelblue"], alpha=0.8)
+        inset.plot([0.0], [1.0], "+", color="k", ms=11, mew=1.5, label="truth")
+        inset.plot([gfit["om_best"]], [gfit["s_best"]], "x", color="tab:red", ms=8, mew=1.5, label="best fit")
+        inset.set_xlabel("node angle offset [°]"); inset.set_ylabel("orbit scale a / a₀ = d₀ / d")
+        inset.set_title("χ² of all nights: Δχ² < 2.3 (68 %), < 6.2 (95 %)", fontsize=9)
+        inset.legend(fontsize=8, loc="upper right")
+        best_line, = ax_orb.plot([], [], color="tab:red", lw=1.6, zorder=6)
+        fam = []
+
+        def final(k):
+            if k == 0:
+                for r in regions:
+                    r.remove()
+                regions.clear()
+                for ln in band:
+                    ln.set_data([], [])
+                orb_true.set_data([], [])
+                ax_orb.set_title("the orbit fitted to all nights:\n"
+                                 "thin: orbits allowed at 68 %; red: best fit; grey: truth", fontsize=9)
+                ax_sky.set_visible(False)
+                inset.set_visible(True)
+                orb_txt.set_text("")
+            m = min(cand.shape[0], int(np.ceil((k + 1) / max(1, (n_final // 2)) * cand.shape[0])))
+            while len(fam) < m:
+                i, j = cand[len(fam)]
+                x, y = orbit_xy(S[i], OMg[j])
+                fam.append(ax_orb.plot(x, y, color="tab:blue", lw=0.7, alpha=0.3, zorder=4)[0])
+            if k >= n_final // 2:
+                x, y = orbit_xy(gfit["s_best"], gfit["om_best"])
+                best_line.set_data(x, y)
+                lo, hi = gfit["s68_best_island"]
+                orb_txt.set_text(f"best fit: a = {gfit['s_best'] * a0:.3f} mas (68 %: {lo * a0:.3f}–{hi * a0:.3f})\n"
+                                 f"node {node0 + gfit['om_best']:.0f}°, d = {system.distance_pc / gfit['s_best']:.0f} pc "
+                                 f"({system.distance_pc / hi:.0f}–{system.distance_pc / lo:.0f})\n"
+                                 f"truth: a = {a0:.3f} mas, d = {system.distance_pc:.0f} pc\n"
+                                 f"{gfit['n_islands95']} separate 95 % islands: the fringe aliases")
+
     writer = FFMpegWriter(fps=fps, bitrate=2400) if shutil.which("ffmpeg") else None
     if writer is None:
         frames_dir = path.with_suffix("")
@@ -362,6 +481,8 @@ def _render_binary(path, system, backend, arr, mids, alt, bvec, blen, nights, bu
         for j in range(len(nights)):
             for k in range(n):
                 frame(j, k); fig.savefig(frames_dir / f"frame_{f:04d}.png", dpi=dpi); f += 1
+        for k in range(n_final):
+            final(k); fig.savefig(frames_dir / f"frame_{f:04d}.png", dpi=dpi); f += 1
         plt.close(fig)
         return
     with writer.saving(fig, str(path), dpi):
@@ -371,4 +492,9 @@ def _render_binary(path, system, backend, arr, mids, alt, bvec, blen, nights, bu
                 writer.grab_frame()
             for _ in range(fps // 2):                           # a pause at each night's end
                 writer.grab_frame()
+        for k in range(n_final):
+            final(k)
+            writer.grab_frame()
+        for _ in range(2 * fps):                                # hold the result
+            writer.grab_frame()
     plt.close(fig)

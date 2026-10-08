@@ -317,11 +317,19 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
   per block) would need ~30 orbits. The unknown node angle matters: Ω = 45°
   (node along the NOT–TNG baseline) gives 3.7 %, Ω = 0, 90, 135° give
   8.5–8.9 %; the movie uses the assumed Ω = 0.
-  Those are local (Fisher) precisions. The global χ² surface over (a, Ω)
-  of the simulated eight nights has 3–4 separate 95 % islands (the fringe
-  aliases of the stripes), the truth lies in the deepest one only a quarter
-  of the time, and the rms error of the best-fit scale is 15 %, not 8.5 %
-  (20 noise realizations; `scratchpad` script, numbers in the text only).
+  Those are local (Fisher) precisions. The movie closes with the global
+  fit (`options.global_fit`, four seconds): the χ² of every out-of-eclipse
+  block of every night over the orbit's angular scale (0.5–1.5 × the
+  assumed a, all angular sizes scaling with it) and the node-angle offset
+  (0–180°), the two unknowns of a spectroscopic pair seen with one
+  baseline. The χ² surface takes the left panel's place, the orbit panel
+  shows the family of orbits allowed at 68 % with the best fit in red and
+  the truth in grey, and `results.json` carries `global_fit`. For the
+  rendered realization the best fit is a = 0.673 mas (68 % in its island
+  0.579–0.724), d = 323 pc (300–375), with 3 separate 95 % islands, the
+  fringe aliases of the stripes. Over 20 noise realizations the truth lies
+  in the deepest island only a quarter of the time and the rms error of the
+  best-fit scale is 15 %, not 8.5 %.
   Two follow-up questions, answered the same way:
   - *A second orbit months later.* Nothing rotates: the uv track of a
     fixed declination is the same every night (only the transit time moves,
@@ -356,7 +364,9 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
   region run across the orbit instead of along it. The precision does not:
   σ(a)/a = 8.8 % (Fisher) after the eight nights against 8.5 %, with the
   global check giving a 10 % rms scale error and 4 alias islands for one
-  orbit, 4.9 % and 2 islands for two. The scale information comes from how
+  orbit, 4.9 % and 2 islands for two (the rendered realization's global
+  fit: a = 0.630 mas, 68 % 0.536–0.731, node offset +38°, 3 islands). The
+  scale information comes from how
   the fringe period changes along the orbit, which a single baseline samples
   about equally at either orientation; the 3.7 % at Ω = 45° is the special
   case of the node along the baseline.
