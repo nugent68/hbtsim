@@ -112,7 +112,7 @@ def test_lpqi_pathfinder():
     assert (n.dead_time_ns, n.dark_cps_per_pixel, n.max_total_cps) == (10.0, 1.68, 6.7e6)
     m = cat.load_detector("lpqi_spad1_mpd")
     assert (m.pde(550.0), m.jitter_fwhm_ps, m.dead_time_ns, m.dark_cps_per_pixel, m.n_pixels) == (0.3, 35.0, 55.0, 50.0, 1)
-    assert m.max_total_cps is None and m.readout == "timetag"
+    assert m.max_total_cps == 12e6 and m.readout == "timetag"      # F. Prada 2026-10-09
     mb = cat.load_detector("lpqi_spad1_mpd_blue")
     assert mb.jitter_fwhm_ps == 275.0 and mb.pde(425.0) == 0.3 and mb.dead_time_ns == 55.0
     for key, lam in (("halpha", 656.28), ("hbeta", 486.13), ("500", 500.0), ("550", 550.0), ("425", 425.0)):

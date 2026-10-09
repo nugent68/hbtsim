@@ -8,6 +8,6 @@
   "detector": "lpqi_spad1_mpd",
   "polarization_mode": "unpolarized",
   "notes": [
-    "The MPD single-pixel back-up detector (35 ps)."
+    "The MPD single-pixel detector (the Pathfinder's primary) (35 ps)."
   ]
 }

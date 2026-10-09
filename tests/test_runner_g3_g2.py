@@ -201,6 +201,6 @@ def test_g2_array_track_single_stars(tmp_path):
     assert rows["lambda Ori A"]["nights_diameter"] < rows["gamma Cas"]["nights_diameter"]   # 0.24 vs 0.53 mas
     assert rows["lambda Ori A"]["vis2_max"] > 0.05                                        # inside the first lobe
     assert not rows["Spica"]["single"] and rows["Spica"]["nights_diameter"] is None
-    assert res["filter_set_nights"]["lambda Ori A"]["LPQI MPD single-pixel 50 um SPAD (back-up)"]["diameter"] == \
+    assert res["filter_set_nights"]["lambda Ori A"]["LPQI MPD single-pixel 50 um SPAD (Pathfinder primary)"]["diameter"] == \
         pytest.approx(rows["lambda Ori A"]["nights_diameter"])                              # one filter: set = filter
     assert "nights (5 % theta)" in (out / "tiny_singles" / "table.md").read_text()

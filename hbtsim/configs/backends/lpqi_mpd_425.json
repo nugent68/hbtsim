@@ -8,6 +8,6 @@
   "detector": "lpqi_spad1_mpd_blue",
   "polarization_mode": "unpolarized",
   "notes": [
-    "The MPD single-pixel back-up detector at its degraded blue timing (275 ps)."
+    "The MPD single-pixel detector (the Pathfinder's primary) at its degraded blue timing (275 ps)."
   ]
 }

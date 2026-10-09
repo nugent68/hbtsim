@@ -167,9 +167,9 @@ def lpqi_parameters() -> str:
                                                  f"{n.jitter_fwhm_ps:.0f} ps FWHM, {n.n_pixels} pixels, dead {n.dead_time_ns:g} ns, "
                                                  f"dark {n.dark_cps_per_pixel:g} cps/pixel, readout ≤ {n.max_total_cps:.1e} cps",
               "F. Prada 2026-10-07; PDE shape and timing **assumed**"),
-             ("detector (Pathfinder: MPD single pixel, back-up)", f"PDE {m.pde(550.0):.2f} flat 400–700 nm, {m.jitter_fwhm_ps:.0f} ps FWHM (275 ps below 470 nm), "
-                                                   f"dead {m.dead_time_ns:g} ns, dark {m.dark_cps_per_pixel:g} cps, 1 pixel, link ceiling unknown",
-              "F. Prada 2026-10-07; flat PDE **assumed**, ceiling **unknown**"),
+             ("detector (Pathfinder primary: MPD single pixel)", f"PDE {m.pde(550.0):.2f} flat 400–700 nm, {m.jitter_fwhm_ps:.0f} ps FWHM (275 ps below 470 nm), "
+                                                   f"dead {m.dead_time_ns:g} ns, dark {m.dark_cps_per_pixel:g} cps, 1 pixel, max detection rate {m.max_total_cps:.0e} cps",
+              "F. Prada 2026-10-07 and 2026-10-09 (12e6 cps, primary detector); flat PDE **assumed**"),
              ("bare IMSE array (reference only)", f"PDE {d.pde(550.0):.3f} = fill factor 3.5 % × PDP 75 %, otherwise as the lensed array with {d.n_pixels} pixels",
               "Quintana et al. 2026, Sensors 26, 5757; not a Pathfinder option"),
              ("filters", "; ".join(f"{f.channel_centers_nm[0]:.1f} nm ({f.channel_width_nm:.1f} nm)" for f in filters)

@@ -13,9 +13,9 @@
       "TNG"
     ],
     "telescope": "not_2p56m",
-    "detector": "lpqi_spad64_i2cass",
+    "detector": "lpqi_spad1_mpd",
     "telescope2": "tng_3p58m",
-    "detector2": "lpqi_spad64_i2cass"
+    "detector2": "lpqi_spad1_mpd"
   },
   "sources": [
     "NOT technical details page (not.iac.es), GPS position 28 45 26.2 N, 17 53 06.3 W, 2382 m",
@@ -24,6 +24,7 @@
   ],
   "notes": [
     "Baseline 531.8 m at position angle 226.7 deg (TNG south-west of the NOT) from the two surveyed positions (NOT GPS; TNG WGS84 geodetic survey of Caporali & Barbieri, ~5 m): this supersedes the 471 m of the Wikipedia coordinates and is 18 m short of the project's rounded '550 m'. load_array('lpqi_pathfinder', baseline_m=550.0) uses the published figure.",
-    "Unequal pair: the generator's telescope2 / detector2 give the TNG its own telescope; the photon budget uses sqrt(A1 A2)."
+    "Unequal pair: the generator's telescope2 / detector2 give the TNG its own telescope; the photon budget uses sqrt(A1 A2).",
+    "Default detector: the MPD single pixel (Pathfinder primary since 2026-10-09); campaigns override it through their backends."
   ]
 }

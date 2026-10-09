@@ -54,7 +54,9 @@ prints the provenance).
   were not used. Apertures and collecting areas from Wikipedia.
 - F. Prada (LPQI PI), email of 2026-10-07: the two Pathfinder detector cases
   (the next IMSE-LPQI 64×64 array with microlenses, and the MPD single-pixel
-  back-up) and the filter set with a fifth filter at 425 nm.
+  SPAD) and the filter set with a fifth filter at 425 nm; 2026-10-09: the MPD
+  is the Pathfinder's detector, with a maximum detection rate of 12×10⁶ cps
+  and 35 ps timing above 470 nm.
 
 ## Parameters and status
 
@@ -66,21 +68,25 @@ prints the provenance).
 | five-telescope network | NOT 2.56 m, TNG 3.58 m, GTC 10.4 m, WHT 4.2 m, INT 2.54 m; baselines 409–1518 m | NOT, WHT, INT GPS pages; TNG survey; GTC web page (arc-second) |
 | telescope throughput | 0.3, 0.3 | hbtsim default (**assumed**) |
 | detector (Pathfinder: lensed IMSE-LPQI 64×64) | PDE 0.50 flat 400–550 nm, 0.20 at 650 nm (microlenses); 500 ps FWHM, 4 pixels, dead 10 ns, dark 1.68 cps/pixel, readout ≤ 6.7e+06 cps | F. Prada 2026-10-07; PDE shape and timing **assumed** |
-| detector (Pathfinder: MPD single pixel, back-up) | PDE 0.30 flat 400–700 nm, 35 ps FWHM (275 ps below 470 nm), dead 55 ns, dark 50 cps, 1 pixel, link ceiling unknown | F. Prada 2026-10-07; flat PDE **assumed**, ceiling **unknown** |
+| detector (Pathfinder primary: MPD single pixel) | PDE 0.30 flat 400–700 nm, 35 ps FWHM (275 ps below 470 nm), dead 55 ns, dark 50 cps, 1 pixel, max detection rate 1e+07 cps | F. Prada 2026-10-07 and 2026-10-09 (12e6 cps, primary detector); flat PDE **assumed** |
 | bare IMSE array (reference only) | PDE 0.026 = fill factor 3.5 % × PDP 75 %, otherwise as the lensed array with 25 pixels | Quintana et al. 2026, Sensors 26, 5757; not a Pathfinder option |
 | filters | 425.0 nm (1.0 nm); 500.0 nm (1.0 nm); 550.0 nm (1.0 nm); 650.0 nm (1.0 nm); 656.3 nm (1.0 nm); 486.1 nm (1.0 nm); throughput 0.9; one per night | wavelengths **to be confirmed**; width and one-per-night from the user |
 <!-- /catalog -->
 
 The filter set (Hα, Hβ, 500, 550 and 425 nm, 1 nm wide, one per night) was
 confirmed by F. Prada on 2026-10-07; the exact central wavelengths and widths
-remain working values. Two detectors are modelled, the two the team is
-building: the **lensed IMSE-LPQI 64×64 array** (microlenses bring the fill
-factor from 3.5 % to ~100 %: PDE 0.50 over 400–550 nm, 0.20 at 650 nm;
-500 ps White Rabbit timing target; 4 pixels per star; the 6.7×10⁶ cps
-capture ceiling of the current readout) and the **MPD single-pixel 50 µm
-SPAD back-up** (PDE 0.30, 35 ps FWHM above 470 nm but 250–300 ps at 400 nm,
-so the 425 nm filter uses a 275 ps variant; dead time 55 ns, 50 cps dark,
-time-tag ceiling unknown and therefore not applied). The bare 3.5 %-fill-factor
+remain working values. Two detectors are modelled. The Pathfinder's detector (F. Prada, 2026-10-09) is
+the **MPD single-pixel 50 µm SPAD** (PDE 0.30, 35 ps FWHM above 470 nm but
+250–300 ps at 400 nm, so the 425 nm filter uses a 275 ps variant; dead time
+55 ns, 50 cps dark; maximum detection rate 12×10⁶ cps, which the runners apply
+as a neutral-density attenuation: on the TNG behind a 1 nm filter it is reached
+at AB ≈ 1.6, so Sirius, Spica, β Aur and Algol are limited while every O/B
+diameter target and the η and ι Ori binaries are not). The other option is the
+**lensed IMSE-LPQI 64×64 array** (microlenses bring the fill factor from 3.5 %
+to ~100 %: PDE 0.50 over 400–550 nm, 0.20 at 650 nm; 500 ps White Rabbit timing
+target; 4 pixels per star; the 6.7×10⁶ cps capture ceiling of the current
+readout); its 500 ps timing is what makes it 5–15× slower than the MPD on the
+same stars. The bare 3.5 %-fill-factor
 array characterized in the Sensors paper stays in the catalog
 (`lpqi_spad64_i2cass`, backends `lpqi_*`) as the published reference only.
 The arrays' ENU positions come from the surveyed coordinates above (the NOT
@@ -133,18 +139,20 @@ table (30 rows) is `output/campaigns/g2_binaries_lpqi_pathfinder/table.md`.
 | β Aur | NewEra | 550 nm | lensed IMSE (readout-limited) | 289–532 | 6×10⁻⁵–2×10⁻³ | 6.2×10⁻³ | 2.4×10⁵ |
 | β Aur | NewEra | 550 nm | MPD single pixel | 289–532 | 6×10⁻⁵–2×10⁻³ | 0.031 | 9.4×10³ |
 | β Aur | NewEra | Hα | MPD single pixel | 289–532 | 3×10⁻⁵–3×10⁻³ | 0.045 | 4.4×10³ |
-| β Aur | NewEra | 425 nm | MPD (275 ps) | 289–532 | 1×10⁻⁵–2×10⁻⁴ | 1.6×10⁻³ | 3.4×10⁶ |
+| β Aur | NewEra | 425 nm | MPD (275 ps, readout-limited) | 289–532 | 1×10⁻⁵–2×10⁻⁴ | 1.1×10⁻³ | 7.1×10⁶ |
 | Algol | NewEra (A) | 550 nm | lensed IMSE (readout-limited) | 300–532 | 4×10⁻⁵–2×10⁻³ | 0.011 | 7.7×10⁴ |
 | Algol | NewEra (A) | Hα | MPD single pixel | 300–532 | 1×10⁻⁵–5×10⁻³ | 0.069 | 1.9×10³ |
 | Spica | blackbody | Hα | lensed IMSE (readout-limited) | 289–531 | 4×10⁻⁴–3×10⁻³ | 0.024 | 1.5×10⁴ |
-| Spica | blackbody | Hα | MPD single pixel | 289–531 | 4×10⁻⁴–3×10⁻³ | 0.19 | 261 |
-| Spica | blackbody | 550 nm | MPD single pixel | 289–531 | 5×10⁻⁶–3×10⁻³ | 0.11 | 808 |
+| Spica | blackbody | Hα | MPD single pixel (readout-limited ×0.4) | 289–531 | 4×10⁻⁴–3×10⁻³ | 0.11 | 714 |
+| Spica | blackbody | 550 nm | MPD single pixel (readout-limited ×0.3) | 289–531 | 5×10⁻⁶–3×10⁻³ | 0.056 | 2.9×10³ |
 
 Filter set (five filters, one per night, nights added): β Aur 2.3×10⁷ nights
-(lensed IMSE) / 3.4×10⁵ + 3.4×10⁶ (MPD, the 425 nm night dominating); Algol
-1.2×10⁶ / 2.3×10⁴ + 2×10⁵; Spica 9×10⁵ / 4.8×10³ + 3.9×10⁴. Every lensed-IMSE
-row is readout-limited (×0.1–0.3 at the 6.7×10⁶ cps capture ceiling); the MPD
-has no ceiling in the model because none has been specified. For reference, the
+(lensed IMSE) / 3.6×10⁵ + 7.1×10⁶ (MPD, the 425 nm night dominating); Algol
+1.2×10⁶ / 2.3×10⁴ + 3.3×10⁵; Spica 8.8×10⁵ / 1.9×10⁴ + 1.8×10⁵. Every lensed-IMSE
+row is readout-limited (×0.1–0.3 at the 6.7×10⁶ cps capture ceiling); the MPD's
+12×10⁶ cps maximum detection rate limits Spica in every filter (×0.3–0.4) and
+β Aur and Algol in the blue ones, which is why these bright, resolved-out
+binaries are no better on the MPD than the readout allows. For reference, the
 bare 2.6 % array of the Sensors paper would need 6×10⁸, 4×10⁷ and 2×10⁶ nights
 on the three targets.
 
@@ -185,7 +193,8 @@ and the sidelobe level the limb darkening. The nights below are the time to a
 5 % diameter from the Fisher information of |V|²(θ) along the track (nights
 add), uniform-disk limb darkening from the Spica Claret law, blackbody fluxes
 anchored to V (NewEra covers nothing above 12 000 K), the catalog throughput
-0.3 × 0.9, and the MPD without a link ceiling.
+0.3 × 0.9, and the MPD at its 12×10⁶ cps maximum detection rate (which touches
+only δ Ori Aa1 and γ Cas, in the blue filters, by 10–40 %).
 
 | star | type | V | θ (mas) | B over the night [m] | |V|² (Hα) | nights to 5 % θ: MPD Hα | MPD 550 nm | lensed array Hα | lensed array 550 nm | all five filters, MPD |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -227,8 +236,8 @@ What this says:
 
 Caveats: θ is 2R/d from literature radii and distances (δ Ori's distance is
 disputed at the factor-two level; λ Ori A's parallax is 15 % uncertain); the
-multiples' light is attributed to one star; the MPD link ceiling is unknown; a
-field stop must exclude λ Ori B (4″) and η Ori's companions.
+multiples' light is attributed to one star; a field stop must exclude λ Ori B
+(4″) and η Ori's companions.
 
 ## Movies (`hbtsim run movie_delori_lpqi_night`, `movie_betcep_lpqi_pulsation`, `movie_etaori_lpqi_orbit`, `movie_iotaori_lpqi_orbit`)
 
@@ -480,9 +489,12 @@ The movies are written to `output/campaigns/<campaign>/<campaign>.mp4`
    per star, the cooled dark count rate, and above all whether the 6.7×10⁶ cps
    capture ceiling stays — it is what limits this array on every bright target
    in the tables.
-4. The MPD single-pixel module: its time-tag link ceiling (unknown; none
-   applied), the flat 30 % PDE, and the 250–300 ps blue timing (275 ps used
-   for the 425 nm filter).
+4. The MPD single-pixel module: the maximum detection rate of 12×10⁶ cps and the
+   35 ps timing above 470 nm are now in the model (F. Prada, 2026-10-09); still
+   open are the PDE curve (flat 0.30 assumed), whether one module sits at each
+   telescope or the light is split onto several (which would raise the ceiling
+   for the GTC, where it bites above AB ≈ 3), and the 250–300 ps timing below
+   470 nm.
 5. Telescope + relay throughput to the camera (0.3 × 0.9 assumed; Prada et al.
    use an overall 0.5). The NOT (f/11, 28.16 m) and TNG (Nasmyth, 38.5 m)
    focal lengths set the plate scales; which focus the cameras use is to be

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "detector",
   "name": "lpqi_spad1_mpd",
-  "label": "LPQI MPD single-pixel 50 um SPAD (back-up)",
+  "label": "LPQI MPD single-pixel 50 um SPAD (Pathfinder primary)",
   "pde_table_nm": {
     "flat": 0.3,
     "range_nm": [
@@ -17,19 +17,18 @@
   "dark_cps_per_pixel": 50.0,
   "n_pixels": 1,
   "readout": "timetag",
-  "max_total_cps": null,
+  "max_total_cps": 12000000.0,
   "sources": [
-    "F. Prada (LPQI PI), email to P. Nugent 2026-10-07: sensor data for both LPQI-Pathfinder detectors and the filter set"
+    "F. Prada (LPQI PI), email to P. Nugent 2026-10-07: sensor data for both LPQI-Pathfinder detectors and the filter set",
+    "F. Prada, 2026-10-09 (via P. Nugent): the MPD is the Pathfinder's detector, maximum detection rate 12e6 cps, 35 ps timing above 470 nm (the 500 ps White Rabbit figure applied to the IMSE array, not to this device)."
   ],
   "notes": [
-    "Micro Photon Devices 50 um single-pixel SPAD module: PDE 50 % at 550 nm, taken as a flat 30 % over 400-700 nm (assumed).",
-    "Timing 35 ps FWHM above 470 nm; 250-300 ps FWHM at 400 nm -- hbtsim has one jitter per detector, so the blue filter uses detectors/lpqi_spad1_mpd_blue (275 ps).",
-    "Dead time 55 ns (specifications); dark counts 50 cps (as offered); one pixel takes the whole seeing disk (< 2 arcsec).",
-    "Time-tag link ceiling UNKNOWN (left open: no ceiling applied); to be supplied by the LPQI team."
+    "Single-pixel Micro Photon Devices SPAD, 50 um, 35 ps FWHM timing above 470 nm (250-300 ps below, see lpqi_spad1_mpd_blue), 55 ns dead time, 50 cps dark; the Pathfinder's primary detector since 2026-10-09 (the lensed IMSE array is the other option).",
+    "max_total_cps 12e6: the device's maximum detection rate (F. Prada 2026-10-09); the runners attenuate brighter stars to it as a neutral-density filter would. On the TNG behind a 1 nm filter that is reached at AB ~ 1.6 (Spica, Sirius, beta Aur and Algol in the blue filters are limited; the O/B diameter targets and the eta/iota Ori binaries are not).",
+    "PDE: flat 0.30 over 400-700 nm (assumed; the curve is not yet supplied)."
   ],
   "assumptions": [
     "pde_table_nm (flat 30 %)",
-    "max_total_cps (unknown, none applied)",
     "n_pixels"
   ]
 }

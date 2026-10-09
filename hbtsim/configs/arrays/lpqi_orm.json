@@ -11,7 +11,7 @@
       "north_m": 0.0,
       "up_m": 0.0,
       "telescope": "not_2p56m",
-      "detector": "lpqi_spad64_i2cass"
+      "detector": "lpqi_spad1_mpd"
     },
     {
       "name": "TNG",
@@ -19,7 +19,7 @@
       "north_m": -364.5,
       "up_m": -12.0,
       "telescope": "tng_3p58m",
-      "detector": "lpqi_spad64_i2cass"
+      "detector": "lpqi_spad1_mpd"
     },
     {
       "name": "GTC",
@@ -27,7 +27,7 @@
       "north_m": -68.0,
       "up_m": -115.0,
       "telescope": "gtc_10p4m",
-      "detector": "lpqi_spad64_i2cass"
+      "detector": "lpqi_spad1_mpd"
     },
     {
       "name": "WHT",
@@ -35,7 +35,7 @@
       "north_m": 373.7,
       "up_m": -50.0,
       "telescope": "wht_4p2m",
-      "detector": "lpqi_spad64_i2cass"
+      "detector": "lpqi_spad1_mpd"
     },
     {
       "name": "INT",
@@ -43,7 +43,7 @@
       "north_m": 531.3,
       "up_m": -46.0,
       "telescope": "int_2p54m",
-      "detector": "lpqi_spad64_i2cass"
+      "detector": "lpqi_spad1_mpd"
     }
   ],
   "sources": [
@@ -56,7 +56,8 @@
   "notes": [
     "ENU relative to the NOT from the surveyed / published dome coordinates: NOT GPS, TNG geodetic survey (~5 m), WHT and INT ING GPS pages, GTC web page (arc-second). Pairwise 409 m (TNG-GTC) to 1518 m (GTC-INT, the project's '1.5 km'); NOT-TNG 532 m against the published 550 m.",
     "up_m from the quoted altitudes (ground floor for WHT / INT, dome for the others): indicative only.",
-    "The five-telescope network is the planned extension of the Pathfinder; every station carries the Pathfinder's published detector here."
+    "The five-telescope network is the planned extension of the Pathfinder; every station carries the Pathfinder's published detector here.",
+    "Default detector: the MPD single pixel (Pathfinder primary since 2026-10-09); campaigns override it through their backends."
   ],
   "assumptions": [
     "stations (GTC position at arc-second precision; up_m)"
