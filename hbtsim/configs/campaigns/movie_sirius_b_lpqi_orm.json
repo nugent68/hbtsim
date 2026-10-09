@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_sirius_b_lpqi_orm",
+  "label": "Movie: Sirius B's diameter in one night on the five-telescope LPQI network with the final instrument (R = 10 000 spectrograph, 10 ps array)",
+  "runner": "specmovie",
+  "target": "sirius_b",
+  "instrument": {
+    "array": "lpqi_orm"
+  },
+  "backends": [
+    "lpqi_r10000_nextgen"
+  ],
+  "night": {
+    "block_minutes": 5.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "theta_true_mas": 0.0285,
+    "truth_ld_u": 0.0,
+    "glare_fraction": 0.3,
+    "display_bins": 40,
+    "compare_pair": "NOT-TNG",
+    "seed": 11,
+    "fps": 8,
+    "dpi": 110,
+    "reference_diameters": [
+      {
+        "label": "HST radius × parallax (Bond et al. 2017)",
+        "mas": 0.0286,
+        "sigma_mas": 0.0002
+      }
+    ]
+  },
+  "outputs": {
+    "figures": true
+  },
+  "notes": [
+    "Sirius B (V 8.44, 28.5 uas) above 30 deg from La Palma for 5.4 h a night: every one of the ten NOT/TNG/GTC/WHT/INT pairs disperses it over 8650 channels at 10 ps; |V|^2 runs from 0.99 at 400 m to 0.5 at 1.5 km, and the diameter is fitted from all pairs and channels block by block.",
+    "glare_fraction 0.3: Sirius A (V -1.46 at 10 arcsec) is resolved out beyond 20 m, so its scattered light only adds to the accidentals; 0.3 of Sirius B's own rate is a working estimate for a 1 arcsec field stop at La Palma seeing (the aureole at 10 arcsec; to be replaced by a measured value).",
+    "Panels: the ten uv tracks; |V|^2 against B/lambda with every pair's wavelength-binned points of the current block and the accumulated points binned in spatial frequency; the fitted diameter against time, the network against the NOT-TNG pair alone, with the HST radius x parallax value of Bond et al. 2017."
+  ]
+}

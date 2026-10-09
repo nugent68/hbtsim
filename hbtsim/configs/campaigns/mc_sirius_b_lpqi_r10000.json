@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "mc_sirius_b_lpqi_r10000",
+  "label": "Sirius B on the LPQI-Pathfinder with the final instrument: R = 10 000 spectrograph on the 10 ps IMSE-LPQI array",
+  "runner": "montecarlo",
+  "target": "sirius_b",
+  "instrument": {
+    "array": "lpqi_pathfinder"
+  },
+  "backends": [
+    "lpqi_r10000_nextgen"
+  ],
+  "options": {
+    "theta_true_mas": 0.0285,
+    "truth_ld_u": 0.0,
+    "zenith_angles_deg": [
+      46.0,
+      52.5,
+      60.0
+    ],
+    "t_total_h": 10.0,
+    "blocks_per_zenith": 1,
+    "n_realizations": 100,
+    "estimators": [
+      "matched",
+      "box_opt"
+    ],
+    "seed": 11,
+    "bin_ps": 3.125,
+    "lag_half_range_ps": 400.0,
+    "sideband_sigma": 6.0,
+    "background": [
+      "singles"
+    ]
+  },
+  "notes": [
+    "mc_sirius_b_lpqi_pathfinder with the final LPQI instrument (F. Prada 2026-10-09): every one of the 8650 channels of lambda/10 000 over 400-950 nm measures its own g2 at 10 ps; the 6.7e6 cps capture ceiling is per pixel, so the dispersed star is not readout-limited.",
+    "PDE beyond 650 nm is an assumed silicon-SPAD fall-off (0.025 at 950 nm); dispersed throughput 0.5 assumed."
+  ]
+}

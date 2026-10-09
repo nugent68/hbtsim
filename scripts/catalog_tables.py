@@ -75,7 +75,8 @@ def hardware_list() -> str:
     det = []
     for n in cat.list_names("detector"):
         d = cat.load_detector(n)
-        ceiling = f", link ≤ {d.max_total_cps:.2g} cps" if d.max_total_cps else ""
+        ceiling = (f", link ≤ {d.max_total_cps:.2g} cps" if d.max_total_cps else "") + \
+                  (f", ≤ {d.max_cps_per_pixel:.2g} cps/pixel" if d.max_cps_per_pixel else "")
         det.append(f"`{n}` ({d.jitter_fwhm_ps:.0f} ps FWHM, {d.dead_time_ns:g} ns dead, "
                    f"{d.dark_cps_per_pixel:g} cps dark, {d.readout}{ceiling})")
     out.append("- **Detectors**: " + "; ".join(det) + ".")
@@ -163,10 +164,11 @@ def lpqi_parameters() -> str:
              ("five-telescope network", ", ".join(f"{s.name} {s.telescope.diameter_m:g} m" for s in orm.stations)
               + f"; baselines {min(lengths.values()):.0f}–{max(lengths.values()):.0f} m", "NOT, WHT, INT GPS pages; TNG survey; GTC web page (arc-second)"),
              ("telescope throughput", ", ".join(f"{s.telescope.throughput:g}" for s in pf.stations), "hbtsim default (**assumed**)"),
-             ("detector (Pathfinder: lensed IMSE-LPQI 64×64)", f"PDE {n.pde(500.0):.2f} flat 400–550 nm, {n.pde(650.0):.2f} at 650 nm (microlenses); "
-                                                 f"{n.jitter_fwhm_ps:.0f} ps FWHM, {n.n_pixels} pixels, dead {n.dead_time_ns:g} ns, "
-                                                 f"dark {n.dark_cps_per_pixel:g} cps/pixel, readout ≤ {n.max_total_cps:.1e} cps",
-              "F. Prada 2026-10-07; PDE shape and timing **assumed**"),
+             ("detector (final LPQI: lensed IMSE-LPQI 64×64 + R = 10 000 spectrograph)",
+              f"PDE {n.pde(550.0):.2f} at 400–550 nm, {n.pde(650.0):.2f} at 650 nm, {n.pde(950.0):.3f} at 950 nm (microlenses); "
+              f"{n.jitter_fwhm_ps:.0f} ps FWHM, {n.n_pixels} pixels per channel, dead {n.dead_time_ns:g} ns, "
+              f"dark {n.dark_cps_per_pixel:g} cps/pixel, ≤ {n.max_cps_per_pixel:.1e} cps per pixel",
+              "F. Prada 2026-10-07 / 2026-10-09; PDE curve beyond 650 nm **assumed**"),
              ("detector (Pathfinder primary: MPD single pixel)", f"PDE {m.pde(550.0):.2f} flat 400–700 nm, {m.jitter_fwhm_ps:.0f} ps FWHM (275 ps below 470 nm), "
                                                    f"dead {m.dead_time_ns:g} ns, dark {m.dark_cps_per_pixel:g} cps, 1 pixel, max detection rate {m.max_total_cps:.0e} cps",
               "F. Prada 2026-10-07 and 2026-10-09 (12e6 cps, primary detector); flat PDE **assumed**"),

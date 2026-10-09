@@ -67,7 +67,7 @@ prints the provenance).
 | Pathfinder pair | NOT 2.56 m + TNG 3.58 m, B = 532 m at PA 227° | surveyed positions (NOT GPS; TNG geodetic survey, ~5 m); the project quotes 550 m |
 | five-telescope network | NOT 2.56 m, TNG 3.58 m, GTC 10.4 m, WHT 4.2 m, INT 2.54 m; baselines 409–1518 m | NOT, WHT, INT GPS pages; TNG survey; GTC web page (arc-second) |
 | telescope throughput | 0.3, 0.3 | hbtsim default (**assumed**) |
-| detector (Pathfinder: lensed IMSE-LPQI 64×64) | PDE 0.50 flat 400–550 nm, 0.20 at 650 nm (microlenses); 500 ps FWHM, 4 pixels, dead 10 ns, dark 1.68 cps/pixel, readout ≤ 6.7e+06 cps | F. Prada 2026-10-07; PDE shape and timing **assumed** |
+| detector (final LPQI: lensed IMSE-LPQI 64×64 + R = 10 000 spectrograph) | PDE 0.50 at 400–550 nm, 0.20 at 650 nm, 0.025 at 950 nm (microlenses); 10 ps FWHM, 4 pixels per channel, dead 10 ns, dark 1.68 cps/pixel, ≤ 6.7e+06 cps per pixel | F. Prada 2026-10-07 / 2026-10-09; PDE curve beyond 650 nm **assumed** |
 | detector (Pathfinder primary: MPD single pixel) | PDE 0.30 flat 400–700 nm, 35 ps FWHM (275 ps below 470 nm), dead 55 ns, dark 50 cps, 1 pixel, max detection rate 1e+07 cps | F. Prada 2026-10-07 and 2026-10-09 (12e6 cps, primary detector); flat PDE **assumed** |
 | bare IMSE array (reference only) | PDE 0.026 = fill factor 3.5 % × PDP 75 %, otherwise as the lensed array with 25 pixels | Quintana et al. 2026, Sensors 26, 5757; not a Pathfinder option |
 | filters | 425.0 nm (1.0 nm); 500.0 nm (1.0 nm); 550.0 nm (1.0 nm); 650.0 nm (1.0 nm); 656.3 nm (1.0 nm); 486.1 nm (1.0 nm); throughput 0.9; one per night | wavelengths **to be confirmed**; width and one-per-night from the user |
@@ -473,6 +473,59 @@ Two campaigns of the `nightmovie` runner animate the measurement, one frame per
 
 The movies are written to `output/campaigns/<campaign>/<campaign>.mp4`
 (PNG frames when ffmpeg is absent); `--no-figures` computes the numbers only.
+
+## The final LPQI instrument: the R = 10 000 spectrograph on the 10 ps array
+
+F. Prada's numbers of 2026-10-09 change the instrument qualitatively. The
+microlensed IMSE-LPQI 64×64 array (`lpqi_spad64_i2cass_nextgen`) times to
+**10 ps**, its 6.7×10⁶ cps capture ceiling is **per pixel**
+(`max_cps_per_pixel`, a new detector field; the runners attenuate to the
+busiest pixel), and it sits behind an **R ≈ 10 000 spectrograph over
+400–950 nm** (`lpqi_r10000`: 8650 channels of λ/10 000, 0.040–0.095 nm;
+dispersed throughput 0.5 assumed; backend `lpqi_r10000_nextgen`). The PDE is
+0.50 over 400–550 nm and 0.20 at 650 nm from Paco; the fall-off to 0.025 at
+950 nm is an assumed silicon-SPAD shape until the curve is supplied. Dispersed
+over 8650 pixels no LPQI target comes near the per-pixel ceiling, so the
+√N multiplexing gain survives intact, and at R = 10 000 the coherence time is
+~0.2 ps, so the 10 ps pair timing sets the g² width.
+
+What it does, against the Pathfinder's MPD behind one 1 nm filter:
+
+- **ι Ori Aa, the distance**: the quadrature-equivalent σ(|V|²) per 10-min
+  block over all channels is 0.002 against 0.23, so the Fisher precision on
+  the orbit's scale is **0.3–0.4 % in one night** and 0.01–0.03 % in eight,
+  where the 0.75 % uncertainty of the spectroscopic a in AU, not the fringes,
+  limits the distance. (Fisher on every 25th channel, weight 25; node 0 and
+  90°.)
+- **Sirius B on the five-telescope network** (`mc_sirius_b_lpqi_orm_r10000`,
+  the Monte Carlo runner's new network mode: every pair as its own
+  two-station configuration, the analytic precisions combined by inverse
+  variance, the Poisson Monte Carlo on the best pair): at the campaign's
+  idealised 10 h at zenith angles 46–60° the Pathfinder pair gives 44 %
+  (193 h to 10 %), the kilometre pairs GTC–WHT and GTC–INT 2.6–2.7 % each
+  (|V|² down to 0.5–0.7 at 1.1–1.5 km against 0.92–0.99 at 532 m), and the
+  ten pairs together **1.8 % in 10 h**, 2 % in 7.8 h; the Monte Carlo on
+  GTC–WHT reproduces the analytic 2.6 %. The glare of Sirius A is not in that
+  run.
+- **The Sirius B movie** (`movie_sirius_b_lpqi_orm`, the new `specmovie`
+  runner: a uniform-disk target on a multi-station network with a
+  spectrograph): the real night, 5.4 h above 30° in 5-min blocks, with
+  Sirius A's scattered light taken as 30 % of Sirius B's own rate
+  (`options.glare_fraction`; resolved out beyond 20 m, so it only feeds the
+  accidentals). The panels are the ten uv tracks; |V|² against B/λ with every
+  pair's wavelength-binned points of the current block and the accumulated
+  points binned in spatial frequency, the disk curve and the running network
+  fit; and the diameter against time, the network against the NOT–TNG pair
+  alone, with the HST radius × parallax value (Bond et al. 2017, 28.6 ± 0.2
+  µas). The whole night gives **σ(θ)/θ = 4.4 %** from all channels (the
+  rendered realization 26.9 ± 1.3 µas against the 28.5 truth); GTC–WHT alone
+  6 %, GTC–INT 8 %, the NOT–TNG pair 98 %. Four such nights reach the 2 %
+  that the EON-SII study quotes for its 1.5–2 km pairs. The glare fraction
+  and the field stop are the numbers to settle with the team.
+
+The survey campaigns with the final instrument are `g2_singles_lpqi_r10000`,
+`g2_binaries_lpqi_r10000` and `mc_sirius_b_lpqi_r10000` (the Pathfinder
+pair); their tables are in `output/campaigns/`.
 
 ## Assumptions to confirm with the LPQI team
 

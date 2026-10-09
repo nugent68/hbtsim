@@ -17,6 +17,7 @@ RUNNERS = {
     "scale": "scale",
     "suite": "suite",
     "nightmovie": "nightmovie",
+    "specmovie": "specmovie",
 }
 
 

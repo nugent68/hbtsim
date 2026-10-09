@@ -11,7 +11,9 @@ MCP-PMT; its Table 2 quotes 1.5 / 6 / 37.5 h (MCP-PMT) and 0.33 / 1.3 /
 estimator constants (b_el, F, eta_vis, dt_res) are not published.
 
 The campaign's target is a uniform-disk target, its instrument array a
-two-station pair; every backend is run in turn.  Knobs under `options`:
+two-station pair -- or a multi-station network, in which case every pair
+is run analytically and combined (run_network); every backend is run in
+turn.  Knobs under `options`:
 theta_true_mas, truth_ld_u, zenith_angles_deg, t_total_h,
 blocks_per_zenith, n_realizations, estimators, seed, bin_ps,
 lag_half_range_ps, sideband_sigma, background (a list; the first is the
@@ -96,6 +98,8 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
                   sideband_sigma=float(opt("options.sideband_sigma", 6.0)),
                   background=backgrounds[0])
     t_tot = cfg_kw["t_total_h"]
+    if len(array.stations) > 2:
+        return run_network(campaign, cat, opts, out_dir, target, array, cfg_kw, theta, n_real, seed)
     results = {}
     for b in campaign.backends:
         det = b.detector if b.detector is not None else array.stations[0].detector
@@ -192,4 +196,61 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
             "mc": mc_out, "ladder": ladder,
             "optimal_baseline_m": b_opt, "implied_dt_res_ps": None if dt_res_ps is None else _finite(dt_res_ps),
         }
+    return results
+
+
+def run_network(campaign, cat, opts, out_dir, target, array, cfg_kw, theta, n_real, seed) -> dict:
+    """A multi-station array: every pair is its own two-station Monte Carlo
+    configuration (the analytic matched-filter precision per pair, the
+    Poisson Monte Carlo on the best pair), and the network's precision is
+    the inverse-variance sum over the pairs, which all measure the same
+    diameter in the same hours."""
+    from ..bispectrum import Array
+    t_tot = cfg_kw["t_total_h"]
+    results = {}
+    for b in campaign.backends:
+        det = b.detector if b.detector is not None else array.stations[0].detector
+        print(f"\n=== {b.name} [{det.name}]: {target.name}, theta {theta} mas, {t_tot:g} h at zenith "
+              f"{cfg_kw['zenith_angles_deg']} deg, every pair of {'+'.join(st.name for st in array.stations)} ===")
+        pairs, inv_var = [], 0.0
+        best = None
+        for i, j, _ in array.pairs():
+            sub = Array((array.stations[i], array.stations[j]), array.site)
+            cfg = MCConfig.from_target(target, sub, b.spectrograph, detector=det,
+                                       polarization_mode=b.polarization_mode, **cfg_kw)
+            e = expected_counts(cfg)
+            prec = analytic_theta_precision(cfg)
+            inv_var += 1.0 / prec ** 2 if np.isfinite(prec) and prec > 0 else 0.0
+            row = dict(pair=f"{array.stations[i].name}-{array.stations[j].name}", baseline_m=cfg.ground_baseline_m,
+                       projected_baselines_m=[float(x) for x in e.b_proj_m], vis2_min=float(e.vis2_true.min()),
+                       vis2_max=float(e.vis2_true.max()), rate_per_telescope_cps=float(e.rates[:, 0].sum()),
+                       analytic_precision=_finite(prec), hours_to_10pct=_finite(hours_to(prec, 0.10, t_tot)))
+            pairs.append(row)
+            print(f"  {row['pair']:8s} B {cfg.ground_baseline_m:5.0f} m (projected {', '.join(f'{x:.0f}' for x in e.b_proj_m)}), "
+                  f"|V|^2 {e.vis2_true.min():.3f}-{e.vis2_true.max():.3f}, rate {e.rates[:, 0].sum():.2e} cps/tel: "
+                  f"sigma(theta)/theta {100 * prec:7.2f} % in {t_tot:g} h -> {hours_to(prec, 0.10, t_tot):9.1f} h to 10 %")
+            if best is None or prec < best[0]:
+                best = (prec, cfg, row["pair"])
+        net = 1.0 / np.sqrt(inv_var) if inv_var > 0 else float("inf")
+        h = {p: hours_to(net, p, t_tot) for p in (0.10, 0.05, 0.02)}
+        print(f"  NETWORK ({len(pairs)} pairs, inverse-variance sum): sigma(theta)/theta {100 * net:.2f} % in {t_tot:g} h; "
+              f"hours to 10/5/2 %: {h[0.10]:.1f} / {h[0.05]:.1f} / {h[0.02]:.1f}")
+        mc_out = {}
+        if n_real > 0 and best is not None:
+            mc = run_mc(best[1], n_real=n_real, estimators=("matched",), seed=seed)
+            st = mc.stats["matched"]
+            print(f"  Poisson Monte Carlo on the best pair {best[2]} ({n_real} realizations): theta = {st.theta_mean:.5f} mas "
+                  f"(bias {100 * st.bias_frac:+.1f} %), scatter {100 * st.precision_frac:.2f} %, fitted sigma "
+                  f"{100 * st.sigma_pred / theta:.2f} % (analytic {100 * best[0]:.2f} %)")
+            mc_out = {"pair": best[2], **_stats(st)}
+        write_tables(out_dir, [[r["pair"], f"{r['baseline_m']:.0f}", f"{r['vis2_min']:.3f}-{r['vis2_max']:.3f}",
+                                "nan" if r["analytic_precision"] is None else f"{100 * r['analytic_precision']:.2f}",
+                                "nan" if r["hours_to_10pct"] is None else f"{r['hours_to_10pct']:.1f}"] for r in pairs]
+                     + [["network", "", "", f"{100 * net:.2f}", f"{h[0.10]:.1f}"]],
+                     ["pair", "B [m]", "|V|^2", f"precision in {t_tot:g} h [%]", "hours to 10 %"],
+                     name=f"pairs_{_slug(b.name)}", latex=opts.latex)
+        results[b.name] = {"detector": det.name, "n_channels": b.spectrograph.n_channels, "t_total_h": t_tot,
+                           "pairs": pairs, "network_precision": _finite(net),
+                           "hours_to_10pct": _finite(h[0.10]), "hours_to_5pct": _finite(h[0.05]), "hours_to_2pct": _finite(h[0.02]),
+                           "mc_best_pair": mc_out}
     return results

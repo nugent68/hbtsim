@@ -195,3 +195,29 @@ def test_nightmovie_binary_runner_numbers(tmp_path):
     assert cum[-1]["distance_best_pc"] == pytest.approx(g["distance_best_pc"]) and cum[-1]["n_islands95"] == g["n_islands95"]
     assert all(c["distance68_pc"][0] <= c["distance_best_pc"] <= c["distance68_pc"][1] for c in cum)
     assert "movie" not in res
+
+
+def test_specmovie_runner_numbers(tmp_path):
+    """The spectral network movie (Sirius B on the five LPQI telescopes with
+    the R = 10 000 array) without rendering: ten pairs, the long GTC pairs
+    carrying the precision, the network beating any single pair."""
+    import json
+    from hbtsim.catalog import Catalog
+    from hbtsim.run_campaign import RunOptions, run
+    cat0 = Catalog(env=False)
+    d = cat0.raw("campaign", "movie_sirius_b_lpqi_orm")
+    d.update(name="tiny_specmovie", night={"block_minutes": 60.0, "min_alt_deg": 30.0})
+    d["options"].update(display_bins=8)
+    (tmp_path / "campaigns").mkdir()
+    (tmp_path / "campaigns" / "tiny_specmovie.json").write_text(json.dumps(d))
+    cat = Catalog(paths=[tmp_path], env=False)
+    res = run(cat, cat.load_campaign("tiny_specmovie"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert res["n_channels"] == 8650 and len(res["pairs"]) == 10 and 4 <= res["n_blocks"] <= 7
+    by = {p["pair"]: p for p in res["pairs"]}
+    assert by["GTC-INT"]["baseline_max_m"] > 1400 and by["GTC-INT"]["vis2_min"] < 0.6 and by["NOT-TNG"]["vis2_min"] > 0.9
+    best = min(p["sigma_theta_frac_night"] for p in res["pairs"])
+    assert res["network_sigma_theta_frac_night"] < best < by["NOT-TNG"]["sigma_theta_frac_night"]
+    assert 0.01 < res["network_sigma_theta_frac_night"] < 0.2 and res["glare_fraction"] == 0.3
+    assert len(res["fit_theta_mas"]) == res["n_blocks"] and res["fit_sigma_mas"][-1] is not None
+    assert all(p["readout_scale"] == 1.0 for p in res["pairs"])          # the per-pixel ceiling never bites when dispersed
+    assert "movie" not in res and (tmp_path / "out" / "tiny_specmovie" / "results.json").exists()

@@ -191,7 +191,7 @@ def build_detector(cat, d: dict) -> Detector:
     return Detector(name=_label(d), pde_table_nm=table,
                     jitter_fwhm_ps=jitter_fwhm_ps(d["timing"]),
                     **_given(d, ("dead_time_ns", "dark_cps_per_pixel", "n_pixels", "readout",
-                                 "max_total_cps")))
+                                 "max_total_cps", "max_cps_per_pixel")))
 
 
 def build_spectrograph(cat, d: dict) -> Spectrograph:

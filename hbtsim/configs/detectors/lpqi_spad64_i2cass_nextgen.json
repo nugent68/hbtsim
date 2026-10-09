@@ -3,7 +3,7 @@
   "kind": "detector",
   "name": "lpqi_spad64_i2cass_nextgen",
   "extends": "lpqi_spad64_i2cass",
-  "label": "LPQI-Pathfinder next IMSE-LPQI 64x64 SPAD array (microlenses)",
+  "label": "LPQI IMSE-LPQI 64x64 SPAD array with microlenses (final: 10 ps, R = 10 000 spectrograph)",
   "pde_table_nm": [
     [
       400.0,
@@ -16,25 +16,43 @@
     [
       650.0,
       0.2
+    ],
+    [
+      700.0,
+      0.15
+    ],
+    [
+      800.0,
+      0.08
+    ],
+    [
+      900.0,
+      0.04
+    ],
+    [
+      950.0,
+      0.025
     ]
   ],
   "timing": {
-    "jitter_fwhm_ps": 500.0
+    "jitter_fwhm_ps": 10.0
   },
   "n_pixels": 4,
   "sources": [
-    "F. Prada (LPQI PI), email to P. Nugent 2026-10-07: sensor data for both LPQI-Pathfinder detectors and the filter set",
-    "Quintana, Gonzalez-de-Rivera, Lopez-Buedo & Prada 2026, Sensors 26, 5757 (doi:10.3390/s26185757): the LPQI-Pathfinder 64 x 64 I2CASS/IMSE SPAD array and its AER readout"
+    "F. Prada (LPQI PI), email to P. Nugent 2026-10-07: PDE 0.5 with microlenses, 6.7e6 cps capture ceiling",
+    "F. Prada, 2026-10-09 (via P. Nugent): the final LPQI instrument -- 10 ps timing, the 6.7e6 cps ceiling is PER PIXEL, and an R ~ 10 000 spectrograph over 400-950 nm feeds the array (spectrograph lpqi_r10000, backend lpqi_r10000_nextgen)",
+    "Quintana et al. 2026, Sensors 26, 5757: the published 64x64 array (lpqi_spad64_i2cass) this one extends"
   ],
   "notes": [
-    "PDE 0.50 flat over 400-550 nm: ~100 % fill factor (25 % native + microlenses) x the 75 % peak PDP at 425 nm of the Sensors paper, taken as a flat 50 % (assumed); the PDP drops to 20 % at 650 nm (linear between 550 and 650 nm here, 20 % beyond -- the H-alpha filter sees 0.19).",
-    "Timing 500 ps FWHM: the White Rabbit time-stamping target, not measured.",
-    "n_pixels 4: ~1 arcsec seeing on 0.5 arcsec pixels.",
-    "Dead time, dark counts and the 6.7e6 cps capture ceiling inherited from the published array."
+    "The final LPQI detector: the microlensed IMSE-LPQI 64x64 SPAD array behind an R ~ 10 000 spectrograph (400-950 nm, ~8650 channels of lambda/10 000). Each spectral channel falls on its own pixel(s); n_pixels 4 is the pixels per channel (dead time and dark counts per channel).",
+    "max_cps_per_pixel 6.7e6: the capture ceiling is per pixel, so dispersed over ~8650 channels the array is never readout-limited on the LPQI targets; the filter backends (lpqi_nextgen_*) concentrate the star on 4 pixels and are limited above 2.7e7 cps.",
+    "PDE: 0.50 over 400-550 nm and 0.20 at 650 nm from F. Prada; the fall-off to 950 nm (0.15 at 700, 0.08 at 800, 0.04 at 900, 0.025 at 950) is an ASSUMED silicon-SPAD shape pending the measured curve.",
+    "10 ps FWHM timing (F. Prada 2026-10-09); at R = 10 000 the coherence time is ~0.2 ps, so the pair timing sets the g2 width."
   ],
   "assumptions": [
-    "pde_table_nm (flat 50 % over 400-550 nm)",
-    "timing (500 ps White Rabbit target)",
-    "n_pixels"
-  ]
+    "pde_table_nm beyond 650 nm (silicon-SPAD shape, scaled to the quoted 0.5)",
+    "n_pixels (pixels per channel)"
+  ],
+  "max_total_cps": null,
+  "max_cps_per_pixel": 6700000.0
 }

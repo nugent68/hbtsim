@@ -226,7 +226,7 @@ def test_atmosphere_attachment_without_tables(tmp_path, monkeypatch):
 def test_campaigns_resolve():
     for name in cat.list_names("campaign"):
         camp = cat.load_campaign(name)
-        assert camp.runner in ("g3", "g2", "g3_campaign", "chromatic", "montecarlo", "scale", "suite", "nightmovie")
+        assert camp.runner in ("g3", "g2", "g3_campaign", "chromatic", "montecarlo", "scale", "suite", "nightmovie", "specmovie")
         if camp.runner == "suite":
             members = [m if isinstance(m, str) else m["campaign"] for m in camp.members]
             assert all(m in cat.list_names("campaign") for m in members)

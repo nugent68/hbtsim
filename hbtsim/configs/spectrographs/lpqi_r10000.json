@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "lpqi_r10000",
+  "label": "LPQI R = 10 000 spectrograph, 400-950 nm",
+  "lambda_min_nm": 400.0,
+  "lambda_max_nm": 950.0,
+  "resolving_power": 10000.0,
+  "throughput": 0.5,
+  "sources": [
+    "F. Prada, 2026-10-09 (via P. Nugent): the final LPQI instrument disperses 400-950 nm at R ~ 10 000 onto the microlensed IMSE-LPQI array"
+  ],
+  "notes": [
+    "Constant lambda/dlambda = 10 000: 8650 channels of 0.040 nm (blue end) to 0.095 nm (red end).",
+    "Throughput 0.5 = DISPERSED_THROUGHPUT (spectrograph + coupling optics, the EON-SII convention); the telescope file carries the rest."
+  ],
+  "assumptions": [
+    "throughput",
+    "resolving_power (R ~ 10 000 as quoted)",
+    "lambda range (400-950 nm as quoted)"
+  ]
+}

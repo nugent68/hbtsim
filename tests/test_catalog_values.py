@@ -108,8 +108,12 @@ def test_lpqi_pathfinder():
     assert d.max_total_cps == 6.7e6 and d.readout == "timetag"
     n = cat.load_detector("lpqi_spad64_i2cass_nextgen")           # F. Prada, 2026-10-07
     assert n.pde(425.0) == 0.5 and n.pde(550.0) == 0.5 and n.pde(650.0) == pytest.approx(0.2)
-    assert n.pde(656.28) == pytest.approx(0.2) and n.jitter_fwhm_ps == 500.0 and n.n_pixels == 4
-    assert (n.dead_time_ns, n.dark_cps_per_pixel, n.max_total_cps) == (10.0, 1.68, 6.7e6)
+    assert n.pde(656.28) == pytest.approx(0.194, abs=0.002) and n.jitter_fwhm_ps == 10.0 and n.n_pixels == 4   # 10 ps: F. Prada 2026-10-09
+    assert (n.dead_time_ns, n.dark_cps_per_pixel, n.max_total_cps, n.max_cps_per_pixel) == (10.0, 1.68, None, 6.7e6)
+    assert n.jitter_fwhm_ps == 10.0 and n.pde(500.0) == 0.5 and n.pde(950.0) == pytest.approx(0.025)   # F. Prada 2026-10-09
+    r = cat.load_spectrograph("lpqi_r10000")
+    assert 8600 < r.n_channels < 8700 and r.channel_centers_nm[0] < 401 and r.channel_centers_nm[-1] > 949
+    assert cat.load_backend("lpqi_r10000_nextgen").detector.max_cps_per_pixel == 6.7e6
     m = cat.load_detector("lpqi_spad1_mpd")
     assert (m.pde(550.0), m.jitter_fwhm_ps, m.dead_time_ns, m.dark_cps_per_pixel, m.n_pixels) == (0.3, 35.0, 55.0, 50.0, 1)
     assert m.max_total_cps == 12e6 and m.readout == "timetag"      # F. Prada 2026-10-09

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "lpqi_r10000_nextgen",
+  "label": "LPQI R = 10 000 spectrograph, IMSE-LPQI 64x64 array (10 ps)",
+  "model": "counting",
+  "spectrograph": "lpqi_r10000",
+  "detector": "lpqi_spad64_i2cass_nextgen",
+  "polarization_mode": "unpolarized",
+  "notes": [
+    "The final LPQI instrument: every channel measures its own g2 at 10 ps; channel SNRs add in quadrature."
+  ]
+}

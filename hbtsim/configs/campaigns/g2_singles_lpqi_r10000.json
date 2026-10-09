@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g2_singles_lpqi_r10000",
+  "label": "Bright northern O/B stars on the LPQI-Pathfinder with the final instrument: R = 10 000 spectrograph on the 10 ps IMSE-LPQI array, diameters from the null crossing in 8650 channels",
+  "runner": "g2",
+  "targets": [
+    "lamori_a",
+    "betcep",
+    "etaori",
+    "epsper",
+    "delori_aa",
+    "gampeg",
+    "zettau",
+    "gammacas"
+  ],
+  "instrument": {
+    "array": "lpqi_pathfinder"
+  },
+  "backends": [
+    "lpqi_r10000_nextgen"
+  ],
+  "night": {
+    "block_minutes": 30.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "one_backend_per_night": true,
+    "detection_sigma": 3.0,
+    "diameter_precision": 0.05
+  },
+  "outputs": {
+    "latex": true
+  },
+  "notes": [
+    "g2_singles_lpqi_pathfinder with the final LPQI instrument (F. Prada 2026-10-09): every one of the 8650 channels of lambda/10 000 over 400-950 nm measures its own g2 at 10 ps; the 6.7e6 cps capture ceiling is per pixel, so the dispersed star is not readout-limited.",
+    "PDE beyond 650 nm is an assumed silicon-SPAD fall-off (0.025 at 950 nm); dispersed throughput 0.5 assumed."
+  ]
+}

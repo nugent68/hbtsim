@@ -131,7 +131,8 @@ class Detector:
     dark_cps_per_pixel: float
     n_pixels: int = 1          # pixels the stellar light is spread over
     readout: str = "timetag"   # "timetag" | "correlator"
-    max_total_cps: float | None = None   # time-tag link ceiling per detector
+    max_total_cps: float | None = None   # time-tag link ceiling per detector (all pixels)
+    max_cps_per_pixel: float | None = None   # maximum detection rate of one pixel / channel
     _pde_lam: np.ndarray = field(init=False, repr=False, compare=False)
     _pde_val: np.ndarray = field(init=False, repr=False, compare=False)
 
@@ -369,12 +370,24 @@ def _check_dead_time(load, where: str) -> None:
                       f"or a polarizing beamsplitter", stacklevel=3)
 
 
-def readout_scale(detector: Detector, total_incident_cps: float) -> float:
-    """Factor (<= 1) by which the rates must be attenuated to fit the
-    detector's time-tag link; 1 for a correlator readout."""
-    if detector.readout == "correlator" or detector.max_total_cps is None:
+def readout_scale(detector: Detector, total_incident_cps: float,
+                  per_pixel_incident_cps: float | None = None) -> float:
+    """Factor (<= 1) by which the rates must be attenuated (a neutral
+    density on the whole beam) to fit the detector's readout: the
+    time-tag link ceiling on the total rate (max_total_cps) and/or the
+    maximum detection rate of one pixel (max_cps_per_pixel, against the
+    busiest pixel: per_pixel_incident_cps, default total / n_pixels);
+    1 for a correlator readout."""
+    if detector.readout == "correlator":
         return 1.0
-    return min(1.0, detector.max_total_cps / max(total_incident_cps, 1e-300))
+    scale = 1.0
+    if detector.max_total_cps is not None:
+        scale = min(scale, detector.max_total_cps / max(total_incident_cps, 1e-300))
+    if detector.max_cps_per_pixel is not None:
+        per_pixel = (total_incident_cps / detector.n_pixels if per_pixel_incident_cps is None
+                     else per_pixel_incident_cps)
+        scale = min(scale, detector.max_cps_per_pixel / max(per_pixel, 1e-300))
+    return float(min(1.0, scale))
 
 
 @dataclass(frozen=True)
@@ -412,13 +425,14 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
                     grid: GridConfig | None = None,
                     chunk_size: int | None = None,
                     pupils=True,
-                    n_pixels_per_channel: int = 1,
+                    n_pixels_per_channel: int | None = None,
                     coherence_broadening: bool = True,
                     enforce_readout: bool = True) -> SpectralSNRResult:
     """Total g2 SNR with the source spectrum dispersed over the array.
 
     Each channel (n_pixels_per_channel pixels per telescope and stream,
-    so dead time and dark counts are per channel) measures g2
+    default the detector's n_pixels, so dead time and dark counts are per
+    channel) measures g2
     independently at its own wavelength, with the baseline along the
     projected separation axis at the requested orbital phase.
     SNR_total = sqrt(sum SNR_i^2).
@@ -447,8 +461,10 @@ def spectral_g2_snr(system: BinarySystem, baseline_m: float,
 
     telescope2 = telescope1 if telescope2 is None else telescope2
     detector2 = detector1 if detector2 is None else detector2
-    det1 = replace(detector1, n_pixels=n_pixels_per_channel)
-    det2 = replace(detector2, n_pixels=n_pixels_per_channel)
+    if n_pixels_per_channel is not None:                      # else the detector's own n_pixels (per channel)
+        detector1 = replace(detector1, n_pixels=n_pixels_per_channel)
+        detector2 = replace(detector2, n_pixels=n_pixels_per_channel)
+    det1, det2 = detector1, detector2
 
     pos = positions_at(system, orbital_phase)
     nm = spectrograph.channel_centers_nm
@@ -524,9 +540,10 @@ def _g2_budget(vis2, mag, spectrograph: Spectrograph, baseline_m: float, *,
     # readout ceiling: total incident rate over all tagged channels and streams
     scale = 1.0
     if enforce_readout:
-        tot = [float(np.sum(np.asarray(incident_rate(mag, t, d, obs))[mask])) * n_streams
-               for t, d in ((telescope1, det1), (telescope2, det2))]
-        scale = min(readout_scale(det1, tot[0]), readout_scale(det2, tot[1]))
+        inc = [np.asarray(incident_rate(mag, t, d, obs))[mask] for t, d in ((telescope1, det1), (telescope2, det2))]
+        tot = [float(np.sum(x)) * n_streams for x in inc]
+        busiest = [float(np.max(x)) / d.n_pixels if x.size else 0.0 for x, d in zip(inc, (det1, det2))]
+        scale = min(readout_scale(det1, tot[0], busiest[0]), readout_scale(det2, tot[1], busiest[1]))
     mag_eff = mag - 2.5 * np.log10(scale) if scale < 1.0 else mag
 
     res = g2_snr(vis2, mag_eff, obs, telescope1=telescope1, telescope2=telescope2,

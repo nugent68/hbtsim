@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "mc_sirius_b_lpqi_orm_r10000",
+  "label": "Sirius B on the five-telescope LPQI network with the final instrument: R = 10 000 spectrograph on the 10 ps IMSE-LPQI array, every pair",
+  "runner": "montecarlo",
+  "target": "sirius_b",
+  "instrument": {
+    "array": "lpqi_orm"
+  },
+  "backends": [
+    "lpqi_r10000_nextgen"
+  ],
+  "options": {
+    "theta_true_mas": 0.0285,
+    "truth_ld_u": 0.0,
+    "zenith_angles_deg": [
+      46.0,
+      52.5,
+      60.0
+    ],
+    "t_total_h": 10.0,
+    "blocks_per_zenith": 1,
+    "n_realizations": 50,
+    "estimators": [
+      "matched",
+      "box_opt"
+    ],
+    "seed": 11,
+    "bin_ps": 3.125,
+    "lag_half_range_ps": 400.0,
+    "sideband_sigma": 6.0,
+    "background": [
+      "singles"
+    ]
+  },
+  "notes": [
+    "Sirius B measured by the whole LPQI network (NOT, TNG, GTC, WHT, INT): ten pairs from 409 to 1518 m, each a two-station Monte Carlo configuration at the campaign's zenith angles, combined by inverse variance. At 1.5 km the 28.5 uas white dwarf's |V|^2 drops to ~0.6 instead of 0.95 at the Pathfinder's 530 m.",
+    "Sirius A's scattered light (V -1.46 at 10 arcsec) is NOT in the model: its photons are resolved out beyond 20 m and would add to the accidentals; the field stop decides how much.",
+    "mc_sirius_b_lpqi_pathfinder with the final LPQI instrument (F. Prada 2026-10-09): every one of the 8650 channels of lambda/10 000 over 400-950 nm measures its own g2 at 10 ps; the 6.7e6 cps capture ceiling is per pixel, so the dispersed star is not readout-limited."
+  ]
+}
