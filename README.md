@@ -405,6 +405,7 @@ traced to its inputs. `suite_phase6` runs everything (`--jobs 4`).
 | `movie_etaori_lpqi_orbit` | nightmovie | Movie: eta Ori Aa through one 8-day orbit on the LPQI-Pathfinder, eight consecutive nights (H-alpha, MPD) |
 | `movie_etaori_lpqi_orbit_node90` | nightmovie | Movie: eta Ori Aa through one 8-day orbit on the LPQI-Pathfinder, eight consecutive nights, line of nodes rotated by 90 deg (H-alpha, MPD) |
 | `movie_iotaori_lpqi_orbit` | nightmovie | Movie: iota Ori Aa through one 29-day orbit on the LPQI-Pathfinder, eight nights every 3.64 d (650 nm red continuum, MPD) |
+| `movie_procyon_b_lpqi_orm` | specmovie | Movie: Procyon B's diameter on the five-telescope LPQI network with the final instrument (R = 10 000 spectrograph, 10 ps array) |
 | `movie_sirius_b_lpqi_orm` | specmovie | Movie: Sirius B's diameter in one night on the five-telescope LPQI network with the final instrument (R = 10 000 spectrograph, 10 ps array) |
 | `redclump_ii_dwarf` | scale | Red-clump scale precision (Kim & Kaiser comparison) with the 4800 K / log g 4.5 dwarf stand-in |
 | `redclump_ii_supergiant` | scale | Red-clump scale precision (Kim & Kaiser comparison) with the 5000 K / log g 0 supergiant stand-in |

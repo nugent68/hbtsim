@@ -523,6 +523,18 @@ What it does, against the Pathfinder's MPD behind one 1 nm filter:
   that the EON-SII study quotes for its 1.5–2 km pairs. The glare fraction
   and the field stop are the numbers to settle with the team.
 
+- **Procyon B** (`movie_procyon_b_lpqi_orm`): the other nearby white dwarf
+  (V 10.7, 32.6 µas from the HST radius of Bond et al. 2015 at 3.51 pc,
+  dec +5.2° so 7.8 h above 30°) is not the glare-free alternative it might
+  seem. Procyon A is 10.4 mag brighter at 2.5–6″, against Sirius A's 9.9 mag
+  at 10–11″, so its aureole is a larger fraction of B's light, not a smaller
+  one; and Procyon B is 2.5 mag fainter than Sirius B, so the rates are ten
+  times lower. With no glare at all the network gives **σ(θ)/θ = 16 % in a
+  night** (GTC–WHT 23 %, GTC–INT 25 %, the NOT–TNG pair 250 %), so 5 %
+  needs about ten nights; with the glare scaled from the Sirius estimate
+  (`--set options.glare_fraction=3`) a night gives 92 %. The movie is
+  rendered for the glare-free case.
+
 The survey campaigns with the final instrument are `g2_singles_lpqi_r10000`,
 `g2_binaries_lpqi_r10000` and `mc_sirius_b_lpqi_r10000` (the Pathfinder
 pair); their tables are in `output/campaigns/`.
