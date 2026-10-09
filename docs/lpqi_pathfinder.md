@@ -535,9 +535,45 @@ What it does, against the Pathfinder's MPD behind one 1 nm filter:
   (`--set options.glare_fraction=3`) a night gives 92 %. The movie is
   rendered for the glare-free case.
 
-The survey campaigns with the final instrument are `g2_singles_lpqi_r10000`,
-`g2_binaries_lpqi_r10000` and `mc_sirius_b_lpqi_r10000` (the Pathfinder
-pair); their tables are in `output/campaigns/`.
+**The surveys with the final instrument on the Pathfinder pair**
+(`g2_singles_lpqi_r10000`, `g2_binaries_lpqi_r10000`, 30-min blocks, the
+8650 channels summed in quadrature, nothing readout-limited):
+
+| target | |V|² over band and night | SNR/night | nights to 3σ | time to a 5 % diameter |
+|---|---|---|---|---|
+| λ Ori A | 0–0.56 | 107 | 0.0008 | 0.6 min |
+| β Cep | 0–0.47 | 78 | 0.0015 | 1 min |
+| η Ori Aa | 0–0.76 | 376 | 0.00006 | 0.1 min |
+| ε Per | 0–0.45 | 71 | 0.0018 | 1.4 min |
+| δ Ori Aa1 | 0–0.47 | 165 | 0.0003 | 0.2 min |
+| γ Peg | 0–0.21 | 45 | 0.0045 | 3 min |
+| ζ Tau | 0–0.24 | 36 | 0.007 | 5 min |
+| γ Cas | 0–0.16 | 36 | 0.007 | 4 min |
+| β Aur (binary, resolved out) | 0–0.015 | 3.8 | 0.6 | — |
+| Algol (binary, resolved out) | 0–0.012 | 6.5 | 0.2 | — |
+| Spica (binary, resolved out) | 0–0.028 | 27 | 0.012 | — |
+
+Against the MPD behind one filter (1–40 nights to 5 %) the hot-star diameters
+become minutes, which moves the science: the diameter is no longer the
+measurement, the things the single filter could not reach are. Scaling the
+earlier negative results by the night's precision (flagged as estimates, not
+campaign runs): β Cep's 1 % pulsation of the diameter, undetectable in 60
+nights with the MPD, is a 1.3σ-per-phase-bin signal in one night with eight
+bins over the 0.19 d period and ~4σ per bin in ten; δ Ori Aa1's 3 %
+oblateness, 0.4σ after 40 nights with the MPD, is ~7σ in a night in the
+Fisher sense but still degenerate with θ for a single position angle, so it
+stays a network measurement; and the hot-star limb darkening, the sidelobe
+level against the null depth, is measured in every channel at once, which is
+what tests the Spica-law assumption carried by every target above. The
+resolved-out binaries stay faint signals: β Aur and Algol are detected in a
+night, which is a fringe at the 1 % level and no orbit.
+
+The Pathfinder's Sirius B case (`mc_sirius_b_lpqi_r10000`): the pair with
+the array reaches the correlation itself at 13–17σ in a night (|V|² ≈ 0.95 to
+±0.07) and so the first intensity-interferometric detection of a white dwarf,
+but the diameter only at 98 % per night (44 % in the idealised 10 h, 193 h to
+10 %); the MPD filter never gets there (1.8×10⁶ h). The Pathfinder calibrates
+the glare and the timing on the target; the network measures the diameter.
 
 ## Assumptions to confirm with the LPQI team
 
