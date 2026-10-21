@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_epstau_isi_650",
+  "label": "Movie: epsilon Tau's |V|^2(B) with the ISI pair at 650 nm, one baseline per night from 14 to 130 m",
+  "runner": "nightmovie",
+  "target": "eps_tau",
+  "instrument": {
+    "array": "isi_pair"
+  },
+  "backends": [
+    "isi_pdm_650"
+  ],
+  "night": {
+    "block_minutes": 5.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "schedule": [
+      {
+        "baseline_m": 14.0
+      },
+      22.0,
+      33.0,
+      44.0,
+      55.0,
+      66.0,
+      80.0,
+      100.0,
+      130.0
+    ],
+    "yscale": "log",
+    "seed": 7,
+    "display_bin_blocks": 6,
+    "theta_alternatives_pct": [
+      -5.0,
+      5.0
+    ],
+    "fps": 12,
+    "dpi": 110
+  },
+  "outputs": {
+    "figures": true
+  },
+  "notes": [
+    "The 900 nm plan (movie_epstau_isi) at 650 nm with the baselines scaled to the 63 m null: the PDM's 0.37 efficiency at 650 nm against the assumed 0.11 at 900 nm outweighs the shorter coherence time and the star's red colour, so the same nine nights give 4.0 % instead of 5.9 % on the diameter.",
+    "The red-clump giant sits below the PDM's 4e6 cps cap, so unlike the bright giants its S/N scales with its own photons and the filter's efficiency matters."
+  ]
+}

@@ -408,6 +408,7 @@ traced to its inputs. `suite_phase6` runs everything (`--jobs 4`).
 | `movie_delori_lpqi_oblateness` | nightmovie | Movie: is delta Ori Aa1 oblate? H-alpha nights on the LPQI-Pathfinder against the equal-area circular disk (MPD, 40 nights) |
 | `movie_delori_lpqi_weighted` | nightmovie | Movie: delta Ori Aa1 on the LPQI-Pathfinder, a weighted filter schedule (12 nights H-alpha, 4 at 550 nm, 2 at 500 nm, 2 at H-beta; MPD) |
 | `movie_epstau_isi` | nightmovie | Movie: the red-clump giant epsilon Tau's |V|^2(B) with the ISI pair at 900 nm, one baseline per night from 20 to 180 m |
+| `movie_epstau_isi_650` | nightmovie | Movie: epsilon Tau's |V|^2(B) with the ISI pair at 650 nm, one baseline per night from 14 to 130 m |
 | `movie_etaori_lpqi_2orbits` | nightmovie | Movie: eta Ori Aa through two 8-day orbits, sixteen consecutive nights (H-alpha, MPD) |
 | `movie_etaori_lpqi_2orbits_gap_node90` | nightmovie | Movie: eta Ori Aa, two 8-night orbits 323 days apart, line of nodes rotated by 90 deg (H-alpha, MPD) |
 | `movie_etaori_lpqi_2orbits_node90` | nightmovie | Movie: eta Ori Aa through two orbits, sixteen consecutive nights, line of nodes rotated by 90 deg (H-alpha, MPD) |

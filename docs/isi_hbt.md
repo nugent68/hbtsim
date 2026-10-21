@@ -117,6 +117,16 @@ sidelobe nights add nothing and the limb darkening is unconstrained. A season
 of 30 nights at 30–75 m would tie this Hyades red-clump calibrator to about
 2 %, which is the level at which the red-clump radius scale becomes useful.
 
+The same nine nights at 650 nm with the baselines scaled to that filter's
+63 m null (`movie_epstau_isi_650`: 14, 22, 33, 44, 55, 66, 80, 100, 130 m)
+give 4.0 % instead of 5.9 %: ε Tau sits below the PDM's cap, so the 0.37
+efficiency at 650 nm against the assumed 0.11 at 900 nm outweighs the
+shorter coherence time and the star's colour (the fringe at 16σ on the first
+night, the null night at 2.3σ). A 550 nm filter, where the PDM peaks at 0.49,
+would be worse than either (5.2 %): the coherence time of a 1 nm band scales
+as λ² and the giants are red, so for the uncapped red-clump star 650 nm is the
+best filter and for the capped bright giants the reddest filter always wins.
+
 ## What would change the verdict
 
 - The sidelobes need σ(|V|²) ≈ 0.003 per night, ten times better: more
