@@ -46,9 +46,9 @@
     "Johnson 1966 / Ducati 2002: V 0.08, H -1.72, K -1.78 (system); SIMBAD coordinates"
   ],
   "notes": [
-    "Angular diameters 8.5 and 6.2 mas at 13.16 pc; separation up to 56 mas, fringe period lambda/rho = 5.7 m at 1550 nm (3.3 m at 900 nm) against the ISI's 1.65 m pupils: pupil smearing on.",
+    "Angular diameters 8.5 and 6.2 mas at 13.16 pc; separation up to 56 mas, fringe period lambda/rho = 3.3 m at 900 nm (2.4 m at 650 nm) against the ISI's 1.65 m pupils: pupil smearing on.",
     "e = 0.00089 taken as circular (phase 0 = quadrature).",
-    "The two giants are nearly equal in the near-IR (Delta mag ~0 at 700 nm), so the fringe contrast is high; both are resolved beyond ~40 m (first nulls 46 and 63 m at 1550 nm)."
+    "The two giants are nearly equal in the red (Delta mag ~0 at 700 nm), so the fringe contrast is high; both are resolved beyond ~25 m (first nulls 27 and 36 m at 900 nm)."
   ],
   "assumptions": [
     "node_pa_deg sense against hbtsim's convention (checked for beta Aur with Jonak et al.; not yet for Capella)",

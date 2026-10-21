@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "campaign",
   "name": "g2_binaries_isi",
-  "label": "ISI at Palomar with ID230s: Capella and the catalog binaries, 900 and 1550 nm, a baseline per night from 5 m to 1 km",
+  "label": "ISI at Palomar with MPD PDM 100 um SPADs: Capella and the catalog binaries, 650 and 900 nm, a baseline per night from 5 m to 1 km",
   "runner": "g2",
   "targets": [
     "capella",
@@ -14,8 +14,8 @@
     "array": "isi_pair"
   },
   "backends": [
-    "isi_id230_1550",
-    "isi_id230_900"
+    "isi_pdm_900",
+    "isi_pdm_650"
   ],
   "night": {
     "block_minutes": 30.0,
@@ -46,6 +46,6 @@
     "latex": true
   },
   "notes": [
-    "Capella (56 mas, two 6-8 mas giants) gives fringes of period lambda/rho = 5.7 m at 1550 nm, smeared by the 1.65 m pupils, on the 5-100 m nights; the 1-3 mas binaries (beta Aur, Algol, Spica) need the 300-1000 m nights, and their g/i anchors are extrapolated to the near-IR by the blackbody SED (warning suppressed)."
+    "Capella (56 mas, two 6-8 mas giants) gives fringes of period lambda/rho = 3.3 m at 900 nm (2.4 m at 650 nm), smeared by the 1.65 m pupils, on the 5-35 m nights; the 1-3 mas binaries (beta Aur, Algol, Spica) need the 300-1000 m nights."
   ]
 }

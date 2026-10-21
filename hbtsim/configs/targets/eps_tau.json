@@ -36,8 +36,8 @@
     "Sato et al. 2007: V 3.53, red-clump giant with a planet; 2MASS H 1.314, K 1.31"
   ],
   "notes": [
-    "A northern red-clump calibrator for the ISI (hd360 and hd17652 are the southern ones); first null 145 m at 1550 nm, 84 m at 900 nm.",
-    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85); 900 and 1550 nm fall inside the anchored range.",
+    "A northern red-clump calibrator for the ISI (hd360 and hd17652 are the southern ones); first null 84 m at 900 nm, 61 m at 650 nm.",
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85); 900 and 900 nm fall inside the anchored range.",
     "The radius is derived from theta_LD and the distance. No NewEra model exists below 4700 K: blackbody + linear law."
   ],
   "assumptions": [

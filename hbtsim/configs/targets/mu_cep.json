@@ -36,8 +36,8 @@
     "Ducati 2002: V 4.08 (variable 3.4-5.1), H -1.27, K -1.72; Gaia DR3 coordinates"
   ],
   "notes": [
-    "First null 27.9 m at 1550 nm, 16.2 m at 900 nm; at 900 nm the molecular layer (~20 mas) rather than the photosphere may set the size -- exactly the 900 vs 1550 nm comparison the ISI filters make.",
-    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85); 900 and 1550 nm fall inside the anchored range.",
+    "First null 16.2 m at 900 nm, 11.7 m at 650 nm; at 650 nm the molecular layer (~20 mas) rather than the photosphere may set the size -- exactly the 650 vs 900 nm comparison the ISI filters make.",
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85); 900 and 900 nm fall inside the anchored range.",
     "The radius is derived from theta_LD and the distance. No NewEra model exists below 4700 K: blackbody + linear law."
   ],
   "assumptions": [

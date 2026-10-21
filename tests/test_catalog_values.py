@@ -205,24 +205,26 @@ def test_iotaori_binary_target_and_red_filter():
 
 
 def test_isi():
-    """The relocated ISI at Palomar with ID230s: site, telescope, detector
-    (the operating cap), filters, the reconfigurable pair and triangle, the
-    cool targets and Capella."""
+    """The relocated ISI at Palomar with MPD PDM 100 um SPADs: site,
+    telescope, detector (the operating cap), filters, the reconfigurable
+    pair and triangle, the cool targets and Capella."""
     import numpy as np
     s = cat.load_site("palomar")
     assert (s.latitude_deg, s.elevation_m) == (33.356, 1712.0) and cat.load_site("mt_wilson").latitude_deg == 34.2259
     t = cat.load_telescope("isi_1p65m")
-    assert t.diameter_m == 1.65 and t.throughput == 0.2
-    d = cat.load_detector("id230")
-    assert d.pde(1550.0) == 0.25 and 0 < d.pde(500.0) < 0.01 and d.pde(900.0) == pytest.approx(0.10)
-    assert (d.jitter_fwhm_ps, d.dead_time_ns, d.dark_cps_per_pixel, d.max_total_cps, d.readout) == (150.0, 2000.0, 200.0, 2.5e5, "timetag")
-    for nm in (900.0, 1550.0):
+    assert t.diameter_m == 1.65 and t.throughput == 0.5
+    d = cat.load_detector("mpd_pdm_100um")
+    assert (d.pde(400.0), d.pde(550.0), d.pde(650.0)) == (0.24, 0.49, 0.37)          # PDM datasheet, Feb 2018
+    assert 0.05 < d.pde(900.0) < 0.2 and d.pde(1100.0) == d.pde(1000.0) < 0.05
+    assert (d.jitter_fwhm_ps, d.dead_time_ns, d.dark_cps_per_pixel, d.max_total_cps, d.readout) == (50.0, 77.0, 50.0, 4e6, "timetag")
+    for nm in (650.0, 900.0):
         f = cat.load_spectrograph(f"filter_isi_{nm:.0f}_1nm")
         assert f.channel_centers_nm[0] == pytest.approx(nm) and f.channel_widths_nm[0] == pytest.approx(1.0)
-        assert cat.load_backend(f"isi_id230_{nm:.0f}").detector.max_total_cps == 2.5e5
+        assert cat.load_backend(f"isi_pdm_{nm:.0f}").detector.max_total_cps == 4e6
     a = cat.load_array("isi_pair")
     (_, _, b), = a.pairs()
     assert np.hypot(*b) == pytest.approx(100.0) and b[0] == pytest.approx(100.0, abs=1e-6)       # East-West
+    assert a.stations[0].detector.name == d.name
     (_, _, b12), = cat.load_array("isi_pair", baseline_m=12.0).pairs()
     assert np.hypot(*b12) == pytest.approx(12.0)
     tri = cat.load_triangle("isi_triangle")
@@ -231,8 +233,8 @@ def test_isi():
                              ("mu_cep", 14.1, 58.78), ("eps_tau", 2.59, 19.1804)):
         st = cat.load_target(name)
         assert st.theta_ld_mas == theta and st.dec_deg == pytest.approx(dec) and st.mag_anchors[-1][0] == 2190.0
-        assert float(st.ab_mag(1550.0)) < float(st.ab_mag(551.0))                       # red stars: brighter in the near-IR
-    assert float(cat.load_target("betelgeuse").star.ld_coeff(1550.0)) < 0.5
+        assert float(st.ab_mag(900.0)) < float(st.ab_mag(551.0))                        # red stars: brighter in the red
+    assert float(cat.load_target("betelgeuse").star.ld_coeff(900.0)) == pytest.approx(0.60)
     u = [v for _, v in cat.raw("ld_table", "m_giant_rough")["table_nm"]]
     assert all(x > y for x, y in zip(u, u[1:]))
     c = cat.load_target("capella")
@@ -240,6 +242,6 @@ def test_isi():
     assert 2 * c.angular_radius_mas(c.primary) == pytest.approx(8.47, abs=0.02) and c.node_pa_deg == 40.522
     for name in ("g2_giants_isi", "g2_binaries_isi", "movie_betelgeuse_isi"):
         camp = cat.load_campaign(name)
-        assert camp.option("instrument.array") == "isi_pair"
-    assert len(cat.load_campaign("g2_giants_isi").option("options.baseline_schedule")) == 12
-    assert len(cat.load_campaign("movie_betelgeuse_isi").option("options.schedule")) == 8
+        assert camp.option("instrument.array") == "isi_pair" and all("PDM" in b.name for b in camp.backends)
+    assert len(cat.load_campaign("g2_giants_isi").option("options.baseline_schedule")) == 15
+    assert len(cat.load_campaign("movie_betelgeuse_isi").option("options.schedule")) == 9

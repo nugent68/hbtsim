@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "isi_pdm_900",
+  "label": "ISI 1 nm 900 nm, MPD PDM 100 um (50 ps)",
+  "model": "counting",
+  "spectrograph": "filter_isi_900_1nm",
+  "detector": "mpd_pdm_100um",
+  "polarization_mode": "unpolarized",
+  "notes": [
+    "One free-beam PDM per telescope behind the filter; unpolarized light (p2 = 1/2)."
+  ]
+}

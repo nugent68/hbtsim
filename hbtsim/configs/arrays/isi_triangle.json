@@ -15,7 +15,7 @@
       "ISI-3"
     ],
     "telescope": "isi_1p65m",
-    "detector": "id230"
+    "detector": "mpd_pdm_100um"
   },
   "sources": [
     "Hale et al. 2000, ApJ 537, 998: three telescopes, closure phase since 2003"

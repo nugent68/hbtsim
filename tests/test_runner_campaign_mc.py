@@ -235,13 +235,13 @@ def test_nightmovie_schedule_numbers(tmp_path):
     cat0 = Catalog(env=False)
     d = cat0.raw("campaign", "movie_betelgeuse_isi")
     d.update(name="tiny_bsched", night={"block_minutes": 60.0, "min_alt_deg": 30.0})
-    d["options"]["schedule"] = [{"baseline_m": 4.0}, {"baseline_m": 12.0, "backend": "isi_id230_1550"}, {"baseline_m": 25.0}]
+    d["options"]["schedule"] = [{"baseline_m": 4.0}, {"baseline_m": 12.0, "backend": "isi_pdm_900"}, {"baseline_m": 25.0}]
     (tmp_path / "campaigns").mkdir()
     (tmp_path / "campaigns" / "tiny_bsched.json").write_text(json.dumps(d))
     cat = Catalog(paths=[tmp_path], env=False)
     res = run(cat, cat.load_campaign("tiny_bsched"), RunOptions(out_dir=tmp_path / "out", figures=False))
     assert res["n_nights"] == 3 and res["baselines_m_per_night"] == [4.0, 12.0, 25.0]
-    assert res["configs"][0]["vis2_max"] > 0.3 and res["configs"][2]["vis2_max"] < 0.05 and 9 < res["nulls_m"][0] < 9.5
+    assert res["configs"][0]["vis2_max"] > 0.3 and res["configs"][2]["vis2_max"] < 0.02 and 5.2 < res["nulls_m"][0] < 5.6
     s = res["sigma_theta_frac"]
     assert s[1] < s[0] and s[2] <= s[1] and res["sigma_theta_frac_joint"][-1] >= s[-1] and np.isfinite(res["sigma_u"][-1])
     assert "movie" not in res

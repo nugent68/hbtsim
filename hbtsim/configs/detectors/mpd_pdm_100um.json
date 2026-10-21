@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "mpd_pdm_100um",
+  "label": "MPD PDM 100 um silicon SPAD, free-beam (NIM timing, 50 ps)",
+  "pde_table_nm": [
+    [
+      400.0,
+      0.24
+    ],
+    [
+      450.0,
+      0.38
+    ],
+    [
+      500.0,
+      0.46
+    ],
+    [
+      550.0,
+      0.49
+    ],
+    [
+      600.0,
+      0.44
+    ],
+    [
+      650.0,
+      0.37
+    ],
+    [
+      700.0,
+      0.31
+    ],
+    [
+      800.0,
+      0.2
+    ],
+    [
+      900.0,
+      0.11
+    ],
+    [
+      1000.0,
+      0.03
+    ]
+  ],
+  "timing": {
+    "jitter_fwhm_ps": 50.0
+  },
+  "dead_time_ns": 77.0,
+  "dark_cps_per_pixel": 50.0,
+  "n_pixels": 1,
+  "readout": "timetag",
+  "max_total_cps": 4000000.0,
+  "sources": [
+    "PicoQuant / Micro Photon Devices PDM series datasheet (February 2018, 25 C): spectral range ~400-1000 nm peaking near 550 nm; PDE typical 24 % at 400, 49 % at 550, 37 % at 650 nm (free-beam; the FC/PC fibre version loses up to 20 % absolute); 100 um active diameter; TTL output 250 ps FWHM, NIM timing output ~50 ps FWHM (worse towards the blue); dead time 77 ns typical (7-8 % loss at 1 Mcps, ~25 % at 4 Mcps); afterpulsing <= 3 % (0.13 % typical per Laser 2000); dark-count grades for 100 um < 500 / 250 / 100 / 50 / 25 cps; gating input; 5-12 V",
+    "ASU intensity-interferometry group: factory jitter 32 ps on their 100 um units, 40 % PDE at 589 nm through the FC connector, 50 cps dark counts",
+    "P. Nugent, 2026-10-21: the ISI detector, free-beam module at prime focus (100 um = ~4 arcsec)"
+  ],
+  "notes": [
+    "The free-beam module at the ISI prime focus: no fibre, so no coupling loss and no modal dispersion; the 100 um active area is ~4 arcsec, so the telescope throughput carries no slit loss.",
+    "PDE: the datasheet's three points (400, 550, 650 nm); the rest of the curve (peak shape, 0.20 at 800, 0.11 at 900, 0.03 at 1000 nm) is an ASSUMED silicon-SPAD shape -- the 900 nm filter depends on it; nothing beyond 1000 nm.",
+    "Timing 50 ps FWHM is the datasheet's NIM figure demonstrated on 50 um devices; the ASU 100 um units measured 32 ps; larger SPADs may carry a longer diffusion tail, so the measured IRF of the actual unit at 900 nm is wanted.",
+    "Dark 50 cps: the grade ASU received (grades down to < 25 cps exist).",
+    "max_total_cps 4e6 is an OPERATING CAP (not a device limit): the user's 'stay at a few Mcps per channel'; dead-time load r tau = 0.31 there (25 % loss), the non-paralyzable model is applied and stays trustworthy. The runners attenuate brighter stars to it as a neutral-density filter would.",
+    "Afterpulsing (0.13-3 %) is not modelled."
+  ],
+  "assumptions": [
+    "pde_table_nm between and beyond the three datasheet points (900 nm in particular)",
+    "timing (50 ps datasheet vs 32 ps measured)",
+    "max_total_cps (operating cap)",
+    "dark_cps_per_pixel (grade)"
+  ]
+}

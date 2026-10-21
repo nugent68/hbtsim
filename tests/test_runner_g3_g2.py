@@ -215,7 +215,7 @@ def test_g2_baseline_schedule(tmp_path):
     from hbtsim.run_campaign import RunOptions, run
     cat0 = Catalog(env=False)
     d = cat0.raw("campaign", "g2_giants_isi")
-    d.update(name="tiny_sched", targets=["aldebaran", "capella"], backends=["isi_id230_1550"],
+    d.update(name="tiny_sched", targets=["aldebaran", "capella"], backends=["isi_pdm_900"],
              night={"block_minutes": 120.0, "min_alt_deg": 30.0})
     d["options"]["baseline_schedule"] = [{"baseline_m": 10.0}, {"baseline_m": 30.0, "nights": 2}]
     (tmp_path / "campaigns").mkdir()

@@ -183,7 +183,7 @@ def lpqi_parameters() -> str:
 
 def isi_parameters() -> str:
     pair, tri = cat.load_array("isi_pair"), cat.load_array("isi_triangle")
-    d = cat.load_detector("id230")
+    d = cat.load_detector("mpd_pdm_100um")
     (_, _, b), = pair.pairs()
     filters = [cat.load_spectrograph(nm) for nm in cat.list_names("spectrograph") if nm.startswith("filter_isi_")]
     sched = cat.load_campaign("g2_giants_isi").option("options.baseline_schedule")
@@ -197,12 +197,12 @@ def isi_parameters() -> str:
              ("configurations", f"pair (`isi_pair`, default {np.hypot(*b):.0f} m East–West, min spacing 2.5 m) and equilateral triangle "
                                 f"(`isi_triangle`, default {tri.stations[1].north_m:.0f} m); the campaigns' `baseline_schedule` / `schedule` "
                                 f"set a configuration per night, e.g. {', '.join(f'{x:g}' for x in sched_m)} m", "the trucks (user, 2026-10-21)"),
-             ("detector (ID Quantique ID230)", f"InGaAs/InP SPAD, PDE {d.pde(1550.0):.2f} at 1550 nm and {d.pde(900.0):.2f} at 900 nm, "
-                                               f"{d.jitter_fwhm_ps:.0f} ps FWHM, dead {d.dead_time_ns / 1000:g} µs, dark {d.dark_cps_per_pixel:g} cps, "
-                                               f"operating cap {d.max_total_cps:.1e} cps (half of 1/dead time)",
-              "ID230 brochure (June 2026); PDE away from 1550 nm and the cap **assumed**"),
+             ("detector (MPD PDM 100 µm, free-beam)", f"silicon SPAD, PDE {d.pde(550.0):.2f} at 550 nm, {d.pde(650.0):.2f} at 650 nm, {d.pde(900.0):.2f} at 900 nm; "
+                                                       f"{d.jitter_fwhm_ps:.0f} ps FWHM (NIM), dead {d.dead_time_ns:g} ns, dark {d.dark_cps_per_pixel:g} cps, "
+                                                       f"operating cap {d.max_total_cps:.0e} cps (load {d.max_total_cps * d.dead_time_ns * 1e-9:.2f})",
+              "PDM datasheet (Feb 2018); PDE beyond 650 nm, timing of the 100 µm unit and the cap **assumed**"),
              ("filters", "; ".join(f"{f.channel_centers_nm[0]:.0f} nm ({f.channel_width_nm:.1f} nm)" for f in filters)
-              + f"; throughput {filters[0].throughput:g}", "the user (2026-10-21); widths and throughput **assumed**"),
+              + f"; throughput {filters[0].throughput:g}", "900 nm from the user (2026-10-21), 650 nm replacing the 1550 nm filter the silicon SPAD cannot see; widths and throughput **assumed**"),
              ("targets", "Betelgeuse 42.3 mas, Aldebaran 20.58, Arcturus 21.05, μ Cep 14.1, ε Tau 2.59, HD 360 0.91; Capella (56 mas binary)",
               "interferometric diameters (Montargès 2014, Richichi 2005, Lacour 2008, Perrin 2005); ε Tau from R/d; Torres et al. 2015")]
     out = ["| " + " | ".join(rows[0]) + " |", "|---|---|---|"]

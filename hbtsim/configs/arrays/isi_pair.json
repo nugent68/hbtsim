@@ -14,7 +14,7 @@
       "ISI-2"
     ],
     "telescope": "isi_1p65m",
-    "detector": "id230"
+    "detector": "mpd_pdm_100um"
   },
   "sources": [
     "Hale et al. 2000, ApJ 537, 998: the ISI telescopes are fully mobile (semi-trailers); 4-70 m at Mt. Wilson"

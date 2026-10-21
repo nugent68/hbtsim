@@ -36,8 +36,8 @@
     "van Leeuwen 2007: parallax 88.83 +/- 0.54 mas -> 11.26 pc; Ducati 2002 V -0.05; 2MASS H -2.81, K -2.91 (saturated)"
   ],
   "notes": [
-    "First null 18.6 m at 1550 nm, 10.8 m at 900 nm.",
-    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85); 900 and 1550 nm fall inside the anchored range.",
+    "First null 10.8 m at 900 nm, 7.8 m at 650 nm.",
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85); 900 and 900 nm fall inside the anchored range.",
     "The radius is derived from theta_LD and the distance. No NewEra model exists below 4700 K: blackbody + linear law."
   ],
   "assumptions": [

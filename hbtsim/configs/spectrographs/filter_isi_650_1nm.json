@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "filter_isi_650_1nm",
+  "label": "ISI 1 nm filter, 650 nm (650 nm)",
+  "lambda_min_nm": 649.5,
+  "lambda_max_nm": 650.5,
+  "n_channels": 1,
+  "throughput": 0.9,
+  "sources": [
+    "P. Nugent, 2026-10-21: two 1 nm filters; 900 nm kept, the 1550 nm filter replaced by 650 nm when the silicon PDM replaced the InGaAs ID230"
+  ],
+  "notes": [
+    "Red continuum at the PDE's 0.37; in the TiO bands of the M supergiants, so the 650 vs 900 nm size difference measures the molecular layers.",
+    "Throughput 0.9 = FILTER_THROUGHPUT (filter + relay optics); the telescope file carries the rest.",
+    "Coherence time 1.4 ps, below the PDM's 50 ps jitter: the band width sets the count rate, not the g2 width."
+  ],
+  "assumptions": [
+    "lambda_min_nm",
+    "lambda_max_nm",
+    "throughput"
+  ]
+}

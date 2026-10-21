@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "campaign",
   "name": "g2_giants_isi",
-  "label": "ISI at Palomar with ID230s: red giants, supergiants and red-clump stars, 900 and 1550 nm, a baseline per night from 3 m to 1 km",
+  "label": "ISI at Palomar with MPD PDM 100 um SPADs: red giants, supergiants and red-clump stars, 650 and 900 nm, a baseline per night from 3 m to 1 km",
   "runner": "g2",
   "targets": [
     "betelgeuse",
@@ -16,8 +16,8 @@
     "array": "isi_pair"
   },
   "backends": [
-    "isi_id230_1550",
-    "isi_id230_900"
+    "isi_pdm_900",
+    "isi_pdm_650"
   ],
   "night": {
     "block_minutes": 30.0,
@@ -32,12 +32,15 @@
     "diameter_precision": 0.02,
     "baseline_schedule": [
       {
-        "baseline_m": 3.0,
+        "baseline_m": 2.5,
         "pa_deg": 90.0
       },
+      3.0,
+      4.0,
       5.0,
-      8.0,
-      12.0,
+      7.0,
+      10.0,
+      14.0,
       20.0,
       35.0,
       60.0,
@@ -52,8 +55,8 @@
     "latex": true
   },
   "notes": [
-    "Each schedule entry is one night per backend on the ISI pair at that baseline (East-West): the trucks move between nights. The runner reports every configuration and the combined Fisher precision on the diameter and on the linear limb-darkening coefficient.",
-    "The ID230's 2 us dead time caps every giant brighter than H ~ 1 at the same 2.5e5 cps, so all of them give S/N ~ 6 per 1550 nm night at |V|^2 = 1 (2 at 900 nm); the programme is detector-limited and the gain is in geometry: the null position, the sidelobe level (limb darkening) and the 900 vs 1550 nm size difference. hd360 (H 2.6) is the one target below the cap.",
-    "First nulls at 1550 / 900 nm: Betelgeuse 9.3 / 5.4 m, Aldebaran 18.9 / 11.0, Arcturus 18.6 / 10.8, mu Cep 27.9 / 16.2, eps Tau 145 / 84, HD 360 431 / 250 m."
+    "Each schedule entry is one night per backend on the ISI pair at that East-West baseline: the trucks move between nights. The runner reports every configuration and the combined Fisher precision on the diameter and on the linear limb-darkening coefficient.",
+    "The PDM's 77 ns dead time with a 4e6 cps operating cap: every giant brighter than ~R 2 is attenuated to the same rate, so they share the same S/N per night; the cap is 16x the ID230's and the timing 3x better, which is what brings the sidelobes (and so the limb darkening) within reach.",
+    "First nulls at 900 / 650 nm: Betelgeuse 5.4 / 3.9 m, Aldebaran 11.0 / 8.0, Arcturus 10.8 / 7.8, mu Cep 16.2 / 11.7, eps Tau 84 / 61, HD 360 250 / 180 m; the trucks cannot park closer than 2.5 m."
   ]
 }
