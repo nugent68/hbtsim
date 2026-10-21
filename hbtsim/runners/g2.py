@@ -209,12 +209,19 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
             bmin, bmax = np.full(len(pairs), np.inf), np.full(len(pairs), -np.inf)
             rate = np.zeros(len(pairs))
             scale_min, load_max, n_blocks, hours = 1.0, 0.0, 0, 0.0
+            fisher_tu = np.zeros(len(pairs))       # Fisher cross term theta-u and the u term (linear limb darkening)
+            fisher_uu = np.zeros(len(pairs))
+            du = 0.05
             if single:
+                from hbtsim.runners.schedule import with_ld_offset
                 tgt = prepare_single(system, spec)
                 vis_fn = _single_vis2_fn(tgt, pupils)
                 dth = 0.01 * tgt.theta_ld_mas
                 vis_fn_up = _single_vis2_fn(replace(tgt, theta_ld_mas=tgt.theta_ld_mas + dth), pupils)
                 vis_fn_dn = _single_vis2_fn(replace(tgt, theta_ld_mas=tgt.theta_ld_mas - dth), pupils)
+                t_up, t_dn = with_ld_offset(tgt, du), with_ld_offset(tgt, -du)
+                vis_fn_u_up = _single_vis2_fn(t_up, pupils) if t_up is not None else None
+                vis_fn_u_dn = _single_vis2_fn(t_dn, pupils) if t_dn is not None else None
             else:
                 tgt, vis_fn = system, binary_vis2_fn(system, pupils)
             for lam, w in zip(nm, widths):
@@ -227,6 +234,11 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
                                         min_alt_deg=min_alt_deg)
                         dn = pair_track(arr, system.dec_deg, float(lam), vis_fn_dn, block_minutes=block_minutes,
                                         min_alt_deg=min_alt_deg)
+                        if vis_fn_u_up is not None:
+                            uu = pair_track(arr, system.dec_deg, float(lam), vis_fn_u_up, block_minutes=block_minutes,
+                                            min_alt_deg=min_alt_deg)
+                            ud = pair_track(arr, system.dec_deg, float(lam), vis_fn_u_dn, block_minutes=block_minutes,
+                                            min_alt_deg=min_alt_deg)
                 if tr.hour_angle_h.size == 0:
                     continue
                 n_blocks, hours = tr.hour_angle_h.size, tr.hour_angle_h.size * tr.block_s / 3600.0
@@ -249,6 +261,10 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
                                                     detector1=det).snr, float)   # sigma(|V|^2) = 1 / SNR(|V|^2 = 1)
                             dv = (up.vis2[p] - dn.vis2[p]) / (2.0 * dth)
                             fisher[p] += float(np.sum((dv * sig) ** 2))
+                            if vis_fn_u_up is not None:
+                                dvu = (uu.vis2[p] - ud.vis2[p]) / (2.0 * du)
+                                fisher_tu[p] += float(np.sum(dv * dvu * sig ** 2))
+                                fisher_uu[p] += float(np.sum((dvu * sig) ** 2))
                     snr2[p] += float(np.sum(snr_b ** 2))
                     v2min[p], v2max[p] = min(v2min[p], tr.vis2[p].min()), max(v2max[p], tr.vis2[p].max())
                     bmin[p], bmax[p] = min(bmin[p], tr.baseline_len_m[p].min()), max(bmax[p], tr.baseline_len_m[p].max())
@@ -290,7 +306,13 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
                              "rate_cps": float(rate[p]), "readout_limited": scale_min < 1.0,
                              "readout_scale": float(scale_min), "dead_time_load": float(load_max),
                              "phase": float(phase), "rho_mas": rho, "single": single,
-                             "v_mag": float(system.v_mag) if single else None})
+                             "v_mag": float(system.v_mag) if single else None,
+                             "snr2_night": float(snr2[p]),
+                             "fisher_theta": float(fisher[p]) if single else None,
+                             "fisher_theta_u": float(fisher_tu[p]) if single else None,
+                             "fisher_u": float(fisher_uu[p]) if single else None,
+                             "u_linear": (float(tgt.star.ld_coeff(float(nm[len(nm) // 2]))) if single and tgt.star.ld_profile is None
+                                          else None)})
         if per_det:
             set_nights[short] = {}
             for dname, lst in per_det.items():
@@ -327,6 +349,8 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
     backends = [(b.name, b.spectrograph, b.detector, b.polarization_mode) for b in campaign.backends]
     if not backends:
         raise SystemExit(f"campaign {campaign.name}: runner g2 needs at least one backend")
+    if tel is None and campaign.array is not None and campaign.option("options.baseline_schedule"):
+        return run_schedule(campaign, cat, opts, out_dir, backends)
     if tel is None and campaign.array is not None:
         inst = campaign.option("instrument.array")
         rows, set_nights = g2_array_track(
@@ -383,3 +407,96 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
                                   "rate cps/tel", "limited"], latex=latex)
     return {"instrument": instrument, "telescope_m": float(tel.diameter_m),
             "rows": rows, "best_baselines": best}
+
+
+def run_schedule(campaign, cat, opts, out_dir: Path, backends) -> dict:
+    """Array mode with `options.baseline_schedule`: one array configuration
+    per entry (a movable pair or triangle rebuilt with the entry's
+    baseline_m / pa_deg / side_m), every entry a night per backend (or the
+    named backend), the nights combined: detection S/N in quadrature and,
+    for single stars, the Fisher information on the diameter and on the
+    linear limb-darkening coefficient summed over the configurations."""
+    from hbtsim.runners.schedule import array_for, array_params, describe, normalize_schedule
+    bk_objs = list(campaign.backends)
+    entries = normalize_schedule(campaign.option("options.baseline_schedule"), campaign, bk_objs)
+    inst = campaign.option("instrument.array")
+    n_sigma = float(campaign.option("options.detection_sigma", 3.0))
+    prec = float(campaign.option("options.diameter_precision", 0.05))
+    one_per_night = bool(campaign.option("options.one_backend_per_night", True))
+    kw = dict(block_minutes=float(campaign.option("night.block_minutes", 30.0)),
+              min_alt_deg=float(campaign.option("night.min_alt_deg", 30.0)),
+              phase_spec=campaign.option("options.phase", "max_separation"),
+              one_backend_per_night=one_per_night, n_sigma=n_sigma, diameter_precision=prec)
+    rows_all, configs = [], []
+    for k, e in enumerate(entries):
+        arr = array_for(cat, campaign, e)
+        bks = [backends[e["backend_index"]]] if e.get("backend_given") else backends
+        pair0 = arr.pairs()[0][2]
+        b_m, pa = float(np.hypot(pair0[0], pair0[1])), float(np.degrees(np.arctan2(pair0[0], pair0[1])) % 360.0)
+        print(f"\n##### configuration {k + 1}/{len(entries)}: {describe(e, bk_objs)} "
+              f"(ground baseline {b_m:.1f} m at PA {pa:.0f} deg, {e['nights']} night(s) per backend) #####")
+        rows, _ = g2_array_track(arr, bks, campaign.targets, **kw)
+        for r in rows:
+            r.update(config=k, ground_baseline_m=b_m, ground_pa_deg=pa, nights=int(e["nights"]), **array_params(e))
+        rows_all += rows
+        configs.append(dict(index=k, entry={kk: v for kk, v in e.items() if kk != "backend_given"},
+                            backends=[b[0] for b in bks], ground_baseline_m=b_m, ground_pa_deg=pa))
+    # combine per (target, detector)
+    combined = {}
+    for r in rows_all:
+        key = (r["target"], r["detector"])
+        c = combined.setdefault(key, dict(target=r["target"], detector=r["detector"], single=r["single"],
+                                          theta_mas=r["rho_mas"] if r["single"] else None, u_linear=r.get("u_linear"),
+                                          snr2=0.0, F=np.zeros((2, 2)), nights=0.0, n_configs=0, backends=set()))
+        n = r["nights"]
+        c["snr2"] += n * r["snr_night"] ** 2
+        if r["single"] and r["fisher_theta"] is not None:
+            c["F"] += n * np.array([[r["fisher_theta"], r["fisher_theta_u"] or 0.0],
+                                    [r["fisher_theta_u"] or 0.0, r["fisher_u"] or 0.0]])
+        c["backends"].add(r["backend"])
+    for (tname, dname), rs in {(r["target"], r["detector"]): None for r in rows_all}.items():
+        c = combined[(tname, dname)]
+        cfgs = {r["config"]: r["nights"] for r in rows_all if (r["target"], r["detector"]) == (tname, dname)}
+        n_bk = len(c["backends"]) if one_per_night else 1
+        c["nights"] = float(sum(cfgs.values())) * n_bk / max(1, len(c["backends"]))   # nights per backend summed
+        c["n_configs"] = len(cfgs)
+    out_rows, table = [], []
+    print("\n=== combined over the schedule ===")
+    for c in combined.values():
+        snr = float(np.sqrt(c["snr2"]))
+        nights_det = (n_sigma / snr) ** 2 * c["nights"] if snr > 0 else None
+        rec = dict(target=c["target"], detector=c["detector"], single=c["single"], total_nights=c["nights"],
+                   n_configs=c["n_configs"], snr_total=snr, nights_detection=nights_det,
+                   sigma_theta_frac=None, sigma_theta_frac_joint=None, sigma_u=None, u_linear=c["u_linear"])
+        if c["single"]:
+            F = c["F"]; th = c["theta_mas"]
+            if F[0, 0] > 0:
+                rec["sigma_theta_frac"] = float(1.0 / np.sqrt(F[0, 0]) / th)
+                if F[1, 1] > 0 and np.linalg.det(F) > 0:
+                    cov = np.linalg.inv(F)
+                    rec["sigma_theta_frac_joint"] = float(np.sqrt(cov[0, 0]) / th)
+                    rec["sigma_u"] = float(np.sqrt(cov[1, 1]))
+        out_rows.append(rec)
+        fmt = lambda x, f=".3g": "inf" if x is None else format(x, f)
+        print(f"  {c['target']:14s} {c['detector'][:40]:40s} {c['nights']:5.0f} nights over {c['n_configs']} configurations: "
+              f"S/N {snr:.3g} ({fmt(nights_det)} nights to {n_sigma:g} sigma)"
+              + (f"; sigma(theta)/theta {fmt(rec['sigma_theta_frac'], '.2%')} (theta alone), "
+                 f"{fmt(rec['sigma_theta_frac_joint'], '.2%')} jointly with u, sigma(u) {fmt(rec['sigma_u'])} (u = {fmt(c['u_linear'], '.2f')})"
+                 if c["single"] else ""))
+        table.append([c["target"], c["detector"], f"{c['nights']:.0f}", f"{c['n_configs']}", f"{snr:.3g}", fmt(nights_det),
+                      fmt(rec["sigma_theta_frac"], ".2%") if c["single"] else "-",
+                      fmt(rec["sigma_theta_frac_joint"], ".2%") if c["single"] else "-",
+                      fmt(rec["sigma_u"], ".3f") if c["single"] else "-"])
+    def _f(x, fmt=".3g"):
+        return "inf" if x is None else format(x, fmt)
+    per_cfg = [[str(r["config"] + 1), f"{r['ground_baseline_m']:.0f}", r["target"], r["backend"],
+                f"{r['baseline_min_m']:.0f}-{r['baseline_max_m']:.0f}", f"{r['vis2_min']:.3g}-{r['vis2_max']:.3g}",
+                f"{r['snr_night']:.3g}", _f(r["nights_detection"]),
+                (_f(1.0 / np.sqrt(r["fisher_theta"]) / r["rho_mas"], ".1%") if r["single"] and r["fisher_theta"] else "-")]
+               for r in rows_all]
+    write_tables(out_dir, per_cfg, ["config", "ground B [m]", "target", "backend", "B [m]", "|V|^2", "SNR2/night",
+                                    f"nights ({n_sigma:g} sigma)", "sigma(theta)/theta per night"], latex=bool(opts.latex))
+    write_tables(out_dir, table, ["target", "detector", "nights", "configs", "S/N total", f"nights ({n_sigma:g} sigma)",
+                                  "sigma(theta)/theta", "joint with u", "sigma(u)"], name="table_combined", latex=bool(opts.latex))
+    return {"mode": "array_schedule", "instrument": inst, "schedule": configs, "rows": rows_all, "combined": out_rows,
+            "one_backend_per_night": one_per_night}

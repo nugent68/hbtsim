@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "isi_1p65m",
+  "label": "ISI 1.65 m Pfund telescope (truck-mounted siderostat + paraboloid)",
+  "diameter_m": 1.65,
+  "throughput": 0.2,
+  "sources": [
+    "Hale et al. 2000, ApJ 537, 998 (the Infrared Spatial Interferometer): three 1.65 m Pfund-type telescopes on semi-trailers",
+    "ID Quantique ID230 brochure (June 2026): fibre input SMF or MMF 62.5 um"
+  ],
+  "notes": [
+    "throughput 0.2 = flat siderostat + paraboloid (two aluminium reflections, ~0.9) x atmosphere at 900-1550 nm (~0.9) x relay optics and fibre coupling into the ID230's 62.5 um multimode fibre in seeing (~0.25). Single-mode coupling would be a few per cent without adaptive optics.",
+    "The 1.65 m pupil smears binary fringes with periods below ~5 m (Capella at 1550 nm: lambda/rho = 5.7 m)."
+  ],
+  "assumptions": [
+    "throughput (fibre coupling to the ID230 MMF in seeing; the ISI's optics were built for 11 um)"
+  ]
+}

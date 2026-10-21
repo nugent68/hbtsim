@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "arcturus",
+  "label": "Arcturus (alpha Boo, K1.5 III)",
+  "type": "single",
+  "star": {
+    "label": "alpha Boo",
+    "mass_msun": 1.08,
+    "teff_k": 4286.0,
+    "ld_table": "k_giant_rough",
+    "logg": 1.66
+  },
+  "theta_ld_mas": 21.05,
+  "v_mag": -0.05,
+  "dec_deg": 19.1824,
+  "ra_hours": 14.261,
+  "distance_pc": 11.26,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": -0.05
+    },
+    {
+      "band": "H",
+      "mag_vega": -2.81
+    },
+    {
+      "band": "K",
+      "mag_vega": -2.91
+    }
+  ],
+  "sources": [
+    "Lacour et al. 2008, A&A 485, 561 (IOTA/IONIC, H band): Rosseland diameter 21.05 +/- 0.21 mas, limb darkening matching MARCS; Ramirez & Allende Prieto 2011: 21.06 +/- 0.17 mas",
+    "Ramirez & Allende Prieto 2011: T_eff 4286 +/- 30 K, log g 1.66, mass 1.08 Msun",
+    "van Leeuwen 2007: parallax 88.83 +/- 0.54 mas -> 11.26 pc; Ducati 2002 V -0.05; 2MASS H -2.81, K -2.91 (saturated)"
+  ],
+  "notes": [
+    "First null 18.6 m at 1550 nm, 10.8 m at 900 nm.",
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85); 900 and 1550 nm fall inside the anchored range.",
+    "The radius is derived from theta_LD and the distance. No NewEra model exists below 4700 K: blackbody + linear law."
+  ],
+  "assumptions": [
+    "mag_anchors H and K (2MASS saturated)",
+    "ld_table (K-giant law at 4300 K)"
+  ]
+}

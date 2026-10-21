@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g2_giants_isi",
+  "label": "ISI at Palomar with ID230s: red giants, supergiants and red-clump stars, 900 and 1550 nm, a baseline per night from 3 m to 1 km",
+  "runner": "g2",
+  "targets": [
+    "betelgeuse",
+    "aldebaran",
+    "arcturus",
+    "mu_cep",
+    "eps_tau",
+    "hd360"
+  ],
+  "instrument": {
+    "array": "isi_pair"
+  },
+  "backends": [
+    "isi_id230_1550",
+    "isi_id230_900"
+  ],
+  "night": {
+    "block_minutes": 30.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "one_backend_per_night": true,
+    "detection_sigma": 3.0,
+    "diameter_precision": 0.02,
+    "baseline_schedule": [
+      {
+        "baseline_m": 3.0,
+        "pa_deg": 90.0
+      },
+      5.0,
+      8.0,
+      12.0,
+      20.0,
+      35.0,
+      60.0,
+      100.0,
+      200.0,
+      400.0,
+      700.0,
+      1000.0
+    ]
+  },
+  "outputs": {
+    "latex": true
+  },
+  "notes": [
+    "Each schedule entry is one night per backend on the ISI pair at that baseline (East-West): the trucks move between nights. The runner reports every configuration and the combined Fisher precision on the diameter and on the linear limb-darkening coefficient.",
+    "The ID230's 2 us dead time caps every giant brighter than H ~ 1 at the same 2.5e5 cps, so all of them give S/N ~ 6 per 1550 nm night at |V|^2 = 1 (2 at 900 nm); the programme is detector-limited and the gain is in geometry: the null position, the sidelobe level (limb darkening) and the 900 vs 1550 nm size difference. hd360 (H 2.6) is the one target below the cap.",
+    "First nulls at 1550 / 900 nm: Betelgeuse 9.3 / 5.4 m, Aldebaran 18.9 / 11.0, Arcturus 18.6 / 10.8, mu Cep 27.9 / 16.2, eps Tau 145 / 84, HD 360 431 / 250 m."
+  ]
+}

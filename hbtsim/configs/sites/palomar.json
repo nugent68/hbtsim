@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "kind": "site",
+  "name": "palomar",
+  "label": "Palomar Mountain (generic flat California site for the relocated ISI, baselines to 1 km)",
+  "latitude_deg": 33.356,
+  "longitude_deg": -116.865,
+  "elevation_m": 1712.0,
+  "sources": [
+    "Palomar Observatory site coordinates (200-inch dome): 33.356 N, 116.865 W, 1712 m"
+  ],
+  "notes": [
+    "Stands in for any flat California site the ISI trucks could be driven to; only the latitude matters for the uv tracks, and the baselines are set per night by the campaigns' schedules (3 m to 1 km)."
+  ],
+  "assumptions": [
+    "the site itself (the user's suggestion; Mt. Wilson's own layout allows ~70 m)"
+  ]
+}

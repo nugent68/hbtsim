@@ -13,6 +13,9 @@ options:
   histogram                     {bin_ps, lag_half_range_ps} of the coincidence panel, which shows the
                                 excess over the accidentals smoothed with the matched filter, in units
                                 of its shot noise, so the g2 bump rises out of the noise over the night
+  schedule                      the nights of run_rotation: backend names, baselines in metres or dicts
+                                {backend, baseline_m, pa_deg, nights} (a generator array rebuilt per night)
+  yscale                        "linear" (default) or "log" for the visibility panel of run_rotation
   nights                        optional: a second act accumulates this many nights (each a new
                                 noise realization of the same track): the binned points average
                                 down, the g2 bump rises out of the matched-filter noise, and the
@@ -90,8 +93,8 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
         return run_binary(campaign, cat, opts, out_dir)
     if not hasattr(target, "theta_ld_mas"):
         raise SystemExit("runner nightmovie needs a single-star or binary target")
-    if len(campaign.backends) > 1:
-        return run_rotation(campaign, cat, opts, out_dir)        # a different filter each night
+    if len(campaign.backends) > 1 or campaign.option("options.schedule"):
+        return run_rotation(campaign, cat, opts, out_dir)        # a different filter and/or baseline each night
     if campaign.option("options.oblateness", False):
         if getattr(target, "ellipse", None) is None:
             raise SystemExit("options.oblateness needs a target with an `ellipse`")
@@ -442,17 +445,54 @@ def _render(path, target, backend, arr, mids, alt, bvec, blen, v2_true, v2_meas,
 # ---------------------------------------------------------------------------
 # Filter rotation: a different filter each night
 # ---------------------------------------------------------------------------
+def _night_model(target, backend, arr, block_minutes, min_alt, du=0.05):
+    """One night's configuration: the array's single pair along its uv
+    track, the photon budget, the model |V|^2 per block and its derivatives
+    with respect to the diameter and the linear limb-darkening coefficient."""
+    from hbtsim.runners.schedule import with_ld_offset
+    spec, det, pol = backend.spectrograph, backend.detector, backend.polarization_mode
+    t1, t2 = arr.stations[0].telescope, arr.stations[1].telescope
+    mids, block_s, bvec, alt = _night(arr, target.dec_deg, block_minutes, min_alt)
+    blen = np.hypot(bvec[:, 0], bvec[:, 1])
+    pupils = (t1.diameter_m, t2.diameter_m)
+    lam, w = float(spec.channel_centers_nm[0]), float(spec.channel_widths_nm[0])
+    tgt = prepare_single(target, spec)
+    theta0 = float(tgt.theta_ld_mas)
+    bud = _budget(tgt, lam, w, block_s, t1, t2, det, pol, spec.throughput)
+    v2 = np.array([float(single_star_vis2(tgt, float(bl), lam, pupils)[0, 0]) for bl in blen])
+    dth = 0.01 * theta0
+    dv = np.array([(float(single_star_vis2(replace(tgt, theta_ld_mas=theta0 + dth), float(bl), lam, pupils)[0, 0])
+                    - float(single_star_vis2(replace(tgt, theta_ld_mas=theta0 - dth), float(bl), lam, pupils)[0, 0]))
+                   / (2 * dth) for bl in blen])
+    t_up, t_dn = with_ld_offset(tgt, du), with_ld_offset(tgt, -du)
+    if t_up is not None:
+        dvu = np.array([(float(single_star_vis2(t_up, float(bl), lam, pupils)[0, 0])
+                         - float(single_star_vis2(t_dn, float(bl), lam, pupils)[0, 0])) / (2 * du) for bl in blen])
+    else:
+        dvu = np.zeros_like(dv)
+    sig = bud["sigma_v2"]
+    F2 = np.array([[np.sum(dv * dv), np.sum(dv * dvu)], [np.sum(dv * dvu), np.sum(dvu * dvu)]]) / sig ** 2
+    pair0 = arr.pairs()[0][2]
+    return dict(label=backend.name, lam=lam, w=w, tgt=tgt, theta0=theta0, v2=v2, sigma=sig, bud=bud,
+                fisher=(dv / sig) ** 2, F2=F2, snr2=float(np.sum((v2 / sig) ** 2)),
+                null_m=1.22 * lam * 1e-9 / (tgt.drawn_diameter_mas * MAS),
+                mids=mids, block_s=block_s, bvec=bvec, blen=blen, alt=alt, pupils=pupils,
+                ground_baseline_m=float(np.hypot(pair0[0], pair0[1])),
+                ground_pa_deg=float(np.degrees(np.arctan2(pair0[0], pair0[1])) % 360.0),
+                u0=float(tgt.star.ld_coeff(lam)) if tgt.star.ld_profile is None else None,
+                stations=(arr.stations[0].name, arr.stations[1].name))
+
+
 def run_rotation(campaign, cat, opts, out_dir: Path) -> dict:
-    """Several backends (filters on one detector or several): night j uses
-    backend j mod k.  Each filter samples the disk curve at a different
-    spatial frequency x = pi theta B / lambda for the same ground baselines,
-    so the nights fill the curve from the first lobe through the null into
-    the sidelobe; the diameter's Fisher information adds over nights.  The
-    movie's second panel is drawn against the equivalent baseline at the
-    first backend's wavelength, B lambda_0 / lambda, so every filter falls on
-    one curve."""
+    """A different configuration each night: `options.schedule` lists the
+    nights (backend names, baselines in metres, or dicts {backend,
+    baseline_m, pa_deg, nights}); without it the backends rotate over
+    `options.nights`.  Per-night Fisher information on the diameter (and
+    jointly on the linear limb-darkening coefficient) accumulates, and the
+    movie shows the measurements of every night in equivalent baseline
+    B lambda0 / lambda."""
+    from hbtsim.runners.schedule import array_for, describe, normalize_schedule
     target = campaign.target
-    array = campaign.array
     backends = list(campaign.backends)
     opt = campaign.option
     block_minutes = float(opt("night.block_minutes", 5.0))
@@ -461,119 +501,125 @@ def run_rotation(campaign, cat, opts, out_dir: Path) -> dict:
     rng = np.random.default_rng(int(opt("options.seed", 7)))
     alts = list(opt("options.theta_alternatives_pct", [-5.0, 5.0]))
     nbin_show = max(1, int(opt("options.display_bin_blocks", 6)))
+    yscale = str(opt("options.yscale", "linear"))
 
-    arr0 = Array(tuple(replace(s, detector=backends[0].detector) for s in array.stations), array.site)
-    t1, t2 = arr0.stations[0].telescope, arr0.stations[1].telescope
-    mids, block_s, bvec, alt = _night(arr0, target.dec_deg, block_minutes, min_alt)
-    blen = np.hypot(bvec[:, 0], bvec[:, 1])
-    pupils = (t1.diameter_m, t2.diameter_m)
-    lam0 = float(backends[0].spectrograph.channel_centers_nm[0])
-
-    per = []            # per backend: lam, w, tgt, v2_true, sigma, fisher per block, label
-    for b in backends:
-        spec, det, pol = b.spectrograph, b.detector, b.polarization_mode
-        lam, w = float(spec.channel_centers_nm[0]), float(spec.channel_widths_nm[0])
-        tgt = prepare_single(target, spec)
-        theta0 = float(tgt.theta_ld_mas)
-        bud = _budget(tgt, lam, w, block_s, t1, t2, det, pol, spec.throughput)
-        v2 = np.array([float(single_star_vis2(tgt, float(bl), lam, pupils)[0, 0]) for bl in blen])
-        dth = 0.01 * theta0
-        dv = np.array([(float(single_star_vis2(replace(tgt, theta_ld_mas=theta0 + dth), float(bl), lam, pupils)[0, 0])
-                        - float(single_star_vis2(replace(tgt, theta_ld_mas=theta0 - dth), float(bl), lam, pupils)[0, 0]))
-                       / (2 * dth) for bl in blen])
-        per.append(dict(label=b.name, lam=lam, w=w, tgt=tgt, v2=v2, sigma=bud["sigma_v2"], bud=bud,
-                        fisher=(dv / bud["sigma_v2"]) ** 2, snr2=float(np.sum((v2 / bud["sigma_v2"]) ** 2)),
-                        null_m=1.22 * lam * 1e-9 / (tgt.drawn_diameter_mas * MAS)))
-    theta0 = float(per[0]["tgt"].theta_ld_mas)
-    print(f"=== {target.name}: theta_LD {theta0:.3f} mas, V {target.v_mag:.2f}; {len(per)} filters rotating over "
-          f"{n_nights} nights on {arr0.stations[0].name}+{arr0.stations[1].name}; B {blen.min():.0f}-{blen.max():.0f} m ===")
-    for q in per:
-        print(f"  {q['label']:46s} lambda {q['lam']:.0f} nm: null at {q['null_m']:.0f} m, |V|^2 {q['v2'].min():.2g}-{q['v2'].max():.2g}, "
-              f"sigma/block {q['sigma']:.3g}, one night: sigma(theta)/theta {1 / np.sqrt(q['fisher'].sum()) / theta0:.3f}, "
-              f"detection {np.sqrt(q['snr2']):.2f} sigma")
-    # the nights: options.schedule (backend names per night) or a plain rotation
-    names = [b.name for b in backends]
     sched_opt = opt("options.schedule")
     if sched_opt:
-        catalog_names = [campaign.spec["backends"][i] if isinstance(campaign.spec["backends"][i], str) else names[i]
-                         for i in range(len(names))]
-        sched = []
-        for x in sched_opt:
-            if x in catalog_names:
-                sched.append(catalog_names.index(x))
-            elif x in names:
-                sched.append(names.index(x))
-            else:
-                raise SystemExit(f"options.schedule entry {x!r} is not one of the campaign's backends {catalog_names}")
-        n_nights = len(sched)
+        entries = normalize_schedule(sched_opt, campaign, backends)
     else:
-        sched = [j % len(per) for j in range(n_nights)]
-    meas = []                       # (filter index, measured |V|^2 per block)
+        entries = [{"backend_index": j % len(backends), "nights": 1} for j in range(n_nights)]
+    nights = [e for e in entries for _ in range(int(e.get("nights", 1)))]
+    n_nights = len(nights)
+    keys, per, sched = [], [], []
+    for e in nights:
+        key = (e["backend_index"], e.get("baseline_m"), e.get("pa_deg"), e.get("side_m"))
+        if key not in keys:
+            b = backends[e["backend_index"]]
+            arr = array_for(cat, campaign, e, detector=b.detector)
+            if len(arr.stations) != 2:
+                raise SystemExit("runner nightmovie needs a two-station array for every night")
+            keys.append(key)
+            per.append(_night_model(target, b, arr, block_minutes, min_alt))
+        sched.append(keys.index(key))
+    theta0 = per[0]["theta0"]
+    lam0 = per[0]["lam"]
+    multi_baseline = len({q["ground_baseline_m"] for q in per}) > 1
+    st = per[0]["stations"]
+    print(f"=== {target.name}: theta_LD {theta0:.3f} mas, V {target.v_mag:.2f}; {len(per)} configuration(s) over "
+          f"{n_nights} nights on {st[0]}+{st[1]} ===")
+    for q in per:
+        print(f"  {q['label'][:46]:46s} lambda {q['lam']:.0f} nm, ground B {q['ground_baseline_m']:.1f} m PA {q['ground_pa_deg']:.0f}: "
+              f"B {q['blen'].min():.0f}-{q['blen'].max():.0f} m, null at {q['null_m']:.1f} m, |V|^2 {q['v2'].min():.2g}-{q['v2'].max():.2g}, "
+              f"sigma/block {q['sigma']:.3g}, one night: sigma(theta)/theta {1 / np.sqrt(q['fisher'].sum()) / theta0:.3f}, "
+              f"detection {np.sqrt(q['snr2']):.2f} sigma")
+    meas = []                       # (configuration index, measured |V|^2 per block)
     fisher_tot, snr2_f = 0.0, np.zeros(len(per))
-    sig_theta, det_sig = [], []
-    for j, fi in enumerate(sched):
-        q = per[fi]
-        meas.append((fi, q["v2"] + rng.normal(0.0, q["sigma"], size=q["v2"].size)))
+    F_tot = np.zeros((2, 2))
+    sig_theta, sig_joint, sig_u, det_sig = [], [], [], []
+    for j, ci in enumerate(sched):
+        q = per[ci]
+        meas.append((ci, q["v2"] + rng.normal(0.0, q["sigma"], size=q["v2"].size)))
         fisher_tot += float(q["fisher"].sum())
-        snr2_f[fi] += q["snr2"]
+        F_tot += q["F2"]
+        snr2_f[ci] += q["snr2"]
         sig_theta.append(1.0 / np.sqrt(fisher_tot))
+        if F_tot[1, 1] > 0 and np.linalg.det(F_tot) > 0:
+            cov = np.linalg.inv(F_tot)
+            sig_joint.append(float(np.sqrt(cov[0, 0]))); sig_u.append(float(np.sqrt(cov[1, 1])))
+        else:
+            sig_joint.append(float("inf")); sig_u.append(float("inf"))
         det_sig.append(np.sqrt(snr2_f.copy()))
-    # the single-filter comparison: every night on the best filter
     best = int(np.argmax([q["fisher"].sum() for q in per]))
     sig_best = 1.0 / np.sqrt(n_nights * per[best]["fisher"].sum())
-    counts = {per[i]["lam"]: sched.count(i) for i in range(len(per))}
-    print("  schedule: " + ", ".join(f"{c} x {lam:.0f} nm" for lam, c in counts.items() if c))
-    print(f"  after {n_nights} nights: sigma(theta)/theta = {sig_theta[-1] / theta0:.4f}; every night on "
-          f"{per[best]['label']} instead: {sig_best / theta0:.4f}; detection per filter "
-          + ", ".join(f"{q['label'].split(',')[0].replace('LPQI 1 nm ', '')} {d:.1f} sigma" for q, d in zip(per, det_sig[-1])))
+    counts = {}
+    for ci in sched:
+        counts[ci] = counts.get(ci, 0) + 1
+    print("  schedule: " + ", ".join(f"{c} x [{per[ci]['lam']:.0f} nm, {per[ci]['ground_baseline_m']:.0f} m]" for ci, c in counts.items()))
+    print(f"  after {n_nights} nights: sigma(theta)/theta = {sig_theta[-1] / theta0:.4f} (theta alone), "
+          f"{sig_joint[-1] / theta0:.4f} jointly with u, sigma(u) = {sig_u[-1]:.3f} (u = {per[0]['u0']}); every night on "
+          f"the best configuration instead: {sig_best / theta0:.4f}; detection per configuration "
+          + ", ".join(f"[{q['lam']:.0f} nm, {q['ground_baseline_m']:.0f} m] {d:.1f} sigma" for q, d in zip(per, det_sig[-1])))
     theta_est = [float(theta0 + rng.normal(0.0, s)) for s in sig_theta]
     out = {"target": target.name, "filters": [q["label"] for q in per], "wavelengths_nm": [q["lam"] for q in per],
            "nulls_m": [q["null_m"] for q in per], "n_nights": n_nights, "schedule": sched,
-           "sigma_theta_frac": [s / theta0 for s in sig_theta], "sigma_theta_frac_best_single": sig_best / theta0,
+           "configs": [{"label": q["label"], "wavelength_nm": q["lam"], "ground_baseline_m": q["ground_baseline_m"],
+                        "ground_pa_deg": q["ground_pa_deg"], "null_m": q["null_m"], "n_blocks": int(q["mids"].size),
+                        "vis2_min": float(q["v2"].min()), "vis2_max": float(q["v2"].max()), "sigma_vis2": q["sigma"],
+                        "readout_scale": q["bud"]["readout_scale"], "rate_cps": q["bud"]["rate_cps"]} for q in per],
+           "baselines_m_per_night": [per[ci]["ground_baseline_m"] for ci in sched],
+           "sigma_theta_frac": [s / theta0 for s in sig_theta],
+           "sigma_theta_frac_joint": [s / theta0 for s in sig_joint], "sigma_u": sig_u, "u_linear": per[0]["u0"],
+           "sigma_theta_frac_best_single": sig_best / theta0,
            "best_single_filter": per[best]["label"], "detection_sigma_per_filter": det_sig[-1].tolist(),
            "one_night_sigma_theta_frac": [1 / np.sqrt(q["fisher"].sum()) / theta0 for q in per],
-           "baseline_m": blen.tolist(), "theta_ld_mas": theta0}
+           "baseline_m": per[0]["blen"].tolist(), "theta_ld_mas": theta0}
     if opts.figures:
         path = out_dir / f"{campaign.name}.mp4"
-        _render_rotation(path, target, arr0, mids, alt, bvec, blen, per, sched, meas, sig_theta, theta_est, det_sig,
-                         lam0, alts, nbin_show, fps=int(opt("options.fps", 12)), dpi=int(opt("options.dpi", 110)))
+        _render_rotation(path, target, per, sched, meas, sig_theta, sig_joint, sig_u, theta_est, det_sig,
+                         lam0, alts, nbin_show, fps=int(opt("options.fps", 12)), dpi=int(opt("options.dpi", 110)),
+                         yscale=yscale, multi_baseline=multi_baseline)
         out["movie"] = str(path)
     return out
 
 
-def _render_rotation(path, target, arr, mids, alt, bvec, blen, per, sched, meas, sig_theta, theta_est, det_sig,
-                     lam0, alts, nbin_show, fps=12, dpi=110):
+def _render_rotation(path, target, per, sched, meas, sig_theta, sig_joint, sig_u, theta_est, det_sig,
+                     lam0, alts, nbin_show, fps=12, dpi=110, yscale="linear", multi_baseline=False):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.animation import FFMpegWriter
 
-    n = mids.size
-    theta0 = float(per[0]["tgt"].theta_ld_mas)
-    pupils = (arr.stations[0].telescope.diameter_m, arr.stations[1].telescope.diameter_m)
+    theta0 = per[0]["theta0"]
+    pupils = per[0]["pupils"]
+    st = per[0]["stations"]
     colors = plt.cm.viridis(np.linspace(0.05, 0.95, len(per)))
     fig = plt.figure(figsize=(14, 5.2))
     gs = fig.add_gridspec(1, 3, width_ratios=[1.0, 1.6, 1.1], wspace=0.32, left=0.05, right=0.985, bottom=0.14, top=0.86)
     ax_uv, ax_v, ax_d = (fig.add_subplot(gs[0, k]) for k in range(3))
-    fig.suptitle(f"{target.name}: a different filter each night on {arr.stations[0].name} + {arr.stations[1].name} "
-                 f"(θ = {theta0:.3f} mas, V = {target.v_mag:.2f})", fontsize=11)
+    what = "a different baseline each night" if multi_baseline else "a different filter each night"
+    fig.suptitle(f"{target.name}: {what} on {st[0]} + {st[1]} (θ = {theta0:.3f} mas, V = {target.v_mag:.2f})", fontsize=11)
 
-    lim = 1.1 * np.abs(bvec).max() * 1.3
-    ax_uv.plot(bvec[:, 0], bvec[:, 1], color="0.8", lw=1); ax_uv.plot(-bvec[:, 0], -bvec[:, 1], color="0.8", lw=1)
-    circles = []
+    lim = 1.1 * max(np.abs(q["bvec"]).max() for q in per) * 1.3
+    tracks = []
     for q, c in zip(per, colors):
-        circ = plt.Circle((0, 0), q["null_m"], fill=False, ls="--", color=c, lw=1, alpha=0.9)
-        ax_uv.add_patch(circ); circles.append(circ)
+        t1, = ax_uv.plot(q["bvec"][:, 0], q["bvec"][:, 1], color=c, lw=1, alpha=0.4)
+        t2, = ax_uv.plot(-q["bvec"][:, 0], -q["bvec"][:, 1], color=c, lw=1, alpha=0.4)
+        tracks.append((t1, t2))
+    circles = {}
+    for q, c in zip(per, colors):
+        if q["lam"] not in circles:
+            circ = plt.Circle((0, 0), q["null_m"], fill=False, ls="--", color=c, lw=1, alpha=0.9)
+            ax_uv.add_patch(circ); circles[q["lam"]] = circ
     uv_pt, = ax_uv.plot([], [], "o", color="k", ms=7)
     ax_uv.set_xlim(-lim, lim); ax_uv.set_ylim(-lim, lim); ax_uv.set_aspect("equal")
     ax_uv.set_xlabel("u [m] (east)"); ax_uv.set_ylabel("v [m] (north)")
-    ax_uv.set_title("projected baseline; dashed: first null per filter", fontsize=9)
+    ax_uv.set_title("projected baselines of the nights; dashed: first null", fontsize=9)
     uv_txt = ax_uv.text(0.03, 0.97, "", transform=ax_uv.transAxes, va="top", fontsize=9)
 
     # the visibility panel in equivalent baseline at lam0
-    Beq_min = min(blen.min() * lam0 / q["lam"] for q in per)
-    Beq_max = max(blen.max() * lam0 / q["lam"] for q in per)
-    B_grid = np.linspace(0.5 * Beq_min, 1.08 * Beq_max, 400)
+    Beq_min = min(q["blen"].min() * lam0 / q["lam"] for q in per)
+    Beq_max = max(q["blen"].max() * lam0 / q["lam"] for q in per)
+    B_grid = np.linspace(0.5 * Beq_min if yscale != "log" else 0.3 * Beq_min, 1.08 * Beq_max, 500)
     tgt0 = per[0]["tgt"]
     curve0 = np.array([float(single_star_vis2(tgt0, float(bb), lam0, pupils)[0, 0]) for bb in B_grid])
     ax_v.plot(B_grid, curve0, color="k", lw=1.6, label=f"model θ at {lam0:.0f} nm")
@@ -582,85 +628,107 @@ def _render_rotation(path, target, arr, mids, alt, bvec, blen, per, sched, meas,
     band_lo, = ax_v.plot([], [], color="tab:blue", lw=0.9, alpha=0.7)
     band_hi, = ax_v.plot([], [], color="tab:blue", lw=0.9, alpha=0.7)
     for q, c in zip(per, colors):
-        ax_v.plot([], [], "o", color=c, ms=5, label=f"{q['lam']:.0f} nm")
+        ax_v.plot([], [], "o", color=c, ms=5, label=(f"{q['ground_baseline_m']:.0f} m" if multi_baseline else "") + f" {q['lam']:.0f} nm")
     ax_v.axvline(1.22 * lam0 * 1e-9 / (tgt0.drawn_diameter_mas * MAS), color="k", ls=":", lw=0.8)
     ax_v.set_xlabel(f"equivalent baseline B λ₀/λ at λ₀ = {lam0:.0f} nm  [m]"); ax_v.set_ylabel(r"$|V|^2$")
     sig_min = min(q["sigma"] for q in per) / np.sqrt(nbin_show)
-    ax_v.set_ylim(-1.5 * sig_min, max(0.05, 1.25 * curve0[B_grid >= 0.9 * Beq_min].max()))
+    if yscale == "log":
+        ax_v.set_yscale("log"); ax_v.set_ylim(max(1e-4, 0.3 * sig_min), 1.6)
+    else:
+        ax_v.set_ylim(-1.5 * sig_min, max(0.05, 1.25 * curve0[B_grid >= 0.9 * Beq_min].max()))
     ax_v.set_xlim(B_grid[0], B_grid[-1])
     ax_v.legend(fontsize=7, loc="upper right", ncol=2)
     v_txt = ax_v.text(0.03, 0.97, "", transform=ax_v.transAxes, va="top", fontsize=9)
     err_containers = []
 
-    # the diameter panel: sigma(theta)/theta vs nights, and the detection per filter
+    # the diameter panel: sigma(theta)/theta vs nights, and the detection per configuration
     nights_ax = np.arange(1, len(sched) + 1)
-    ax_d.plot(nights_ax, 100 * np.array(sig_theta) / theta0, color="tab:blue", lw=1.5, label="this schedule")
+    ax_d.plot(nights_ax, 100 * np.array(sig_theta) / theta0, color="tab:blue", lw=1.5, label="this schedule, θ alone")
+    sj = 100 * np.array(sig_joint) / theta0
+    ax_d.plot(nights_ax, np.where(np.isfinite(sj), sj, np.nan), color="tab:blue", lw=1.2, ls="--", label="θ jointly with limb darkening u")
     best = int(np.argmax([q["fisher"].sum() for q in per]))
-    ax_d.plot(nights_ax, 100 / np.sqrt(nights_ax * per[best]["fisher"].sum()) / theta0, color="0.5", lw=1.2, ls="--",
-              label=f"{per[best]['lam']:.0f} nm every night")
+    ax_d.plot(nights_ax, 100 / np.sqrt(nights_ax * per[best]["fisher"].sum()) / theta0, color="0.5", lw=1.2, ls=":",
+              label=(f"{per[best]['ground_baseline_m']:.0f} m, " if multi_baseline else "") + f"{per[best]['lam']:.0f} nm every night")
     d_pt, = ax_d.plot([], [], "o", color="tab:blue", ms=7)
     ax_d.set_xlabel("nights"); ax_d.set_ylabel("σ(θ)/θ  [%]"); ax_d.set_ylim(0, min(30, 110 * sig_theta[0] / theta0))
     ax_d.set_xlim(0, len(sched) + 1); ax_d.axhline(5, color="tab:red", ls=":", lw=0.8)
     ax_d.legend(fontsize=8, loc="upper right"); ax_d.set_title("diameter precision as the nights accumulate", fontsize=9)
     d_txt = ax_d.text(0.03, 0.03, "", transform=ax_d.transAxes, va="bottom", fontsize=8)
 
-    nb_full = n // nbin_show + (1 if n % nbin_show else 0)
-    bin_slices = [slice(i * nbin_show, min((i + 1) * nbin_show, n)) for i in range(nb_full)]
+    def bin_slices(nq):
+        nb = nq // nbin_show + (1 if nq % nbin_show else 0)
+        return [slice(i * nbin_show, min((i + 1) * nbin_show, nq)) for i in range(nb)]
 
     def frame_night(j, k):
-        """Night j (its filter), block k of the night (k = n-1: the whole night)."""
-        fi, v2m = meas[j]
-        q = per[fi]
-        uv_pt.set_data([bvec[k, 0]], [bvec[k, 1]])
-        for ci, circ in enumerate(circles):
-            circ.set_linewidth(2.2 if ci == fi else 0.8); circ.set_alpha(1.0 if ci == fi else 0.5)
-        uv_txt.set_text(f"night {j + 1}/{len(sched)}: {q['lam']:.0f} nm\nH = {mids[k]:+.2f} h, alt {alt[k]:.0f}°\n"
-                        f"B = {blen[k]:.0f} m = {blen[k] * lam0 / q['lam']:.0f} m at λ₀")
+        """Night j (its configuration), block k of the night (k = n_j - 1: the whole night)."""
+        ci, v2m = meas[j]
+        q = per[ci]
+        n = q["mids"].size
+        uv_pt.set_data([q["bvec"][k, 0]], [q["bvec"][k, 1]])
+        for cj, (t1, t2) in enumerate(tracks):
+            for t in (t1, t2):
+                t.set_linewidth(2.0 if cj == ci else 1.0); t.set_alpha(1.0 if cj == ci else 0.35)
+        for lamc, circ in circles.items():
+            circ.set_linewidth(2.2 if lamc == q["lam"] else 0.8); circ.set_alpha(1.0 if lamc == q["lam"] else 0.5)
+        uv_txt.set_text(f"night {j + 1}/{len(sched)}: {q['lam']:.0f} nm, ground B {q['ground_baseline_m']:.0f} m\n"
+                        f"H = {q['mids'][k]:+.2f} h, alt {q['alt'][k]:.0f}°\n"
+                        f"B = {q['blen'][k]:.1f} m = {q['blen'][k] * lam0 / q['lam']:.1f} m at λ₀")
         for ec in err_containers:
             ec.remove()
         err_containers.clear()
-        # all completed nights, binned, in equivalent baseline
         for jj in range(j + 1):
-            fj, vj = meas[jj]
-            qj = per[fj]
-            kmax = n if jj < j else k + 1
+            cj, vj = meas[jj]
+            qj = per[cj]
+            nj = qj["mids"].size
+            kmax = nj if jj < j else k + 1
             xs, ys, es = [], [], []
-            for sl in bin_slices:
+            for sl in bin_slices(nj):
                 if sl.start >= kmax:
                     break
                 sl2 = slice(sl.start, min(sl.stop, kmax))
-                xs.append(blen[sl2].mean() * lam0 / qj["lam"]); ys.append(vj[sl2].mean())
+                xs.append(qj["blen"][sl2].mean() * lam0 / qj["lam"]); ys.append(vj[sl2].mean())
                 es.append(qj["sigma"] / np.sqrt(sl2.stop - sl2.start))
-            err_containers.append(ax_v.errorbar(xs, ys, yerr=es, fmt="o", color=colors[fj], ms=4, capsize=2, lw=0.9,
-                                                alpha=1.0 if jj == j else 0.55))
+            ys, es = np.array(ys), np.array(es)
+            if yscale == "log":
+                lo = np.minimum(es, ys - ax_v.get_ylim()[0] * 1.001)
+                ys_plot = np.maximum(ys, ax_v.get_ylim()[0] * 1.001)
+                err_containers.append(ax_v.errorbar(xs, ys_plot, yerr=[np.maximum(lo, 0), es], fmt="o", color=colors[cj], ms=4,
+                                                    capsize=2, lw=0.9, alpha=1.0 if jj == j else 0.55))
+            else:
+                err_containers.append(ax_v.errorbar(xs, ys, yerr=es, fmt="o", color=colors[cj], ms=4, capsize=2, lw=0.9,
+                                                    alpha=1.0 if jj == j else 0.55))
         th, sg = theta_est[j], sig_theta[j]
         if k == n - 1:
             band_lo.set_data(B_grid, np.interp(B_grid * (th - sg) / theta0, B_grid, curve0))
             band_hi.set_data(B_grid, np.interp(B_grid * (th + sg) / theta0, B_grid, curve0))
-            v_txt.set_text(f"{j + 1} night(s)\nθ = {th:.4f} ± {sg:.4f} mas\n({100 * sg / theta0:.1f} %)")
+            joint = f", {100 * sig_joint[j] / theta0:.1f} % with u" if np.isfinite(sig_joint[j]) else ""
+            v_txt.set_text(f"{j + 1} night(s)\nθ = {th:.4f} ± {sg:.4f} mas\n({100 * sg / theta0:.1f} %{joint})")
             d_pt.set_data([j + 1], [100 * sg / theta0])
-            d_txt.set_text("detection per filter: " + ", ".join(f"{qq['lam']:.0f} nm {d:.1f}σ" for qq, d in zip(per, det_sig[j])))
+            su = f"; σ(u) = {sig_u[j]:.3f}" if np.isfinite(sig_u[j]) else ""
+            d_txt.set_text("detection: " + ", ".join(f"{qq['ground_baseline_m']:.0f} m {d:.1f}σ" if multi_baseline else
+                                                      f"{qq['lam']:.0f} nm {d:.1f}σ" for qq, d in zip(per, det_sig[j])) + su)
         else:
-            v_txt.set_text(f"night {j + 1}, block {k + 1}/{n}\n|V|² = {q['v2'][k]:.3g} at {q['lam']:.0f} nm\n(null {q['null_m']:.0f} m)")
+            v_txt.set_text(f"night {j + 1}, block {k + 1}/{n}\n|V|² = {q['v2'][k]:.3g} at {q['lam']:.0f} nm\n(null {q['null_m']:.1f} m)")
 
-    writer = FFMpegWriter(fps=fps, metadata={"title": f"hbtsim {target.name} filter rotation"}) if shutil.which("ffmpeg") else None
-    step = max(1, n // 30)           # ~30 frames for the first night
+    writer = FFMpegWriter(fps=fps, metadata={"title": f"hbtsim {target.name} schedule"}) if shutil.which("ffmpeg") else None
+    n0 = per[sched[0]]["mids"].size
+    step = max(1, n0 // 30)           # ~30 frames for the first night
     if writer is None:
         frames_dir = path.with_suffix(""); frames_dir.mkdir(exist_ok=True)
         f = 0
-        for k in range(0, n, step):
+        for k in range(0, n0, step):
             frame_night(0, k); fig.savefig(frames_dir / f"frame_{f:04d}.png", dpi=dpi); f += 1
         for j in range(len(sched)):
-            frame_night(j, n - 1); fig.savefig(frames_dir / f"frame_{f:04d}.png", dpi=dpi); f += 1
+            frame_night(j, per[sched[j]]["mids"].size - 1); fig.savefig(frames_dir / f"frame_{f:04d}.png", dpi=dpi); f += 1
         print(f"  ffmpeg not found: {f} PNG frames in {frames_dir}")
         plt.close(fig); return
     with writer.saving(fig, str(path), dpi=dpi):
-        for k in list(range(0, n, step)) + [n - 1]:
+        for k in list(range(0, n0, step)) + [n0 - 1]:
             frame_night(0, k); writer.grab_frame()
         for _ in range(fps):
             writer.grab_frame()
         for j in range(len(sched)):
-            frame_night(j, n - 1)
+            frame_night(j, per[sched[j]]["mids"].size - 1)
             for _ in range(max(1, fps // 2)):
                 writer.grab_frame()
         for _ in range(2 * fps):

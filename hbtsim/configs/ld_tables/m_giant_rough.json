@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "kind": "ld_table",
+  "name": "m_giant_rough",
+  "label": "Rough M-giant / supergiant linear law (3500-4000 K, log g 0-1.5), approximate",
+  "law": "linear",
+  "table_nm": [
+    [
+      400.0,
+      0.95
+    ],
+    [
+      550.0,
+      0.88
+    ],
+    [
+      650.0,
+      0.8
+    ],
+    [
+      800.0,
+      0.68
+    ],
+    [
+      900.0,
+      0.6
+    ],
+    [
+      1000.0,
+      0.52
+    ],
+    [
+      1250.0,
+      0.44
+    ],
+    [
+      1650.0,
+      0.36
+    ],
+    [
+      2200.0,
+      0.3
+    ]
+  ],
+  "sources": [
+    "Trend of the Claret & Bloemen 2011 (A&A 529, A75) linear coefficients towards 3500-4000 K and low gravity, extrapolated by eye"
+  ],
+  "notes": [
+    "APPROXIMATE: to be replaced by table lookups (or MARCS/PHOENIX I(mu) profiles). For the M supergiants the molecular layers (TiO at 900 nm, H2O/CO in the near-IR) make the 'limb' chromatic, which a linear law at the photospheric diameter cannot represent."
+  ],
+  "assumptions": [
+    "table_nm (approximate)"
+  ]
+}

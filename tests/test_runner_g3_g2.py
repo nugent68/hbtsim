@@ -204,3 +204,37 @@ def test_g2_array_track_single_stars(tmp_path):
     assert res["filter_set_nights"]["lambda Ori A"]["LPQI MPD single-pixel 50 um SPAD (Pathfinder primary)"]["diameter"] == \
         pytest.approx(rows["lambda Ori A"]["nights_diameter"])                              # one filter: set = filter
     assert "nights (5 % theta)" in (out / "tiny_singles" / "table.md").read_text()
+
+
+def test_g2_baseline_schedule(tmp_path):
+    """The g2 array mode with options.baseline_schedule: one configuration of
+    the movable pair per entry, the Fisher information on the diameter and
+    the limb darkening combined over the nights."""
+    import json
+    from hbtsim.catalog import Catalog
+    from hbtsim.run_campaign import RunOptions, run
+    cat0 = Catalog(env=False)
+    d = cat0.raw("campaign", "g2_giants_isi")
+    d.update(name="tiny_sched", targets=["aldebaran", "capella"], backends=["isi_id230_1550"],
+             night={"block_minutes": 120.0, "min_alt_deg": 30.0})
+    d["options"]["baseline_schedule"] = [{"baseline_m": 10.0}, {"baseline_m": 30.0, "nights": 2}]
+    (tmp_path / "campaigns").mkdir()
+    (tmp_path / "campaigns" / "tiny_sched.json").write_text(json.dumps(d))
+    cat = Catalog(paths=[tmp_path], env=False)
+    res = run(cat, cat.load_campaign("tiny_sched"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert res["mode"] == "array_schedule" and len(res["schedule"]) == 2 and len(res["rows"]) == 4
+    r0 = [r for r in res["rows"] if r["config"] == 0 and r["target"].startswith("Aldebaran")][0]
+    assert r0["baseline_max_m"] <= 10.0 + 1e-6 and r0["ground_baseline_m"] == pytest.approx(10.0) and r0["nights"] == 1
+    assert r0["fisher_theta"] > 0 and r0["fisher_u"] > 0 and 0 < r0["u_linear"] < 1
+    ald = [c for c in res["combined"] if c["target"].startswith("Aldebaran")][0]
+    assert ald["single"] and ald["n_configs"] == 2 and ald["total_nights"] == 3
+    assert ald["sigma_theta_frac"] > 0 and ald["sigma_theta_frac_joint"] >= ald["sigma_theta_frac"]
+    cap = [c for c in res["combined"] if c["target"].startswith("Capella")][0]
+    assert not cap["single"] and cap["sigma_theta_frac"] is None and cap["snr_total"] > 0
+    assert (tmp_path / "out" / "tiny_sched" / "table_combined.md").exists()
+    # without the schedule the plain array-track mode is unchanged
+    d["options"].pop("baseline_schedule"); d["name"] = "tiny_plain"
+    (tmp_path / "campaigns" / "tiny_plain.json").write_text(json.dumps(d))
+    cat = Catalog(paths=[tmp_path], env=False)
+    res2 = run(cat, cat.load_campaign("tiny_plain"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert res2["mode"] == "array_track" and res2["rows"][0]["fisher_theta"] is not None

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "isi_pair",
+  "label": "ISI pair (two 1.65 m trucks), reconfigurable baseline",
+  "site": "palomar",
+  "generator": {
+    "type": "pair",
+    "baseline_m": 100.0,
+    "pa_deg": 90.0,
+    "min_spacing_m": 2.5,
+    "station_names": [
+      "ISI-1",
+      "ISI-2"
+    ],
+    "telescope": "isi_1p65m",
+    "detector": "id230"
+  },
+  "sources": [
+    "Hale et al. 2000, ApJ 537, 998: the ISI telescopes are fully mobile (semi-trailers); 4-70 m at Mt. Wilson"
+  ],
+  "notes": [
+    "The default 100 m East-West pair is a placeholder: load_array('isi_pair', baseline_m=..., pa_deg=...), a campaign's instrument.array_params, or the night-by-night options.baseline_schedule / options.schedule set the configuration.",
+    "min_spacing_m 2.5: the trucks cannot park closer than ~2.5 m centre to centre."
+  ],
+  "assumptions": [
+    "baseline_m and pa_deg (per night)"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "eps_tau",
+  "label": "epsilon Tauri (Ain, K0 III red clump, Hyades)",
+  "type": "single",
+  "star": {
+    "label": "epsilon Tau",
+    "mass_msun": 2.46,
+    "teff_k": 4880.0,
+    "ld_table": "k_giant_rough",
+    "logg": 2.66
+  },
+  "theta_ld_mas": 2.59,
+  "v_mag": 3.53,
+  "dec_deg": 19.1804,
+  "ra_hours": 4.4769,
+  "distance_pc": 44.7,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 3.53
+    },
+    {
+      "band": "H",
+      "mag_vega": 1.31
+    },
+    {
+      "band": "K",
+      "mag_vega": 1.31
+    }
+  ],
+  "sources": [
+    "Anugu et al. 2026: radius 12.46 +/- 0.10 Rsun; Gaia DR3 parallax 22.3654 +/- 0.1721 mas -> 44.7 pc: theta_LD = 2R/d = 2.59 mas (no direct interferometric diameter found)",
+    "Baines et al. 2025: T_eff 4880 +/- 67 K; Teng et al. 2023: log g 2.66; Arentoft et al. 2019: mass 2.458 +/- 0.073 Msun",
+    "Sato et al. 2007: V 3.53, red-clump giant with a planet; 2MASS H 1.314, K 1.31"
+  ],
+  "notes": [
+    "A northern red-clump calibrator for the ISI (hd360 and hd17652 are the southern ones); first null 145 m at 1550 nm, 84 m at 900 nm.",
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85); 900 and 1550 nm fall inside the anchored range.",
+    "The radius is derived from theta_LD and the distance. No NewEra model exists below 4700 K: blackbody + linear law."
+  ],
+  "assumptions": [
+    "theta_ld_mas (2R/d, no interferometric measurement)"
+  ]
+}

@@ -221,3 +221,36 @@ def test_specmovie_runner_numbers(tmp_path):
     assert len(res["fit_theta_mas"]) == res["n_blocks"] and res["fit_sigma_mas"][-1] is not None
     assert all(p["readout_scale"] == 1.0 for p in res["pairs"])          # the per-pixel ceiling never bites when dispersed
     assert "movie" not in res and (tmp_path / "out" / "tiny_specmovie" / "results.json").exists()
+
+
+def test_nightmovie_schedule_numbers(tmp_path):
+    """The rotation movie with a baseline schedule (the ISI trucks moving
+    between nights) without rendering: per-night configurations, the null
+    crossed, the joint (theta, u) precision; and a plain filter schedule
+    still behaves as before."""
+    import json
+    import numpy as np
+    from hbtsim.catalog import Catalog
+    from hbtsim.run_campaign import RunOptions, run
+    cat0 = Catalog(env=False)
+    d = cat0.raw("campaign", "movie_betelgeuse_isi")
+    d.update(name="tiny_bsched", night={"block_minutes": 60.0, "min_alt_deg": 30.0})
+    d["options"]["schedule"] = [{"baseline_m": 4.0}, {"baseline_m": 12.0, "backend": "isi_id230_1550"}, {"baseline_m": 25.0}]
+    (tmp_path / "campaigns").mkdir()
+    (tmp_path / "campaigns" / "tiny_bsched.json").write_text(json.dumps(d))
+    cat = Catalog(paths=[tmp_path], env=False)
+    res = run(cat, cat.load_campaign("tiny_bsched"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert res["n_nights"] == 3 and res["baselines_m_per_night"] == [4.0, 12.0, 25.0]
+    assert res["configs"][0]["vis2_max"] > 0.3 and res["configs"][2]["vis2_max"] < 0.05 and 9 < res["nulls_m"][0] < 9.5
+    s = res["sigma_theta_frac"]
+    assert s[1] < s[0] and s[2] <= s[1] and res["sigma_theta_frac_joint"][-1] >= s[-1] and np.isfinite(res["sigma_u"][-1])
+    assert "movie" not in res
+    # a filter schedule of plain backend names on a fixed array: the old behaviour
+    d2 = cat0.raw("campaign", "movie_delori_lpqi_filters")
+    d2.update(name="tiny_fsched", night={"block_minutes": 60.0, "min_alt_deg": 30.0})
+    d2["options"]["schedule"] = ["lpqi_mpd_halpha", "lpqi_mpd_550"]
+    (tmp_path / "campaigns" / "tiny_fsched.json").write_text(json.dumps(d2))
+    cat = Catalog(paths=[tmp_path], env=False)
+    res2 = run(cat, cat.load_campaign("tiny_fsched"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert res2["n_nights"] == 2 and res2["schedule"] == [0, 1] and len(set(res2["baselines_m_per_night"])) == 1
+    assert res2["wavelengths_nm"][0] == pytest.approx(656.3, abs=0.1)

@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "aldebaran",
+  "label": "Aldebaran (alpha Tau, K5 III)",
+  "type": "single",
+  "star": {
+    "label": "alpha Tau",
+    "mass_msun": 1.03,
+    "teff_k": 3900.0,
+    "ld_table": "m_giant_rough",
+    "logg": 1.45
+  },
+  "theta_ld_mas": 20.58,
+  "v_mag": 0.86,
+  "dec_deg": 16.5093,
+  "ra_hours": 4.5987,
+  "distance_pc": 20.4,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 0.86
+    },
+    {
+      "band": "H",
+      "mag_vega": -2.78
+    },
+    {
+      "band": "K",
+      "mag_vega": -3.04
+    }
+  ],
+  "sources": [
+    "Richichi & Roccatagliata 2005, A&A 433, 305: uniform disk 19.96 +/- 0.03 mas -> limb-darkened 20.58 +/- 0.03 mas (lunar occultations + interferometry); Richichi et al. 2017: ~20.3 mas, possibly asymmetric",
+    "Heiter et al. 2015 (Gaia FGK benchmarks): T_eff 3900 +/- 50 K, log g 1.45; mass 1.03 +/- 0.07 Msun",
+    "van Leeuwen 2007: parallax 48.94 +/- 0.77 mas -> 20.4 pc; Ducati 2002 V 0.86; 2MASS H -2.775, K -3.044 (saturated, +/- 0.15)"
+  ],
+  "notes": [
+    "First null 18.9 m at 1550 nm, 11.0 m at 900 nm.",
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85); 900 and 1550 nm fall inside the anchored range.",
+    "The radius is derived from theta_LD and the distance. No NewEra model exists below 4700 K: blackbody + linear law."
+  ],
+  "assumptions": [
+    "mag_anchors H and K (2MASS saturated)",
+    "ld_table (rough M-giant law at 3900 K)"
+  ]
+}

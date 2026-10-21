@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "capella",
+  "label": "Capella (alpha Aur Aa + Ab, K0 III + G1 III, 104 d)",
+  "type": "binary",
+  "primary": {
+    "label": "Capella Aa (K0 III)",
+    "mass_msun": 2.5687,
+    "radius_rsun": 11.98,
+    "teff_k": 4970.0,
+    "ld_table": "k_giant_rough"
+  },
+  "secondary": {
+    "label": "Capella Ab (G1 III)",
+    "mass_msun": 2.4828,
+    "radius_rsun": 8.83,
+    "teff_k": 5730.0,
+    "ld_table": "k_giant_rough"
+  },
+  "period_days": 104.02128,
+  "inclination_deg": 137.156,
+  "distance_pc": 13.159,
+  "semimajor_au": 0.74272,
+  "eccentricity": 0.0,
+  "arg_periastron_deg": 0.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 0.08
+    },
+    {
+      "band": "H",
+      "mag_vega": -1.72
+    },
+    {
+      "band": "K",
+      "mag_vega": -1.78
+    }
+  ],
+  "node_pa_deg": 40.522,
+  "dec_deg": 45.998,
+  "ra_hours": 5.2782,
+  "sources": [
+    "Torres, Claret, Pavlovski & Dotter 2015, ApJ 807, 26: P 104.02128 +/- 0.00016 d, a 56.442 +/- 0.023 mas = 0.74272 +/- 0.00069 AU, e 0.00089, i 137.156 +/- 0.046 deg, Omega 40.522 +/- 0.039 deg, orbital parallax 75.994 mas (13.159 +/- 0.015 pc); masses 2.5687 / 2.4828 Msun, radii 11.98 / 8.83 Rsun, T_eff 4970 / 5730 K",
+    "Johnson 1966 / Ducati 2002: V 0.08, H -1.72, K -1.78 (system); SIMBAD coordinates"
+  ],
+  "notes": [
+    "Angular diameters 8.5 and 6.2 mas at 13.16 pc; separation up to 56 mas, fringe period lambda/rho = 5.7 m at 1550 nm (3.3 m at 900 nm) against the ISI's 1.65 m pupils: pupil smearing on.",
+    "e = 0.00089 taken as circular (phase 0 = quadrature).",
+    "The two giants are nearly equal in the near-IR (Delta mag ~0 at 700 nm), so the fringe contrast is high; both are resolved beyond ~40 m (first nulls 46 and 63 m at 1550 nm)."
+  ],
+  "assumptions": [
+    "node_pa_deg sense against hbtsim's convention (checked for beta Aur with Jonak et al.; not yet for Capella)",
+    "ld_table (K-giant law for both)"
+  ]
+}

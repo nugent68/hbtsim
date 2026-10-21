@@ -181,6 +181,35 @@ def lpqi_parameters() -> str:
     return "\n".join(out)
 
 
+def isi_parameters() -> str:
+    pair, tri = cat.load_array("isi_pair"), cat.load_array("isi_triangle")
+    d = cat.load_detector("id230")
+    (_, _, b), = pair.pairs()
+    filters = [cat.load_spectrograph(nm) for nm in cat.list_names("spectrograph") if nm.startswith("filter_isi_")]
+    sched = cat.load_campaign("g2_giants_isi").option("options.baseline_schedule")
+    sched_m = [x["baseline_m"] if isinstance(x, dict) else x for x in sched]
+    rows = [("", "value", "source / status")]
+    rows += [("site", f"{pair.site.name}: {pair.site.latitude_deg:g}°, {pair.site.longitude_deg:g}°, {pair.site.elevation_m:g} m",
+              "Palomar 200-inch coordinates; a stand-in for any flat California site (**assumed**)"),
+             ("telescopes", f"three ISI {pair.stations[0].telescope.diameter_m:g} m Pfund telescopes on trucks; throughput "
+                            f"{pair.stations[0].telescope.throughput:g} including the fibre coupling into the ID230",
+              "Hale et al. 2000, ApJ 537, 998; throughput **assumed**"),
+             ("configurations", f"pair (`isi_pair`, default {np.hypot(*b):.0f} m East–West, min spacing 2.5 m) and equilateral triangle "
+                                f"(`isi_triangle`, default {tri.stations[1].north_m:.0f} m); the campaigns' `baseline_schedule` / `schedule` "
+                                f"set a configuration per night, e.g. {', '.join(f'{x:g}' for x in sched_m)} m", "the trucks (user, 2026-10-21)"),
+             ("detector (ID Quantique ID230)", f"InGaAs/InP SPAD, PDE {d.pde(1550.0):.2f} at 1550 nm and {d.pde(900.0):.2f} at 900 nm, "
+                                               f"{d.jitter_fwhm_ps:.0f} ps FWHM, dead {d.dead_time_ns / 1000:g} µs, dark {d.dark_cps_per_pixel:g} cps, "
+                                               f"operating cap {d.max_total_cps:.1e} cps (half of 1/dead time)",
+              "ID230 brochure (June 2026); PDE away from 1550 nm and the cap **assumed**"),
+             ("filters", "; ".join(f"{f.channel_centers_nm[0]:.0f} nm ({f.channel_width_nm:.1f} nm)" for f in filters)
+              + f"; throughput {filters[0].throughput:g}", "the user (2026-10-21); widths and throughput **assumed**"),
+             ("targets", "Betelgeuse 42.3 mas, Aldebaran 20.58, Arcturus 21.05, μ Cep 14.1, ε Tau 2.59, HD 360 0.91; Capella (56 mas binary)",
+              "interferometric diameters (Montargès 2014, Richichi 2005, Lacour 2008, Perrin 2005); ε Tau from R/d; Torres et al. 2015")]
+    out = ["| " + " | ".join(rows[0]) + " |", "|---|---|---|"]
+    out += ["| " + " | ".join(r) + " |" for r in rows[1:]]
+    return "\n".join(out)
+
+
 def campaigns_table() -> str:
     rows = ["| Campaign | Runner | What it computes |", "|---|---|---|"]
     for n in cat.list_names("campaign"):
@@ -194,6 +223,7 @@ BLOCKS = {
     "docs/three_telescope_feasibility.md": {"maunakea_baselines": maunakea_baselines},
     "docs/iact_targets.md": {"iact_parameters": iact_parameters},
     "docs/lpqi_pathfinder.md": {"lpqi_parameters": lpqi_parameters},
+    "docs/isi_hbt.md": {"isi_parameters": isi_parameters},
 }
 MARK = re.compile(r"(<!-- catalog:(\w+) -->\n)(.*?)(\n<!-- /catalog -->)", re.S)
 

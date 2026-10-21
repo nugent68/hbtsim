@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "filter_isi_900_1nm",
+  "label": "ISI 1 nm filter, 900 nm (900 nm)",
+  "lambda_min_nm": 899.5,
+  "lambda_max_nm": 900.5,
+  "n_channels": 1,
+  "throughput": 0.9,
+  "sources": [
+    "P. Nugent, 2026-10-21: two narrow-band filters at 900 and 1550 nm, 1 nm wide (the LPQI convention)"
+  ],
+  "notes": [
+    "Throughput 0.9 = FILTER_THROUGHPUT (filter + relay optics); the telescope file carries the rest.",
+    "Coherence time 2.7 ps, far below the ID230's 150 ps jitter: the band width sets the count rate, not the g2 width."
+  ],
+  "assumptions": [
+    "lambda_min_nm",
+    "lambda_max_nm",
+    "throughput"
+  ]
+}

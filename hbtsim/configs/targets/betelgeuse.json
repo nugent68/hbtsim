@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "betelgeuse",
+  "label": "Betelgeuse (alpha Ori, M1-2 Ia-ab)",
+  "type": "single",
+  "star": {
+    "label": "alpha Ori",
+    "mass_msun": 14.0,
+    "teff_k": 3650.0,
+    "ld_table": "m_giant_rough",
+    "logg": 0.0
+  },
+  "theta_ld_mas": 42.3,
+  "v_mag": 0.42,
+  "dec_deg": 7.4071,
+  "ra_hours": 5.9195,
+  "distance_pc": 168.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 0.42
+    },
+    {
+      "band": "H",
+      "mag_vega": -3.73
+    },
+    {
+      "band": "K",
+      "mag_vega": -4.05
+    }
+  ],
+  "sources": [
+    "Montarges et al. 2014, A&A 572, A17 (VLTI/AMBER H and K): limb-darkened diameter 42.28 mas (uniform disk 41.01); Ohnaka et al. 2011: 42.49 +/- 0.06 mas",
+    "Joyce et al. 2020, ApJ 902, 63: parallax 5.95 (+0.58/-0.85) mas -> 168 (+27/-15) pc; Harper et al. 2017 (ALMA + e-MERLIN) 222 (+34/-48) pc",
+    "Ducati 2002 (yCat II/237): V 0.42, H -3.73, K -4.05; SIMBAD coordinates",
+    "Borisov et al. 2023: T_eff 3779 +/- 38 K (literature 3250-3690); mass 14 Msun (Neuhauser 2022; 9.5-21 in modern models)"
+  ],
+  "notes": [
+    "Semi-regular variable, V 0.0-1.6: the anchors are mean values.",
+    "First null 1.22 lambda/theta: 9.3 m at 1550 nm, 5.4 m at 900 nm -- the ISI's whole |V|^2 structure sits within 3-40 m.",
+    "The near-IR diameter is the photosphere; at 900 nm the TiO bands and the molecular layers make the star look larger (ISI's own 11 um result: 55 mas).",
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85); 900 and 1550 nm fall inside the anchored range.",
+    "The radius is derived from theta_LD and the distance. No NewEra model exists below 4700 K: blackbody + linear law."
+  ],
+  "assumptions": [
+    "theta_ld_mas (near-IR LD, 42.3-42.5 mas)",
+    "distance_pc (168 vs 222 pc)",
+    "teff_k",
+    "mass_msun",
+    "v_mag (variable)"
+  ]
+}

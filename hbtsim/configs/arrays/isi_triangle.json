@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "isi_triangle",
+  "label": "ISI triangle (three 1.65 m trucks), equilateral, reconfigurable side",
+  "site": "palomar",
+  "generator": {
+    "type": "equilateral",
+    "side_m": 100.0,
+    "pa_deg": 0.0,
+    "min_spacing_m": 2.5,
+    "station_names": [
+      "ISI-1",
+      "ISI-2",
+      "ISI-3"
+    ],
+    "telescope": "isi_1p65m",
+    "detector": "id230"
+  },
+  "sources": [
+    "Hale et al. 2000, ApJ 537, 998: three telescopes, closure phase since 2003"
+  ],
+  "notes": [
+    "For the triple-correlation (g3) campaigns; side_m is set per campaign through instrument.array_params."
+  ],
+  "assumptions": [
+    "side_m (per campaign)"
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "mu_cep",
+  "label": "mu Cephei (Herschel's Garnet Star, M2 Ia)",
+  "type": "single",
+  "star": {
+    "label": "mu Cep",
+    "mass_msun": 11.0,
+    "teff_k": 3750.0,
+    "ld_table": "m_giant_rough",
+    "logg": 0.0
+  },
+  "theta_ld_mas": 14.1,
+  "v_mag": 4.08,
+  "dec_deg": 58.78,
+  "ra_hours": 21.7251,
+  "distance_pc": 421.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 4.08
+    },
+    {
+      "band": "H",
+      "mag_vega": -1.27
+    },
+    {
+      "band": "K",
+      "mag_vega": -1.72
+    }
+  ],
+  "sources": [
+    "Perrin et al. 2005, A&A 436, 317: photospheric diameter 14.11 +/- 0.6 mas (K band); Wiesemeyer et al. 2026: 16.85 +/- 0.15 mas; Mozurkewich et al. 2003: 20.6 mas limb-darkened at 800 nm, since shown to be the molecular layer",
+    "Wiesemeyer et al. 2026: distance 421 (+57/-42) pc, T_eff 3800 K, mass 11 Msun (Josselin & Plez 2007: 3750 K)",
+    "Ducati 2002: V 4.08 (variable 3.4-5.1), H -1.27, K -1.72; Gaia DR3 coordinates"
+  ],
+  "notes": [
+    "First null 27.9 m at 1550 nm, 16.2 m at 900 nm; at 900 nm the molecular layer (~20 mas) rather than the photosphere may set the size -- exactly the 900 vs 1550 nm comparison the ISI filters make.",
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85); 900 and 1550 nm fall inside the anchored range.",
+    "The radius is derived from theta_LD and the distance. No NewEra model exists below 4700 K: blackbody + linear law."
+  ],
+  "assumptions": [
+    "theta_ld_mas (14.1-16.9 mas)",
+    "distance_pc (421 +57/-42)",
+    "v_mag (variable)"
+  ]
+}

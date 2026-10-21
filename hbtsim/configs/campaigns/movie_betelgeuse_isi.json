@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_betelgeuse_isi",
+  "label": "Movie: Betelgeuse's |V|^2(B) fully measured with the ISI pair at 1550 nm, one baseline per night from 3 to 40 m",
+  "runner": "nightmovie",
+  "target": "betelgeuse",
+  "instrument": {
+    "array": "isi_pair"
+  },
+  "backends": [
+    "isi_id230_1550"
+  ],
+  "night": {
+    "block_minutes": 5.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "schedule": [
+      {
+        "baseline_m": 3.0
+      },
+      5.0,
+      7.0,
+      9.0,
+      12.0,
+      16.0,
+      25.0,
+      40.0
+    ],
+    "yscale": "log",
+    "seed": 7,
+    "display_bin_blocks": 6,
+    "theta_alternatives_pct": [
+      -5.0,
+      5.0
+    ],
+    "fps": 12,
+    "dpi": 110
+  },
+  "outputs": {
+    "figures": true
+  },
+  "notes": [
+    "The 'fully measure g2' movie: the trucks step the East-West baseline 3, 5, 7, 9, 12, 16, 25, 40 m on eight nights, so the measurements walk from |V|^2 ~ 1 through the 9.3 m first null into the sidelobes (log scale), and the joint fit of the diameter and the linear limb-darkening coefficient converges night by night.",
+    "Dead-time cap: Betelgeuse's 1550 nm rate is attenuated x0.01 to 2.5e5 cps, so sigma(|V|^2) ~ 0.2 per 5-min block; the per-night precision is set by the ID230, not the star."
+  ]
+}

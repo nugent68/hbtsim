@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "kind": "site",
+  "name": "mt_wilson",
+  "label": "Mount Wilson (original ISI site, reference only)",
+  "latitude_deg": 34.2259,
+  "longitude_deg": -118.0574,
+  "elevation_m": 1742.0,
+  "sources": [
+    "Mount Wilson Observatory / ISI site: 34 13 33 N, 118 03 27 W, 1742 m (Wikipedia, ISI article)"
+  ],
+  "notes": [
+    "The ISI's home 1988-2010s; the mountain's layout limited the three mobile telescopes to ~70 m. Kept for reference; the ISI campaigns use sites/palomar."
+  ]
+}
