@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_epstau_isi",
+  "label": "Movie: the red-clump giant epsilon Tau's |V|^2(B) with the ISI pair at 900 nm, one baseline per night from 20 to 180 m",
+  "runner": "nightmovie",
+  "target": "eps_tau",
+  "instrument": {
+    "array": "isi_pair"
+  },
+  "backends": [
+    "isi_pdm_900"
+  ],
+  "night": {
+    "block_minutes": 5.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "schedule": [
+      {
+        "baseline_m": 20.0
+      },
+      30.0,
+      45.0,
+      60.0,
+      75.0,
+      90.0,
+      110.0,
+      140.0,
+      180.0
+    ],
+    "yscale": "log",
+    "seed": 7,
+    "display_bin_blocks": 6,
+    "theta_alternatives_pct": [
+      -5.0,
+      5.0
+    ],
+    "fps": 12,
+    "dpi": 110
+  },
+  "outputs": {
+    "figures": true
+  },
+  "notes": [
+    "A red-clump giant (K0 III, 2.59 mas from the HST/CHARA radius and the Gaia parallax, V 3.5) on the ISI trucks: nine nights at 20-180 m East-West at 900 nm walk the measurements from |V|^2 ~ 0.9 through the 84 m first null into the first sidelobe (log scale); the joint fit of the diameter and the linear limb-darkening coefficient converges night by night.",
+    "epsilon Tau sits at the PDM's 4e6 cps operating cap only marginally, so unlike the bright giants its S/N is set by its own photons; it is the Hyades red-clump calibrator a season of nights would tie to 1-2 %."
+  ]
+}

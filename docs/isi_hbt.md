@@ -104,6 +104,19 @@ in the sidelobes, see nothing. The diameter settles at σ(θ)/θ = 1.2 % after
 nine nights (nine nights at the single best baseline, 3.5 m, would give
 0.7 %); the joint fit with u stays at 18 % with σ(u) = 1.4.
 
+## The red-clump movie (`hbtsim run movie_epstau_isi`)
+
+ε Tau at 900 nm, nine nights at 20, 30, 45, 60, 75, 90, 110, 140 and 180 m:
+a 2.59 mas K0 III red-clump giant whose |V|² leaves 0.9 at 20 m, crosses the
+87 m null and vanishes into a first sidelobe of 0.01. Unlike the bright
+giants, ε Tau sits only marginally at the PDM's cap, so its σ(|V|²) of 0.86
+per 5-min block is set by its own V 3.5 photons: the first nights detect the
+fringe at 9–11σ, the null night at 1.5σ, and the diameter reaches 5.9 % after
+the nine nights (3.8 % at the single best baseline, 45 m, every night); the
+sidelobe nights add nothing and the limb darkening is unconstrained. A season
+of 30 nights at 30–75 m would tie this Hyades red-clump calibrator to about
+2 %, which is the level at which the red-clump radius scale becomes useful.
+
 ## What would change the verdict
 
 - The sidelobes need σ(|V|²) ≈ 0.003 per night, ten times better: more
