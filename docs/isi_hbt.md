@@ -127,6 +127,33 @@ would be worse than either (5.2 %): the coherence time of a 1 nm band scales
 as λ² and the giants are red, so for the uncapped red-clump star 650 nm is the
 best filter and for the capped bright giants the reddest filter always wins.
 
+## The third truck: three baselines a night (`movie_epstau_isi_line`, `g2_epstau_isi_line`)
+
+With the trucks in an East–West line at spacings (a, b) the night measures
+the baselines a, b and a + b at once (`arrays/isi_line`, a `line` generator;
+schedule entries `{"spacings_m": [a, b]}`; both runners take every pair of
+the night's array). For ε Tau at 650 nm the nights 25+35, 35+40 and 45+50 m
+(baselines 25/35/60, 35/40/75, 45/50/95 m, bracketing the 63 m null and
+reaching the first sidelobe) give, twice over:
+
+| plan | nights | σ(θ)/θ | σ(u) |
+|---|---|---|---|
+| pair, 9 nights 14–130 m | 9 | 4.0 % | 4.5 |
+| pair, 3 nights 33/44/55 m | 3 | 4.7 % | — |
+| line, 3 nights | 3 | 3.1 % | 4.9 |
+| line, 6 nights (the movie) | 6 | 2.2 % | 3.5 |
+| line, a season: 20 nights at 650 nm, 10 at 900 nm | 30 | 1.15 % | 1.2 |
+
+Three trucks for three nights beat two trucks for nine. The movie shows the
+three pairs' points filling the curve together: the short pair on the first
+lobe, the long pair past the null, the night's fringe detected at 22σ on the
+first night and 11σ on the sidelobe-reaching third. The limb darkening is the
+honest negative of the ISI with the PDM: even thirty nights leave σ(u) = 1.2
+on a coefficient of 0.6, because the sidelobe of a 2.6 mas star sits at
+|V|² ≈ 0.01 and the per-night σ(|V|²) is 0.06; reaching σ(u) = 0.1 would take
+~4000 such nights, or a detector without the dead-time cap. The diameter, at
+1 % in a season, is the measurement the trucks deliver.
+
 ## What would change the verdict
 
 - The sidelobes need σ(|V|²) ≈ 0.003 per night, ten times better: more

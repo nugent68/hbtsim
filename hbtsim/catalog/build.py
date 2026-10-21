@@ -271,7 +271,7 @@ def build_target(cat, d: dict):
     return DiskTarget(label, **_given(d, ("theta_mas", "mag_ab", "dec_deg", "ld_u", "ra_hours")))
 
 
-GENERATOR_KEYS = ("type", "side_m", "baseline_m", "pa_deg", "min_spacing_m", "station_names",
+GENERATOR_KEYS = ("type", "side_m", "baseline_m", "spacings_m", "pa_deg", "min_spacing_m", "station_names",
                   "telescope", "detector", "telescope2", "detector2")
 
 
@@ -288,7 +288,7 @@ def build_array(cat, d: dict, **overrides):
                                  _ref(cat, "detector", s["detector"], where),
                                  up_m=s.get("up_m", 0.0)) for s in d["stations"])
         return Array(stations, site=site)
-    from ..bispectrum import equilateral_array, pair_array
+    from ..bispectrum import equilateral_array, line_array, pair_array
     g = dict(d["generator"])
     bad = sorted(set(overrides) - set(GENERATOR_KEYS) - {"type"})
     if bad:
@@ -298,6 +298,12 @@ def build_array(cat, d: dict, **overrides):
     tel = g["telescope"] if isinstance(g["telescope"], Telescope) else _ref(cat, "telescope", g["telescope"], where)
     det = g["detector"] if isinstance(g["detector"], Detector) else _ref(cat, "detector", g["detector"], where)
     common = dict(site=site, pa_deg=g.get("pa_deg", 0.0), min_spacing_m=g.get("min_spacing_m"))
+    if g["type"] == "line":
+        names = tuple(g.get("station_names", ("T1", "T2", "T3")))
+        try:
+            return line_array(list(g["spacings_m"]), tel, det, names=names, **common)
+        except ValueError as e:
+            raise CatalogError(f"{where}: {e}") from None
     if g["type"] == "equilateral":
         names = tuple(g.get("station_names", ("T1", "T2", "T3")))
         if len(names) != 3:

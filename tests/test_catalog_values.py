@@ -229,6 +229,12 @@ def test_isi():
     assert np.hypot(*b12) == pytest.approx(12.0)
     tri = cat.load_triangle("isi_triangle")
     assert np.allclose(tri.baseline_lengths(), 100.0)
+    line = cat.load_array("isi_line", spacings_m=[14.0, 30.0])                 # three trucks in a row: a, b, a + b
+    assert sorted(round(float(np.hypot(*b)), 6) for _, _, b in line.pairs()) == [14.0, 30.0, 44.0]
+    assert all(abs(st.north_m) < 1e-9 for st in line.stations)                  # East-West
+    with pytest.raises(Exception, match="minimum"):
+        cat.load_array("isi_line", spacings_m=[1.0, 30.0])
+    assert cat.load_campaign("movie_epstau_isi_line").option("instrument.array") == "isi_line"
     for name, theta, dec in (("betelgeuse", 42.3, 7.4071), ("aldebaran", 20.58, 16.5093), ("arcturus", 21.05, 19.1824),
                              ("mu_cep", 14.1, 58.78), ("eps_tau", 2.59, 19.1804)):
         st = cat.load_target(name)

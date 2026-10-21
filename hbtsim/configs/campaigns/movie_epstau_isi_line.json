@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_epstau_isi_line",
+  "label": "Movie: epsilon Tau on the three ISI trucks in a line at 650 nm, three baselines a night, six nights",
+  "runner": "nightmovie",
+  "target": "eps_tau",
+  "instrument": {
+    "array": "isi_line"
+  },
+  "backends": [
+    "isi_pdm_650"
+  ],
+  "night": {
+    "block_minutes": 5.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "schedule": [
+      {
+        "spacings_m": [
+          25.0,
+          35.0
+        ]
+      },
+      {
+        "spacings_m": [
+          35.0,
+          40.0
+        ]
+      },
+      {
+        "spacings_m": [
+          45.0,
+          50.0
+        ]
+      },
+      {
+        "spacings_m": [
+          25.0,
+          35.0
+        ]
+      },
+      {
+        "spacings_m": [
+          35.0,
+          40.0
+        ]
+      },
+      {
+        "spacings_m": [
+          45.0,
+          50.0
+        ]
+      }
+    ],
+    "yscale": "log",
+    "seed": 7,
+    "display_bin_blocks": 6,
+    "theta_alternatives_pct": [
+      -5.0,
+      5.0
+    ],
+    "fps": 12,
+    "dpi": 110
+  },
+  "outputs": {
+    "figures": true
+  },
+  "notes": [
+    "The third truck: three telescopes in an East-West line at spacings (a, b) measure the baselines a, b and a + b in the same night, so each night samples three points of |V|^2(B). The schedule 25+35, 35+40, 45+50 m (baselines 25/35/60, 35/40/75, 45/50/95 m), twice, brackets the 63 m null and reaches the first sidelobe: 2.2 % on the diameter in six nights against 4.0 % for nine nights of the pair.",
+    "Limb darkening stays out of reach: the sidelobe at |V|^2 ~ 0.01 against the per-night sigma gives sigma(u) ~ 3.5 after the six nights; ~2000 nights would be needed for 0.1."
+  ]
+}

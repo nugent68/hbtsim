@@ -7,7 +7,8 @@ sweep |V|^2(B) through the null and the sidelobes over a run.
 Entries may be
   "lpqi_mpd_halpha"                       a backend (catalog name or label)
   12.0                                    a baseline [m] on the campaign's first backend
-  {"baseline_m": 12, "pa_deg": 90, "backend": "isi_id230_1550", "nights": 2}
+  {"baseline_m": 12, "pa_deg": 90, "backend": "isi_pdm_900", "nights": 2}
+  {"spacings_m": [14, 30], "backend": "isi_pdm_650"}       a line of trucks: baselines 14, 30, 44 m
 Unknown keys are an error.  `array_for` rebuilds the campaign's array with
 the entry's parameters on top of instrument.array_params.
 """
@@ -16,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-ARRAY_KEYS = ("baseline_m", "pa_deg", "side_m")
+ARRAY_KEYS = ("baseline_m", "pa_deg", "side_m", "spacings_m")
 ENTRY_KEYS = ARRAY_KEYS + ("backend", "nights")
 
 
@@ -48,7 +49,7 @@ def normalize_schedule(entries, campaign, backends) -> list[dict]:
                  "nights": int(x.get("nights", 1)), "backend_given": "backend" in x}
             for k in ARRAY_KEYS:
                 if k in x:
-                    e[k] = float(x[k])
+                    e[k] = [float(v) for v in x[k]] if k == "spacings_m" else float(x[k])
             out.append(e)
         else:
             raise SystemExit(f"schedule entry {x!r}: expected a backend name, a baseline in metres or a dict")
@@ -81,7 +82,8 @@ def array_for(cat, campaign, entry: dict, detector=None):
 
 def describe(entry: dict, backends) -> str:
     bits = [backends[entry["backend_index"]].name]
-    bits += [f"{k} {entry[k]:g}" for k in ARRAY_KEYS if k in entry]
+    bits += [(f"spacings {', '.join(f'{v:g}' for v in entry[k])} m" if k == "spacings_m" else f"{k} {entry[k]:g}")
+             for k in ARRAY_KEYS if k in entry]
     if entry.get("nights", 1) != 1:
         bits.append(f"x{entry['nights']} nights")
     return ", ".join(bits)

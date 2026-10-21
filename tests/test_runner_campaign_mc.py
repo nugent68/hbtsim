@@ -245,6 +245,16 @@ def test_nightmovie_schedule_numbers(tmp_path):
     s = res["sigma_theta_frac"]
     assert s[1] < s[0] and s[2] <= s[1] and res["sigma_theta_frac_joint"][-1] >= s[-1] and np.isfinite(res["sigma_u"][-1])
     assert "movie" not in res
+    # three trucks in a line: three pairs per night, the same runner
+    d3 = cat0.raw("campaign", "movie_epstau_isi_line")
+    d3.update(name="tiny_line", night={"block_minutes": 60.0, "min_alt_deg": 30.0})
+    d3["options"]["schedule"] = [{"spacings_m": [25.0, 35.0]}, {"spacings_m": [45.0, 50.0]}]
+    (tmp_path / "campaigns" / "tiny_line.json").write_text(json.dumps(d3))
+    cat = Catalog(paths=[tmp_path], env=False)
+    res3 = run(cat, cat.load_campaign("tiny_line"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert res3["n_pairs"] == 3 and res3["n_nights"] == 2 and res3["configs"][0]["ground_baselines_m"] == [25.0, 60.0, 35.0]
+    assert res3["configs"][0]["pairs"] == ["ISI-1-ISI-2", "ISI-1-ISI-3", "ISI-2-ISI-3"]
+    assert res3["sigma_theta_frac"][0] < res["sigma_theta_frac"][0] * 3        # three baselines beat one
     # a filter schedule of plain backend names on a fixed array: the old behaviour
     d2 = cat0.raw("campaign", "movie_delori_lpqi_filters")
     d2.update(name="tiny_fsched", night={"block_minutes": 60.0, "min_alt_deg": 30.0})

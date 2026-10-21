@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g2_epstau_isi_line",
+  "label": "ISI three trucks in a line on epsilon Tau: a season of nights at 650 and 900 nm, the diameter and the limb darkening combined",
+  "runner": "g2",
+  "targets": [
+    "eps_tau"
+  ],
+  "instrument": {
+    "array": "isi_line"
+  },
+  "backends": [
+    "isi_pdm_650",
+    "isi_pdm_900"
+  ],
+  "night": {
+    "block_minutes": 30.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "one_backend_per_night": true,
+    "detection_sigma": 3.0,
+    "diameter_precision": 0.02,
+    "baseline_schedule": [
+      {
+        "spacings_m": [
+          25.0,
+          35.0
+        ],
+        "backend": "isi_pdm_650",
+        "nights": 5
+      },
+      {
+        "spacings_m": [
+          35.0,
+          40.0
+        ],
+        "backend": "isi_pdm_650",
+        "nights": 5
+      },
+      {
+        "spacings_m": [
+          45.0,
+          50.0
+        ],
+        "backend": "isi_pdm_650",
+        "nights": 5
+      },
+      {
+        "spacings_m": [
+          60.0,
+          70.0
+        ],
+        "backend": "isi_pdm_650",
+        "nights": 5
+      },
+      {
+        "spacings_m": [
+          35.0,
+          50.0
+        ],
+        "backend": "isi_pdm_900",
+        "nights": 5
+      },
+      {
+        "spacings_m": [
+          60.0,
+          70.0
+        ],
+        "backend": "isi_pdm_900",
+        "nights": 5
+      }
+    ]
+  },
+  "outputs": {
+    "latex": true
+  },
+  "notes": [
+    "A season (30 nights) on the Hyades red-clump giant with the three trucks in a line: twenty 650 nm nights bracketing the 63 m null and reaching the first and second sidelobes, ten 900 nm nights for the cross-check; the Fisher information on theta and on the linear limb-darkening coefficient u combined (table_combined.md).",
+    "The verdict on limb darkening: at the PDM's S/N the sidelobes (|V|^2 ~ 0.01) are not detected in a night, so u stays unconstrained over a season; the diameter reaches ~1 %."
+  ]
+}

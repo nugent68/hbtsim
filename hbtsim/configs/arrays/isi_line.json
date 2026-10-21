@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "isi_line",
+  "label": "ISI line (three 1.65 m trucks in a row), reconfigurable spacings",
+  "site": "palomar",
+  "generator": {
+    "type": "line",
+    "spacings_m": [
+      20.0,
+      30.0
+    ],
+    "pa_deg": 90.0,
+    "min_spacing_m": 2.5,
+    "station_names": [
+      "ISI-1",
+      "ISI-2",
+      "ISI-3"
+    ],
+    "telescope": "isi_1p65m",
+    "detector": "mpd_pdm_100um"
+  },
+  "sources": [
+    "Hale et al. 2000, ApJ 537, 998: three mobile telescopes"
+  ],
+  "notes": [
+    "Three trucks in an East-West line at spacings (a, b) give the baselines a, b and a + b in one night: the schedule entries {spacings_m: [a, b]} set them per night, so a nine-night pair programme becomes three nights.",
+    "Default spacings 20 + 30 m (baselines 20, 30, 50 m) are a placeholder."
+  ],
+  "assumptions": [
+    "spacings_m (per night)"
+  ]
+}

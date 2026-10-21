@@ -232,6 +232,14 @@ def test_g2_baseline_schedule(tmp_path):
     cap = [c for c in res["combined"] if c["target"].startswith("Capella")][0]
     assert not cap["single"] and cap["sigma_theta_frac"] is None and cap["snr_total"] > 0
     assert (tmp_path / "out" / "tiny_sched" / "table_combined.md").exists()
+    # a line of three trucks: three pairs per configuration
+    d["name"] = "tiny_line"; d["instrument"] = {"array": "isi_line"}; d["targets"] = ["aldebaran"]
+    d["options"]["baseline_schedule"] = [{"spacings_m": [5.0, 7.0]}]
+    (tmp_path / "campaigns" / "tiny_line.json").write_text(json.dumps(d))
+    cat = Catalog(paths=[tmp_path], env=False)
+    res3 = run(cat, cat.load_campaign("tiny_line"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert len(res3["rows"]) == 3 and sorted(r["baseline_max_m"] <= 12.0 + 1e-6 for r in res3["rows"]) == [True] * 3
+    assert res3["combined"][0]["n_configs"] == 1 and res3["combined"][0]["sigma_theta_frac"] < ald["sigma_theta_frac"]
     # without the schedule the plain array-track mode is unchanged
     d["options"].pop("baseline_schedule"); d["name"] = "tiny_plain"
     (tmp_path / "campaigns" / "tiny_plain.json").write_text(json.dumps(d))

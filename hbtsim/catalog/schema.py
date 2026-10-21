@@ -205,8 +205,8 @@ STAR_FIELDS = (Field("label", STR, required=True), Field("mass_msun", NUM, requi
 STATION_FIELDS = (Field("name", STR, required=True), Field("east_m", NUM, required=True),
                   Field("north_m", NUM, required=True), Field("up_m", NUM),
                   Field("telescope", REF, required=True), Field("detector", REF, required=True))
-GENERATOR_FIELDS = (Field("type", STR, required=True, choices=("equilateral", "pair")),
-                    Field("side_m", NUM, lo=0), Field("baseline_m", NUM, lo=0),
+GENERATOR_FIELDS = (Field("type", STR, required=True, choices=("equilateral", "pair", "line")),
+                    Field("side_m", NUM, lo=0), Field("baseline_m", NUM, lo=0), Field("spacings_m", LIST),
                     Field("pa_deg", NUM), Field("min_spacing_m", NUM, lo=0),
                     Field("station_names", LIST), Field("telescope", REF, required=True),
                     Field("detector", REF, required=True),
@@ -318,7 +318,7 @@ def check_kind(where: str, kind: str, d: dict) -> None:
         else:
             g = d["generator"]
             check_fields(f"{where}: generator", g, GENERATOR_FIELDS)
-            need = "side_m" if g["type"] == "equilateral" else "baseline_m"
+            need = {"equilateral": "side_m", "pair": "baseline_m", "line": "spacings_m"}[g["type"]]
             if need not in g:
                 raise SchemaError(f"{where}: generator type {g['type']!r} needs '{need}'")
     elif kind == "target":

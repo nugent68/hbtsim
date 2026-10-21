@@ -232,6 +232,24 @@ def equilateral_array(side_m: float, telescope: Telescope, detector: Detector, *
     return Array(stations, site=site)
 
 
+def line_array(spacings_m, telescope: Telescope, detector: Detector, *,
+               site: Site | None = None, pa_deg: float = 0.0,
+               names: tuple = ("T1", "T2", "T3"), min_spacing_m: float | None = None) -> Array:
+    """Identical telescopes on a line at position angle pa_deg (E of N): the
+    first at the origin, the next ones at the cumulative spacings (so three
+    trucks at spacings (a, b) give the baselines a, b and a + b)."""
+    sp = [float(x) for x in spacings_m]
+    if len(sp) != len(names) - 1:
+        raise ValueError(f"a line of {len(names)} stations needs {len(names) - 1} spacings, not {len(sp)}")
+    if min_spacing_m is not None and min(sp) < min_spacing_m:
+        raise ValueError(f"spacing {min(sp)} m is below the {min_spacing_m} m minimum "
+                         f"spacing of two {telescope.diameter_m:g} m telescopes")
+    pa = np.radians(pa_deg)
+    pos = np.concatenate([[0.0], np.cumsum(sp)])
+    stations = tuple(Station(n, x * np.sin(pa), x * np.cos(pa), telescope, detector) for n, x in zip(names, pos))
+    return Array(stations, site=site)
+
+
 def equilateral_triangle(side_m: float, telescope: Telescope,
                          detector: Detector) -> Triangle:
     """Hypothetical compact comparison array: three identical telescopes
