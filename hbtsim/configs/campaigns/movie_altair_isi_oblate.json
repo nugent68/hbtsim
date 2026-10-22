@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_altair_isi_oblate",
+  "runner": "nightmovie",
+  "night": {
+    "block_minutes": 5.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "outputs": {
+    "figures": true
+  },
+  "label": "Movie: Altair's oblateness with the three ISI trucks in a triangle at 650 nm, two nights (the first intensity-interferometric stellar shape)",
+  "target": "altair",
+  "instrument": {
+    "array": "isi_triangle",
+    "array_params": {
+      "side_m": 30.0
+    }
+  },
+  "backends": [
+    "isi_pdm_650"
+  ],
+  "options": {
+    "oblateness": true,
+    "schedule": [
+      {
+        "side_m": 30.0
+      },
+      {
+        "side_m": 30.0,
+        "pa_deg": 30.0
+      }
+    ],
+    "detection_sigma": 3.0,
+    "seed": 7,
+    "display_bin_blocks": 6,
+    "fps": 12,
+    "dpi": 110
+  },
+  "notes": [
+    "Altair is 24 % oblate (Monnier et al. 2007: 3.67 x 2.96 mas, equator at PA 28 deg). The equilateral triangle gives three position angles 60 deg apart every block; the second night is rotated by 30 deg so six angles are sampled. The Fisher matrix on (theta_major, q) with the orientation held fixed gives sigma(q) per night.",
+    "Expected: ~22 sigma fringe detection per night, sigma(q) 0.07 after one night and ~0.05 after two (q - 1 = 0.24 at ~5 sigma). Gravity darkening is not modelled."
+  ]
+}

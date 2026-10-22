@@ -145,6 +145,8 @@ def test_fringe_drift_and_loss():
 
 
 def test_vlt_60min_block_flagged_10min_not(spica, algol, vlt_ut):
+    from dataclasses import replace
+    spica = replace(spica, eccentricity=0.0, arg_periastron_deg=0.0)   # the circular orbit this drift check was written for
     spec = Spectrograph(lambda_min_nm=400.0, lambda_max_nm=900.0, n_channels=6)
     with pytest.warns(UserWarning, match="drift"):
         with warnings.catch_warnings():

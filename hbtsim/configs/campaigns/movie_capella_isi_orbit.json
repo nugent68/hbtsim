@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_capella_isi_orbit",
+  "runner": "nightmovie",
+  "night": {
+    "block_minutes": 10.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "outputs": {
+    "figures": true
+  },
+  "label": "Movie: Capella's orbit with the ISI line at 900 nm, seven consecutive nights (the first intensity-interferometric binary orbit since Spica 1971)",
+  "target": "capella",
+  "instrument": {
+    "array": "isi_line"
+  },
+  "backends": [
+    "isi_pdm_900"
+  ],
+  "options": {
+    "schedule": [
+      {
+        "spacings_m": [
+          5.0,
+          7.0
+        ],
+        "nights": 7
+      }
+    ],
+    "pupils": true,
+    "phase0": 0.0,
+    "night_step_days": 1.0,
+    "third_light_fraction": 0.0,
+    "fit_scale_range": [
+      0.97,
+      1.03
+    ],
+    "fit_scale_step": 0.001,
+    "fit_node_step_deg": 0.25,
+    "fit_step_mas": 0.1,
+    "display_bin_blocks": 3,
+    "reference_distances": [
+      {
+        "label": "Hipparcos (van Leeuwen 2007)",
+        "pc": 13.12,
+        "lo_pc": 13.04,
+        "hi_pc": 13.2
+      },
+      {
+        "label": "orbital parallax (Torres et al. 2015)",
+        "pc": 13.159
+      }
+    ],
+    "seed": 7,
+    "fps": 12,
+    "dpi": 110
+  },
+  "notes": [
+    "Baselines 5, 7 and 12 m: Capella's fringe period lambda/rho = 3.3 m at 900 nm is twice the 1.65 m pupils, so the pupil-averaged visibility (options.pupils) is the model; the 8.5 and 6.2 mas giants are resolved beyond ~25 m, so the line stays short.",
+    "Seven nights move the pair 24 deg around the 104 d orbit. Expected: 50-70 sigma fringes per night, sigma(a)/a ~0.2 % and sigma(node) ~0.1 deg with pupil smearing -- an independent check of Torres et al. 2015 (0.04 %), not an improvement."
+  ]
+}

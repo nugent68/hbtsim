@@ -16,6 +16,9 @@ options:
   schedule                      the nights of run_rotation: backend names, baselines in metres or dicts
                                 {backend, baseline_m, pa_deg, nights} (a generator array rebuilt per night)
   yscale                        "linear" (default) or "log" for the visibility panel of run_rotation
+  oblateness                    true: the target's `ellipse` against the equal-area disk (run_ellipse) on
+                                any array, with `schedule` entries {backend, side_m, spacings_m, pa_deg,
+                                nights} rebuilding the array per night; sigma(q) accumulates over the nights
   nights                        optional: a second act accumulates this many nights (each a new
                                 noise realization of the same track): the binned points average
                                 down, the g2 bump rises out of the matched-filter noise, and the
@@ -25,8 +28,11 @@ options:
                                 breathes along the night, and a second act folds
                                 fold_nights nights on pulsation phase to show the
                                 diameter curve emerging (beta Cep).
-A binary target switches to hbtsim.runners.nightmovie_binary (nights through
-the orbit: fringes, fitted separations, the angular semi-major axis).
+A target with a `chromatic_diameter` table is drawn with theta x factor(lambda)
+per filter, and run_rotation fits the diameter per wavelength and reports
+their ratio.  A binary target switches to hbtsim.runners.nightmovie_binary
+(nights through the orbit: fringes, fitted separations, the angular semi-major
+axis).
 Outputs <name>.mp4 (frames as PNG when ffmpeg is missing or opts.figures is off),
 and results.json with the per-block numbers.
 """
@@ -88,19 +94,20 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
     array = campaign.array
     if array is None or len(array.stations) < 2:
         raise SystemExit("runner nightmovie needs an array (instrument.array)")
-    if hasattr(target, "theta_ld_mas") and (len(campaign.backends) > 1 or campaign.option("options.schedule")):
-        return run_rotation(campaign, cat, opts, out_dir)        # a different filter and/or array each night (any pairs)
-    if len(array.stations) != 2:
-        raise SystemExit("runner nightmovie needs a two-station array for the single-night and binary modes")
+    single = hasattr(target, "theta_ld_mas")
+    if single and campaign.option("options.oblateness", False):
+        if getattr(target, "ellipse", None) is None:
+            raise SystemExit("options.oblateness needs a target with an `ellipse`")
+        return run_ellipse(campaign, cat, opts, out_dir)         # any array, any schedule
     if hasattr(target, "period_days"):                          # a binary: nights through the orbit
         from hbtsim.runners.nightmovie_binary import run_binary
         return run_binary(campaign, cat, opts, out_dir)
-    if not hasattr(target, "theta_ld_mas"):
+    if single and (len(campaign.backends) > 1 or campaign.option("options.schedule")):
+        return run_rotation(campaign, cat, opts, out_dir)        # a different filter and/or array each night (any pairs)
+    if not single:
         raise SystemExit("runner nightmovie needs a single-star or binary target")
-    if campaign.option("options.oblateness", False):
-        if getattr(target, "ellipse", None) is None:
-            raise SystemExit("options.oblateness needs a target with an `ellipse`")
-        return run_ellipse(campaign, cat, opts, out_dir)
+    if len(array.stations) != 2:
+        raise SystemExit("runner nightmovie needs a two-station array for the single-night mode")
     if len(campaign.backends) != 1:
         raise SystemExit("runner nightmovie takes one backend (one filter, one detector), or several to rotate")
     b = campaign.backends[0]
@@ -115,6 +122,8 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
     alts = list(opt("options.theta_alternatives_pct", [-5.0, 5.0]))
     puls = opt("options.pulsation")
     tgt = prepare_single(target, spec)
+    if tgt.theta_factor(lam) != 1.0:                            # a wavelength-dependent (TiO-band) diameter
+        tgt = replace(tgt, theta_ld_mas=tgt.theta_ld_mas * tgt.theta_factor(lam))
     theta0 = float(tgt.theta_ld_mas)
     pupils = (t1.diameter_m, t2.diameter_m)
 
@@ -466,6 +475,9 @@ def _night_model(target, backend, arr, block_minutes, min_alt, du=0.05):
     alt = np.degrees(np.arcsin(np.sin(lat) * np.sin(dec) + np.cos(lat) * np.cos(dec) * np.cos(np.radians(mids * 15.0))))
     lam, w = float(spec.channel_centers_nm[0]), float(spec.channel_widths_nm[0])
     tgt = prepare_single(target, spec)
+    fac = tgt.theta_factor(lam)
+    if fac != 1.0:                                              # the drawn diameter at this wavelength
+        tgt = replace(tgt, theta_ld_mas=tgt.theta_ld_mas * fac)
     theta0 = float(tgt.theta_ld_mas)
     dth = 0.01 * theta0
     t_up, t_dn = with_ld_offset(tgt, du), with_ld_offset(tgt, -du)
@@ -498,7 +510,7 @@ def _night_model(target, backend, arr, block_minutes, min_alt, du=0.05):
                 pair_names=names, ground_baselines_m=ground, ground_baseline_m=max(ground),
                 ground_pa_deg=float(np.degrees(np.arctan2(pairs[0][2][0], pairs[0][2][1])) % 360.0),
                 u0=float(tgt.star.ld_coeff(lam)) if tgt.star.ld_profile is None else None,
-                stations=tuple(st.name for st in arr.stations))
+                theta_factor=fac, stations=tuple(st.name for st in arr.stations))
 
 
 def run_rotation(campaign, cat, opts, out_dir: Path) -> dict:
@@ -569,6 +581,27 @@ def run_rotation(campaign, cat, opts, out_dir: Path) -> dict:
         else:
             sig_joint.append(float("inf")); sig_u.append(float("inf"))
         det_sig.append(np.sqrt(snr2_f.copy()))
+    # the diameter per wavelength (a chromatic target draws a different disk per filter)
+    by_lam = {}
+    for ci in sched:
+        q = per[ci]
+        e = by_lam.setdefault(q["lam"], {"theta_mas": q["theta0"], "fisher": 0.0, "nights": 0, "theta_factor": q["theta_factor"]})
+        e["fisher"] += float(q["fisher"].sum()); e["nights"] += 1
+    theta_by_wavelength = {lam_: {"theta_mas": e["theta_mas"], "theta_factor": e["theta_factor"], "nights": e["nights"],
+                                  "sigma_theta_frac": float(1.0 / np.sqrt(e["fisher"]) / e["theta_mas"]) if e["fisher"] > 0 else None}
+                           for lam_, e in by_lam.items()}
+    chromatic = None
+    if len(by_lam) >= 2:
+        l_lo, l_hi = min(by_lam), max(by_lam)
+        a, b2 = theta_by_wavelength[l_lo], theta_by_wavelength[l_hi]
+        if a["sigma_theta_frac"] is not None and b2["sigma_theta_frac"] is not None:
+            ratio = a["theta_mas"] / b2["theta_mas"]
+            s_r = ratio * np.sqrt(a["sigma_theta_frac"] ** 2 + b2["sigma_theta_frac"] ** 2)
+            chromatic = {"wavelengths_nm": [l_lo, l_hi], "diameter_ratio": float(ratio), "sigma_ratio": float(s_r),
+                         "ratio_significance": float((ratio - 1.0) / s_r) if s_r > 0 else None}
+            print(f"  diameters per wavelength: " + ", ".join(f"{lam_:.0f} nm {e['theta_mas']:.3f} mas +/- {100 * e['sigma_theta_frac']:.2f} % ({e['nights']} nights)"
+                                                              for lam_, e in sorted(theta_by_wavelength.items()))
+                  + f"; ratio theta({l_lo:.0f})/theta({l_hi:.0f}) = {ratio:.4f} +/- {s_r:.4f} ({chromatic['ratio_significance']:.1f} sigma from 1)")
     best = int(np.argmax([q["fisher"].sum() for q in per]))
     sig_best = 1.0 / np.sqrt(n_nights * per[best]["fisher"].sum())
     counts = {}
@@ -595,18 +628,21 @@ def run_rotation(campaign, cat, opts, out_dir: Path) -> dict:
            "sigma_theta_frac_best_single": sig_best / theta0,
            "best_single_filter": per[best]["label"], "detection_sigma_per_filter": det_sig[-1].tolist(),
            "one_night_sigma_theta_frac": [1 / np.sqrt(q["fisher"].sum()) / theta0 for q in per],
-           "baseline_m": per[0]["blen"][0].tolist(), "theta_ld_mas": theta0}
+           "baseline_m": per[0]["blen"][0].tolist(), "theta_ld_mas": theta0,
+           "theta_by_wavelength": {f"{k:.1f}": v for k, v in theta_by_wavelength.items()}, "chromatic": chromatic}
     if opts.figures:
         path = out_dir / f"{campaign.name}.mp4"
+        ratio_txt = (f"θ({chromatic['wavelengths_nm'][0]:.0f})/θ({chromatic['wavelengths_nm'][1]:.0f}) = "
+                     f"{chromatic['diameter_ratio']:.3f} ± {chromatic['sigma_ratio']:.3f}" if chromatic else "")
         _render_rotation(path, target, per, sched, meas, sig_theta, sig_joint, sig_u, theta_est, det_sig,
                          lam0, alts, nbin_show, fps=int(opt("options.fps", 12)), dpi=int(opt("options.dpi", 110)),
-                         yscale=yscale, multi_baseline=multi_baseline)
+                         yscale=yscale, multi_baseline=multi_baseline, ratio_txt=ratio_txt)
         out["movie"] = str(path)
     return out
 
 
 def _render_rotation(path, target, per, sched, meas, sig_theta, sig_joint, sig_u, theta_est, det_sig,
-                     lam0, alts, nbin_show, fps=12, dpi=110, yscale="linear", multi_baseline=False):
+                     lam0, alts, nbin_show, fps=12, dpi=110, yscale="linear", multi_baseline=False, ratio_txt=""):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -649,6 +685,10 @@ def _render_rotation(path, target, per, sched, meas, sig_theta, sig_joint, sig_u
     tgt0 = per[0]["tgt"]
     curve0 = np.array([float(single_star_vis2(tgt0, float(bb), lam0, pupils)[0, 0]) for bb in B_grid])
     ax_v.plot(B_grid, curve0, color="k", lw=1.6, label=f"model θ at {lam0:.0f} nm")
+    for q, c in zip(per, colors):                                # a chromatic disk: its own curve per wavelength
+        if q["lam"] != lam0 and q["theta_factor"] != per[0]["theta_factor"]:
+            ax_v.plot(B_grid, [float(single_star_vis2(q["tgt"], float(bb * q["lam"] / lam0), q["lam"], pupils)[0, 0]) for bb in B_grid],
+                      color=c, lw=1.2, ls="-.", label=f"model θ at {q['lam']:.0f} nm")
     for p in alts:
         ax_v.plot(B_grid, np.interp(B_grid * (1 + p / 100.0), B_grid, curve0), color="0.6", lw=0.9, ls="--", label=f"θ {p:+g} %")
     band_lo, = ax_v.plot([], [], color="tab:blue", lw=0.9, alpha=0.7)
@@ -736,7 +776,7 @@ def _render_rotation(path, target, per, sched, meas, sig_theta, sig_joint, sig_u
             joint = f", {100 * sig_joint[j] / theta0:.1f} % with u" if np.isfinite(sig_joint[j]) else ""
             v_txt.set_text(f"{j + 1} night(s)\nθ = {th:.4f} ± {sg:.4f} mas\n({100 * sg / theta0:.1f} %{joint})")
             d_pt.set_data([j + 1], [100 * sg / theta0])
-            su = f"; σ(u) = {sig_u[j]:.3f}" if np.isfinite(sig_u[j]) else ""
+            su = (f"; σ(u) = {sig_u[j]:.3f}" if np.isfinite(sig_u[j]) else "") + (f"\n{ratio_txt} (all nights)" if ratio_txt and j == len(sched) - 1 else "")
             d_txt.set_text("detection: " + ", ".join(f"{qq['ground_baseline_m']:.0f} m {d:.1f}σ" if multi_baseline else
                                                       f"{qq['lam']:.0f} nm {d:.1f}σ" for qq, d in zip(per, det_sig[j])) + su)
         else:
@@ -772,6 +812,54 @@ def _render_rotation(path, target, per, sched, meas, sig_theta, sig_joint, sig_u
 # ---------------------------------------------------------------------------
 # Oblateness: an elliptical disk along the track, nights accumulating
 # ---------------------------------------------------------------------------
+def _ellipse_model(target, backend, arr, block_minutes, min_alt):
+    """One night's configuration of the oblateness mode: every pair of the
+    array along its uv track, the oblate and the equal-area circular |V|^2
+    per pair and block, the per-pair sigma and the Fisher matrix on
+    (theta_major, q) with the orientation held fixed."""
+    from hbtsim.iact import pair_track, single_vis2_fn
+    from hbtsim.single import ellipse_vis
+    spec, det, pol = backend.spectrograph, backend.detector, backend.polarization_mode
+    lam, w = float(spec.channel_centers_nm[0]), float(spec.channel_widths_nm[0])
+    tgt = prepare_single(target, spec)
+    star = tgt.star
+    ell = target.ellipse
+    th_maj, q, pa = float(ell.theta_major_mas), float(ell.axis_ratio), float(ell.pa_deg)
+
+    def trk(thm, qq):
+        fn = single_vis2_fn(lambda bb, l: ellipse_vis(bb, l, star, thm, qq, pa)[0], True)
+        return pair_track(arr, target.dec_deg, lam, fn, block_minutes=block_minutes, min_alt_deg=min_alt)
+    t_ell = trk(th_maj, q)
+    if t_ell.hour_angle_h.size == 0:
+        raise SystemExit("the target never rises above the altitude limit from this site")
+    v2_ell = t_ell.vis2                                         # (n_pairs, n_blocks)
+    th_eq = th_maj / np.sqrt(q)                                 # equal-area circular disk
+    v2_circ = trk(th_eq, 1.0).vis2
+    d_th, d_q = 0.01 * th_maj, 0.01
+    g_th = (trk(th_maj + d_th, q).vis2 - trk(th_maj - d_th, q).vis2) / (2 * d_th)
+    g_q = (trk(th_maj, q + d_q).vis2 - trk(th_maj, q - d_q).vis2) / (2 * d_q)
+    pairs = arr.pairs()
+    sig, buds, pup = [], [], []
+    for i, j, _ in pairs:
+        t1, t2 = arr.stations[i].telescope, arr.stations[j].telescope
+        buds.append(_budget(tgt, lam, w, t_ell.block_s, t1, t2, det, pol, spec.throughput))
+        sig.append(buds[-1]["sigma_v2"]); pup.append((t1.diameter_m, t2.diameter_m))
+    sig = np.array(sig)
+    F = np.array([[np.sum(g_th * g_th / sig[:, None] ** 2), np.sum(g_th * g_q / sig[:, None] ** 2)],
+                  [np.sum(g_q * g_th / sig[:, None] ** 2), np.sum(g_q * g_q / sig[:, None] ** 2)]])
+    mids = t_ell.hour_angle_h
+    lat, dec = np.radians(arr.site.latitude_deg), np.radians(target.dec_deg)
+    alt = np.degrees(np.arcsin(np.sin(lat) * np.sin(dec) + np.cos(lat) * np.cos(dec) * np.cos(np.radians(mids * 15.0))))
+    ground = [float(np.hypot(pr[2][0], pr[2][1])) for pr in pairs]
+    return dict(label=backend.name, lam=lam, w=w, tgt=tgt, star=star, mids=mids, block_s=t_ell.block_s, alt=alt,
+                bvec=t_ell.baseline_vec_m, blen=t_ell.baseline_len_m, pa_track=t_ell.position_angle_deg % 180.0,
+                v2_ell=v2_ell, v2_circ=v2_circ, sigma=sig, buds=buds, bud=buds[0], F=F,
+                snr2=float(np.sum((v2_ell / sig[:, None]) ** 2)), n_pairs=len(pairs), pupils=pup,
+                pair_names=[f"{arr.stations[i].name}-{arr.stations[j].name}" for i, j, _ in pairs],
+                ground_baselines_m=ground, ground_pa_deg=float(np.degrees(np.arctan2(pairs[0][2][0], pairs[0][2][1])) % 360.0),
+                stations=tuple(st.name for st in arr.stations), th_maj=th_maj, q=q, pa=pa, th_eq=th_eq)
+
+
 def run_ellipse(campaign, cat, opts, out_dir: Path) -> dict:
     """The target's `ellipse` (axis ratio q, major axis at pa_deg) against the
     equal-area circular disk.  Along the night the projected baseline rotates
@@ -779,119 +867,144 @@ def run_ellipse(campaign, cat, opts, out_dir: Path) -> dict:
     sqrt(b_maj^2 + (b_min/q)^2) differs from |B| by up to (q - 1): the
     measurements deviate from the circular curve in a PA-dependent way.  The
     Fisher matrix on (theta_major, q) with the orientation held fixed gives
-    sigma(q) per night and the nights to a 3 sigma detection of q - 1."""
-    from hbtsim.iact import pair_track, single_vis2_fn
-    from hbtsim.single import ellipse_vis
+    sigma(q) per night and the nights to a 3 sigma detection of q - 1.
+    Any array (every pair counts) and, with `options.schedule`, a different
+    configuration each night (e.g. a triangle rotated by `pa_deg` on the
+    second night to sample more position angles)."""
+    from hbtsim.runners.schedule import array_for, normalize_schedule
     target = campaign.target
-    ell = target.ellipse
-    array = campaign.array
-    b = campaign.backends[0]
-    spec, det, pol = b.spectrograph, b.detector, b.polarization_mode
-    arr = Array(tuple(replace(s, detector=det) for s in array.stations), array.site)
-    t1, t2 = arr.stations[0].telescope, arr.stations[1].telescope
+    backends = list(campaign.backends)
     opt = campaign.option
     block_minutes = float(opt("night.block_minutes", 5.0)); min_alt = float(opt("night.min_alt_deg", 30.0))
     n_nights = int(opt("options.nights", 40)); n_sigma = float(opt("options.detection_sigma", 3.0))
     rng = np.random.default_rng(int(opt("options.seed", 7)))
     nbin_show = max(1, int(opt("options.display_bin_blocks", 6)))
-    lam, w = float(spec.channel_centers_nm[0]), float(spec.channel_widths_nm[0])
-    tgt = prepare_single(target, spec)
-    star = tgt.star
-    th_maj, q, pa = float(ell.theta_major_mas), float(ell.axis_ratio), float(ell.pa_deg)
-    mids, block_s, bvec, alt = _night(arr, target.dec_deg, block_minutes, min_alt)
-    blen = np.hypot(bvec[:, 0], bvec[:, 1])
-    pa_track = np.degrees(np.arctan2(bvec[:, 0], bvec[:, 1])) % 180.0
-    pupils = True
-
-    def v2_track(thm, qq):
-        fn = single_vis2_fn(lambda bb, l: ellipse_vis(bb, l, star, thm, qq, pa)[0], pupils)
-        return pair_track(arr, target.dec_deg, lam, fn, block_minutes=block_minutes, min_alt_deg=min_alt).vis2[0]
-    v2_ell = v2_track(th_maj, q)
-    th_eq = th_maj / np.sqrt(q)                                 # equal-area circular disk
-    v2_circ = v2_track(th_eq, 1.0)
-    bud = _budget(tgt, lam, w, block_s, t1, t2, det, pol, spec.throughput)
-    sig = bud["sigma_v2"]
-    # Fisher matrix on (theta_major, q), PA fixed
-    d_th = 0.01 * th_maj; d_q = 0.01
-    g_th = (v2_track(th_maj + d_th, q) - v2_track(th_maj - d_th, q)) / (2 * d_th)
-    g_q = (v2_track(th_maj, q + d_q) - v2_track(th_maj, q - d_q)) / (2 * d_q)
-    F = np.array([[np.sum(g_th * g_th), np.sum(g_th * g_q)], [np.sum(g_q * g_th), np.sum(g_q * g_q)]]) / sig**2
-    cov = np.linalg.inv(F)
-    sig_q_night, sig_th_night = np.sqrt(cov[1, 1]), np.sqrt(cov[0, 0])
-    sig_q_known = 1.0 / np.sqrt(F[1, 1])                        # if theta were known
+    sched_opt = opt("options.schedule")
+    entries = (normalize_schedule(sched_opt, campaign, backends) if sched_opt
+               else [{"backend_index": 0, "nights": n_nights}])
+    nights = [e for e in entries for _ in range(int(e.get("nights", 1)))]
+    n_nights = len(nights)
+    keys, per, sched = [], [], []
+    for e in nights:
+        key = (e["backend_index"], e.get("baseline_m"), e.get("pa_deg"), e.get("side_m"),
+               tuple(e["spacings_m"]) if "spacings_m" in e else None)
+        if key not in keys:
+            b = backends[e["backend_index"]]
+            arr = array_for(cat, campaign, e, detector=b.detector) if sched_opt else \
+                Array(tuple(replace(s, detector=b.detector) for s in campaign.array.stations), campaign.array.site)
+            if len(arr.stations) < 2:
+                raise SystemExit("runner nightmovie needs an array of at least two stations")
+            keys.append(key)
+            per.append(_ellipse_model(target, b, arr, block_minutes, min_alt))
+        sched.append(keys.index(key))
+    first = per[0]
+    th_maj, q, pa, th_eq = first["th_maj"], first["q"], first["pa"], first["th_eq"]
+    # the cumulative Fisher information over the nights
+    F_tot = np.zeros((2, 2)); sig_q, sig_th = [], []
+    for ci in sched:
+        F_tot = F_tot + per[ci]["F"]
+        cov = np.linalg.inv(F_tot)
+        sig_q.append(float(np.sqrt(cov[1, 1]))); sig_th.append(float(np.sqrt(cov[0, 0])))
+    sig_q, sig_th = np.array(sig_q), np.array(sig_th)
+    cov1 = np.linalg.inv(first["F"])
+    sig_q_night, sig_th_night = float(np.sqrt(cov1[1, 1])), float(np.sqrt(cov1[0, 0]))
+    sig_q_known = 1.0 / np.sqrt(first["F"][1, 1])               # if theta were known
     nights_detect = (n_sigma * sig_q_night / (q - 1.0)) ** 2
+    pa_all = np.concatenate([per[ci]["pa_track"].ravel() for ci in set(sched)])
+    pa_cov = 5.0 * np.unique((pa_all // 5.0).astype(int)).size   # position angles sampled, in 5-degree bins
     print(f"=== {target.name}: ellipse theta_major {th_maj:.4f} mas, axis ratio {q:.3f} at PA {pa:.0f} deg "
-          f"(equal-area theta {th_eq:.4f}), {b.name} ===")
-    print(f"  {mids.size} blocks of {block_minutes:g} min, B {blen.min():.0f}-{blen.max():.0f} m, PA of the baseline "
-          f"{pa_track.min():.0f}-{pa_track.max():.0f} deg; |V|^2 ellipse {v2_ell.min():.2g}-{v2_ell.max():.2g}, "
-          f"max |ellipse - circle| {np.abs(v2_ell - v2_circ).max():.3g} (sigma per block {sig:.3g})")
-    print(f"  one night: sigma(q) = {sig_q_night:.4f} (theta free; {sig_q_known:.4f} with theta known), "
-          f"sigma(theta_major)/theta = {sig_th_night / th_maj:.3f}; correlation {cov[0, 1] / (sig_q_night * sig_th_night):+.2f}")
-    print(f"  q - 1 = {q - 1:.3f} at {n_sigma:g} sigma after {nights_detect:.0f} nights "
-          f"({n_nights} simulated: {(q - 1) / (sig_q_night / np.sqrt(n_nights)):.1f} sigma)")
-    meas = [v2_ell + rng.normal(0.0, sig, size=v2_ell.size) for _ in range(n_nights)]
-    sig_q = sig_q_night / np.sqrt(np.arange(1, n_nights + 1))
+          f"(equal-area theta {th_eq:.4f}); {len(per)} configuration(s) over {n_nights} nights on "
+          f"{'+'.join(first['stations'])} ({first['n_pairs']} pair(s)) ===")
+    for ci, m in enumerate(per):
+        c1 = np.linalg.inv(m["F"])
+        print(f"  {m['label'][:40]:40s} ground B {', '.join(f'{x:.0f}' for x in m['ground_baselines_m'])} m PA {m['ground_pa_deg']:.0f}: "
+              f"{m['mids'].size} blocks of {block_minutes:g} min, B {m['blen'].min():.0f}-{m['blen'].max():.0f} m, baseline PA "
+              f"{m['pa_track'].min():.0f}-{m['pa_track'].max():.0f} deg; |V|^2 {m['v2_ell'].min():.2g}-{m['v2_ell'].max():.2g}, "
+              f"max |ellipse - circle| {np.abs(m['v2_ell'] - m['v2_circ']).max():.3g} (sigma per block {m['sigma'][0]:.3g}); "
+              f"one night: sigma(q) {np.sqrt(c1[1, 1]):.4f}, sigma(theta_major)/theta {np.sqrt(c1[0, 0]) / th_maj:.3f}, "
+              f"detection {np.sqrt(m['snr2']):.1f} sigma")
+    print(f"  first configuration: sigma(q) = {sig_q_night:.4f} (theta free; {sig_q_known:.4f} with theta known); "
+          f"q - 1 = {q - 1:.3f} at {n_sigma:g} sigma after {nights_detect:.0f} such nights")
+    print(f"  the {n_nights} scheduled nights: sigma(q) = {sig_q[-1]:.4f}, sigma(theta_major)/theta = {sig_th[-1] / th_maj:.4f}, "
+          f"q - 1 at {(q - 1) / sig_q[-1]:.1f} sigma; position angles covered {pa_cov:.0f} deg of 180")
+    meas = [(ci, per[ci]["v2_ell"] + rng.normal(0.0, 1.0, size=per[ci]["v2_ell"].shape) * per[ci]["sigma"][:, None]) for ci in sched]
     q_est = [float(q + rng.normal(0.0, s)) for s in sig_q]
-    out = {"target": target.name, "backend": b.name, "theta_major_mas": th_maj, "axis_ratio": q, "pa_deg": pa,
-           "theta_equal_area_mas": th_eq, "n_blocks": int(mids.size), "baseline_m": blen.tolist(),
-           "baseline_pa_deg": pa_track.tolist(), "vis2_ellipse": v2_ell.tolist(), "vis2_circle": v2_circ.tolist(),
-           "sigma_vis2": sig, "sigma_q_night": float(sig_q_night), "sigma_q_night_theta_known": float(sig_q_known),
-           "sigma_theta_major_frac_night": float(sig_th_night / th_maj), "nights_to_detect": float(nights_detect),
-           "n_nights": n_nights, "sigma_q": sig_q.tolist()}
+    out = {"target": target.name, "backend": backends[0].name, "theta_major_mas": th_maj, "axis_ratio": q, "pa_deg": pa,
+           "theta_equal_area_mas": th_eq, "n_blocks": int(first["mids"].size), "baseline_m": first["blen"][0].tolist(),
+           "baseline_pa_deg": first["pa_track"][0].tolist(), "vis2_ellipse": first["v2_ell"][0].tolist(),
+           "vis2_circle": first["v2_circ"][0].tolist(), "sigma_vis2": float(first["sigma"][0]),
+           "sigma_q_night": sig_q_night, "sigma_q_night_theta_known": float(sig_q_known),
+           "sigma_theta_major_frac_night": sig_th_night / th_maj, "nights_to_detect": float(nights_detect),
+           "n_nights": n_nights, "sigma_q": sig_q.tolist(), "sigma_theta_major_frac": (sig_th / th_maj).tolist(),
+           "significance": float((q - 1) / sig_q[-1]), "n_pairs": first["n_pairs"], "pa_coverage_deg": float(pa_cov),
+           "schedule": sched,
+           "configs": [{"backend": m["label"], "wavelength_nm": m["lam"], "ground_baselines_m": m["ground_baselines_m"],
+                        "ground_pa_deg": m["ground_pa_deg"], "pair_names": m["pair_names"], "n_blocks": int(m["mids"].size),
+                        "sigma_vis2": m["sigma"].tolist(), "sigma_q_night": float(np.sqrt(np.linalg.inv(m["F"])[1, 1])),
+                        "detection_sigma": float(np.sqrt(m["snr2"]))} for m in per]}
     if opts.figures:
         path = out_dir / f"{campaign.name}.mp4"
-        _render_ellipse(path, target, b, arr, mids, alt, bvec, blen, pa_track, v2_ell, v2_circ, meas, sig, th_maj, q, pa,
-                        th_eq, lam, sig_q, q_est, n_sigma, nbin_show, star, pupils,
+        _render_ellipse(path, target, per, sched, meas, sig_q, q_est, n_sigma, nbin_show,
                         fps=int(opt("options.fps", 12)), dpi=int(opt("options.dpi", 110)))
         out["movie"] = str(path)
     return out
 
 
-def _render_ellipse(path, target, backend, arr, mids, alt, bvec, blen, pa_track, v2_ell, v2_circ, meas, sig, th_maj, q,
-                    pa, th_eq, lam, sig_q, q_est, n_sigma, nbin_show, star, pupils, fps=12, dpi=110):
+def _render_ellipse(path, target, per, sched, meas, sig_q, q_est, n_sigma, nbin_show, fps=12, dpi=110):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.animation import FFMpegWriter
     from matplotlib.patches import Ellipse as MplEllipse
+    from hbtsim.single import single_star_vis2
 
-    n = mids.size; n_nights = len(meas)
+    first = per[0]
+    th_maj, q, pa, th_eq, lam0 = first["th_maj"], first["q"], first["pa"], first["th_eq"], first["lam"]
+    n_nights = len(meas)
+    labels = sorted({m["label"] for m in per})
     fig = plt.figure(figsize=(14, 5.2))
     gs = fig.add_gridspec(1, 3, width_ratios=[1.0, 1.6, 1.1], wspace=0.32, left=0.05, right=0.985, bottom=0.14, top=0.86)
     ax_uv, ax_v, ax_q = (fig.add_subplot(gs[0, k]) for k in range(3))
-    fig.suptitle(f"{target.name}: is it oblate?  axis ratio {q:.3f}, major axis at PA {pa:.0f}°, {backend.name}", fontsize=11)
+    fig.suptitle(f"{target.name}: is it oblate?  axis ratio {q:.3f}, major axis at PA {pa:.0f}°, "
+                 f"{'+'.join(first['stations'])}, {' / '.join(labels)}", fontsize=11)
 
-    lim = 1.15 * np.abs(bvec).max()
-    ax_uv.plot(bvec[:, 0], bvec[:, 1], color="0.8", lw=1); ax_uv.plot(-bvec[:, 0], -bvec[:, 1], color="0.8", lw=1)
-    # the star's outline (exaggerated x10 for the eye) at the origin, major axis at pa (east of north)
+    pair_colors = ["tab:blue", "tab:green", "tab:purple", "tab:brown", "tab:pink", "tab:gray"]
+    lim = 1.15 * max(np.abs(m["bvec"]).max() for m in per)
+    for m in per:
+        for pth in range(m["n_pairs"]):
+            bv = m["bvec"][pth]
+            ax_uv.plot(bv[:, 0], bv[:, 1], color="0.85", lw=1); ax_uv.plot(-bv[:, 0], -bv[:, 1], color="0.85", lw=1)
     q_show = 1.0 + 10.0 * (q - 1.0)                              # flattening exaggerated x10 for the eye
     ex = MplEllipse((0, 0), width=0.45 * lim / q_show, height=0.45 * lim, angle=-pa, fill=False, color="tab:orange", lw=1.5)
     ax_uv.add_patch(ex)
     ax_uv.text(0, -0.3 * lim, "star outline (flattening ×10)", ha="center", fontsize=7, color="tab:orange")
-    uv_pt, = ax_uv.plot([], [], "o", color="tab:blue", ms=7)
+    uv_pts = [ax_uv.plot([], [], "o", color=pair_colors[pth % len(pair_colors)], ms=7)[0] for pth in range(max(m["n_pairs"] for m in per))]
     ax_uv.set_xlim(-lim, lim); ax_uv.set_ylim(-lim, lim); ax_uv.set_aspect("equal")
     ax_uv.set_xlabel("u [m] (east)"); ax_uv.set_ylabel("v [m] (north)")
-    ax_uv.set_title("projected baseline sweeps the position angle", fontsize=9)
+    ax_uv.set_title("the projected baselines sweep the position angle", fontsize=9)
     uv_txt = ax_uv.text(0.03, 0.97, "", transform=ax_uv.transAxes, va="top", fontsize=9)
 
-    order = np.argsort(blen)
-    B_grid = np.linspace(0.6 * blen.min(), 1.1 * blen.max(), 300)
-    from hbtsim.single import single_star_vis2
+    b_eq = [m["blen"] * lam0 / m["lam"] for m in per]            # equivalent baseline at lambda0
+    bmin, bmax = min(b.min() for b in b_eq), max(b.max() for b in b_eq)
+    B_grid = np.linspace(0.6 * bmin, 1.1 * bmax, 300)
     tgt_c = replace(target, theta_ld_mas=th_eq / target.star.radius_scale)
-    curve_c = np.array([float(single_star_vis2(tgt_c, float(bb), lam, (arr.stations[0].telescope.diameter_m,
-                                                                      arr.stations[1].telescope.diameter_m))[0, 0]) for bb in B_grid])
+    curve_c = np.array([float(single_star_vis2(tgt_c, float(bb), lam0, first["pupils"][0])[0, 0]) for bb in B_grid])
     ax_v.plot(B_grid, curve_c, color="k", lw=1.5, label=f"circular disk, θ = {th_eq:.3f} mas")
-    ax_v.plot(blen[order], v2_ell[order], color="tab:orange", lw=1.5, label="oblate disk along this track")
+    # the oblate disk seen along its major and its minor axis: the two envelopes of the PA-dependent model
+    from hbtsim.single import ellipse_vis
+    for ang, ls, lbl in ((pa, "-", "oblate disk, baseline along the major axis (narrow)"),
+                         (pa + 90.0, "--", "oblate disk, baseline along the minor axis (wide)")):
+        bv = np.c_[B_grid * np.sin(np.radians(ang)), B_grid * np.cos(np.radians(ang))]
+        v2 = np.abs(np.asarray(ellipse_vis(bv, lam0, first["star"], th_maj, q, pa)[0])) ** 2
+        ax_v.plot(B_grid, v2.ravel(), color="tab:orange", lw=1.3, ls=ls, label=lbl)
     pts_sc = ax_v.scatter([], [], c=[], cmap="twilight", vmin=0, vmax=180, s=28, zorder=5)
     err_containers = []
-    sig_bin = sig / np.sqrt(nbin_show)
-    ax_v.set_xlabel("projected baseline [m]"); ax_v.set_ylabel(r"$|V|^2$")
-    ax_v.set_ylim(-1.5 * sig_bin, max(0.05, 1.25 * curve_c[B_grid >= 0.9 * blen.min()].max())); ax_v.set_xlim(B_grid[0], B_grid[-1])
+    sig_min = min(m["sigma"].min() for m in per) / np.sqrt(nbin_show)
+    ax_v.set_xlabel(f"projected baseline [m] (equivalent at {lam0:.0f} nm)"); ax_v.set_ylabel(r"$|V|^2$")
+    ax_v.set_ylim(-1.5 * sig_min, max(0.05, 1.25 * curve_c[B_grid >= 0.9 * bmin].max())); ax_v.set_xlim(B_grid[0], B_grid[-1])
     ax_v.legend(fontsize=8, loc="upper right")
     cb = fig.colorbar(pts_sc, ax=ax_v, pad=0.01, fraction=0.04); cb.set_label("baseline PA [deg]", fontsize=8)
     v_txt = ax_v.text(0.03, 0.97, "", transform=ax_v.transAxes, va="top", fontsize=9)
-    nb_full = n // nbin_show + (1 if n % nbin_show else 0)
-    bin_slices = [slice(i * nbin_show, min((i + 1) * nbin_show, n)) for i in range(nb_full)]
 
     nights_ax = np.arange(1, n_nights + 1)
     ax_q.plot(nights_ax, (q - 1) / sig_q, color="tab:blue", lw=1.5)
@@ -903,46 +1016,71 @@ def _render_ellipse(path, target, backend, arr, mids, alt, bvec, blen, pa_track,
     ax_q.legend(fontsize=8, loc="upper left")
     q_txt = ax_q.text(0.97, 0.05, "", transform=ax_q.transAxes, ha="right", va="bottom", fontsize=9)
 
+    def bins_of(n):
+        nb = n // nbin_show + (1 if n % nbin_show else 0)
+        return [slice(i * nbin_show, min((i + 1) * nbin_show, n)) for i in range(nb)]
+
     def draw(j, k):
-        uv_pt.set_data([bvec[k, 0]], [bvec[k, 1]])
-        uv_txt.set_text(f"night {j + 1}/{n_nights}\nH = {mids[k]:+.2f} h, alt {alt[k]:.0f}°\nB = {blen[k]:.0f} m at PA {pa_track[k]:.0f}°")
+        ci = sched[j]; m = per[ci]; n = m["mids"].size
+        for pth, pt in enumerate(uv_pts):
+            if pth < m["n_pairs"]:
+                pt.set_data([m["bvec"][pth, k, 0]], [m["bvec"][pth, k, 1]])
+            else:
+                pt.set_data([], [])
+        uv_txt.set_text(f"night {j + 1}/{n_nights}: {m['label'][:28]}\nH = {m['mids'][k]:+.2f} h, alt {m['alt'][k]:.0f}°\n"
+                        + "\n".join(f"{nm}: B {m['blen'][pth, k]:.0f} m at PA {m['pa_track'][pth, k]:.0f}°"
+                                    for pth, nm in enumerate(m["pair_names"])))
         for ec in err_containers:
             ec.remove()
         err_containers.clear()
-        kmax = k + 1
         xs, ys, es, cs = [], [], [], []
-        for sl in bin_slices:
-            if sl.start >= kmax:
-                break
-            sl2 = slice(sl.start, min(sl.stop, kmax))
-            m = np.mean([mm[sl2] for mm in meas[:j + 1]], axis=0) if j > 0 else meas[0][sl2]
-            xs.append(blen[sl2].mean()); ys.append(m.mean()); cs.append(pa_track[sl2].mean())
-            es.append(sig / np.sqrt((j + 1) * (sl2.stop - sl2.start)))
-        pts_sc.set_offsets(np.c_[xs, ys]); pts_sc.set_array(np.array(cs))
-        err_containers.append(ax_v.errorbar(xs, ys, yerr=es, fmt="none", ecolor="0.4", capsize=2, lw=0.8, zorder=4))
-        v_txt.set_text(f"{j + 1} night(s) averaged" + (f", block {k + 1}/{n}" if k < n - 1 else "")
+        for cc in sorted(set(sched[:j + 1])):                   # the nights so far, averaged per configuration
+            mm = per[cc]; nn = mm["mids"].size
+            js = [jj for jj in range(j + 1) if sched[jj] == cc]
+            for pth in range(mm["n_pairs"]):
+                for sl in bins_of(nn):
+                    vals = []
+                    for jj in js:
+                        stop = sl.stop if jj < j else min(sl.stop, k + 1)
+                        if stop > sl.start:
+                            vals.append(meas[jj][1][pth, sl.start:stop])
+                    if not vals:
+                        continue
+                    v = np.concatenate(vals)
+                    xs.append(b_eq[cc][pth][sl].mean()); ys.append(v.mean()); cs.append(mm["pa_track"][pth][sl].mean())
+                    es.append(mm["sigma"][pth] / np.sqrt(v.size))
+        pts_sc.set_offsets(np.c_[xs, ys] if xs else np.zeros((0, 2))); pts_sc.set_array(np.array(cs))
+        if xs:
+            err_containers.append(ax_v.errorbar(xs, ys, yerr=es, fmt="none", ecolor="0.4", capsize=2, lw=0.8, zorder=4))
+        v_txt.set_text(f"{j + 1} night(s)" + (f", block {k + 1}/{n}" if k < n - 1 else "")
                        + f"\nq = {q_est[j]:.4f} ± {sig_q[j]:.4f}")
         if k == n - 1:
             q_pt.set_data([j + 1], [(q - 1) / sig_q[j]])
             q_txt.set_text(f"after {j + 1} nights: {(q - 1) / sig_q[j]:.1f}σ")
 
     writer = FFMpegWriter(fps=fps, metadata={"title": f"hbtsim {target.name} oblateness"}) if shutil.which("ffmpeg") else None
-    step = max(1, n // 40)
+    # every night with a new configuration is swept block by block; a repeat of a configuration lands as one frame
+    def sweep_nights():
+        seen = set()
+        for j in range(n_nights):
+            n = per[sched[j]]["mids"].size
+            if sched[j] not in seen:
+                seen.add(sched[j])
+                step = max(1, n // 40)
+                yield j, list(range(0, n, step)) + [n - 1], True
+            else:
+                yield j, [n - 1], False
     if writer is None:
         frames_dir = path.with_suffix(""); frames_dir.mkdir(exist_ok=True); f = 0
-        for k in list(range(0, n, step)) + [n - 1]:
-            draw(0, k); fig.savefig(frames_dir / f"frame_{f:04d}.png", dpi=dpi); f += 1
-        for j in range(1, n_nights):
-            draw(j, n - 1); fig.savefig(frames_dir / f"frame_{f:04d}.png", dpi=dpi); f += 1
+        for j, ks, _ in sweep_nights():
+            for k in ks:
+                draw(j, k); fig.savefig(frames_dir / f"frame_{f:04d}.png", dpi=dpi); f += 1
         print(f"  ffmpeg not found: {f} PNG frames in {frames_dir}"); plt.close(fig); return
     with writer.saving(fig, str(path), dpi=dpi):
-        for k in list(range(0, n, step)) + [n - 1]:
-            draw(0, k); writer.grab_frame()
-        for _ in range(fps):
-            writer.grab_frame()
-        for j in range(1, n_nights):
-            draw(j, n - 1)
-            for _ in range(max(1, fps // 3)):
+        for j, ks, swept in sweep_nights():
+            for k in ks:
+                draw(j, k); writer.grab_frame()
+            for _ in range(fps if swept else max(1, fps // 3)):
                 writer.grab_frame()
         for _ in range(2 * fps):
             writer.grab_frame()

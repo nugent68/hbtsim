@@ -264,3 +264,101 @@ def test_nightmovie_schedule_numbers(tmp_path):
     res2 = run(cat, cat.load_campaign("tiny_fsched"), RunOptions(out_dir=tmp_path / "out", figures=False))
     assert res2["n_nights"] == 2 and res2["schedule"] == [0, 1] and len(set(res2["baselines_m_per_night"])) == 1
     assert res2["wavelengths_nm"][0] == pytest.approx(656.3, abs=0.1)
+
+
+def _tiny(tmp_path, base, name, options, **extra):
+    import json
+    from hbtsim.catalog import Catalog
+    cat0 = Catalog(env=False)
+    d = cat0.raw("campaign", base)
+    d.update(name=name, night={"block_minutes": 60.0, "min_alt_deg": 30.0}, **extra)
+    d["options"].update(options)
+    (tmp_path / "campaigns").mkdir(exist_ok=True)
+    (tmp_path / "campaigns" / f"{name}.json").write_text(json.dumps(d))
+    return Catalog(paths=[tmp_path], env=False)
+
+
+def test_nightmovie_ellipse_schedule_numbers(tmp_path):
+    import numpy as np
+    """The oblateness movie over a schedule (Altair on the ISI triangle,
+    rotated on the second night) without rendering: three pairs, the
+    position angles covered, sigma(q) accumulating; and the old
+    single-pair oblateness movie (delta Ori) unchanged: sigma(q) of n
+    identical nights is sigma_night / sqrt(n)."""
+    from hbtsim.run_campaign import RunOptions, run
+    cat = _tiny(tmp_path, "movie_altair_isi_oblate", "tiny_oblate", {})
+    res = run(cat, cat.load_campaign("tiny_oblate"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert res["n_nights"] == 2 and res["n_pairs"] == 3 and res["schedule"] == [0, 1] and len(res["configs"]) == 2
+    assert res["configs"][0]["ground_baselines_m"] == pytest.approx([30.0, 30.0, 30.0]) and res["configs"][1]["ground_pa_deg"] == pytest.approx(30.0)
+    assert res["theta_equal_area_mas"] == pytest.approx(3.296, abs=0.002) and res["axis_ratio"] == 1.24
+    sq = res["sigma_q"]
+    assert sq[1] < sq[0] == res["sigma_q_night"] and res["significance"] == pytest.approx(0.24 / sq[1]) and res["significance"] > 2
+    assert res["pa_coverage_deg"] > 120 and res["sigma_q_night_theta_known"] < res["sigma_q_night"]
+    assert "movie" not in res
+    cat2 = _tiny(tmp_path, "movie_delori_lpqi_oblateness", "tiny_delori", {"nights": 3})
+    r2 = run(cat2, cat2.load_campaign("tiny_delori"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert r2["n_nights"] == 3 and r2["n_pairs"] == 1 and r2["schedule"] == [0, 0, 0]
+    assert r2["sigma_q"] == pytest.approx([r2["sigma_q_night"] / np.sqrt(n) for n in (1, 2, 3)])
+    assert len(r2["baseline_m"]) == r2["n_blocks"] and len(r2["vis2_ellipse"]) == r2["n_blocks"]
+
+
+def test_nightmovie_chromatic_numbers(tmp_path):
+    import numpy as np
+    """Betelgeuse's TiO-band against continuum diameter: the 650 nm nights
+    draw the 12 % larger disk, the 900 nm night the 2 % one, and the
+    runner reports the diameter per wavelength and their ratio."""
+    from hbtsim.run_campaign import RunOptions, run
+    cat = _tiny(tmp_path, "movie_betelgeuse_isi_chromatic", "tiny_chrom", {})
+    res = run(cat, cat.load_campaign("tiny_chrom"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert res["n_nights"] == 3 and res["n_pairs"] == 3 and len(res["configs"]) == 3
+    tb = res["theta_by_wavelength"]
+    assert tb["650.0"]["theta_mas"] == pytest.approx(42.3 * 1.12) and tb["900.0"]["theta_mas"] == pytest.approx(42.3 * 1.02)
+    assert tb["650.0"]["nights"] == 2 and tb["900.0"]["nights"] == 1 and tb["650.0"]["theta_factor"] == 1.12
+    ch = res["chromatic"]
+    assert ch["wavelengths_nm"] == [650.0, 900.0] and ch["diameter_ratio"] == pytest.approx(1.12 / 1.02)
+    assert 0 < ch["sigma_ratio"] < 0.2 and ch["ratio_significance"] == pytest.approx((ch["diameter_ratio"] - 1) / ch["sigma_ratio"])
+    assert res["nulls_m"][0] < res["nulls_m"][1]                           # the bigger disk at the shorter wavelength nulls sooner
+
+
+def test_nightmovie_binary_schedule_numbers(tmp_path):
+    import numpy as np
+    """Capella on the ISI line with the pupil-averaged model (the fringe
+    period is twice the pupil), two nights, coarse grids: three pairs,
+    no eclipse, the global fit over scale and node, no image grid needed."""
+    from hbtsim.run_campaign import RunOptions, run
+    cat = _tiny(tmp_path, "movie_capella_isi_orbit", "tiny_capella",
+                {"schedule": [{"spacings_m": [5.0, 7.0], "nights": 2}], "fit_step_mas": 0.5, "fit_scale_step": 0.005, "fit_node_step_deg": 2.0})
+    res = run(cat, cat.load_campaign("tiny_capella"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert res["n_nights"] == 2 and res["n_pairs"] == 3 and res["pupils"] is True and res["schedule"] == [0, 0]
+    assert res["configs"][0]["ground_baselines_m"] == pytest.approx([5.0, 12.0, 7.0]) and res["configs"][0]["pair_names"][0] == "ISI-1-ISI-2"
+    n1, n2 = res["nights"]
+    assert n1["eclipse_fraction"] == 0.0 and n2["eclipse_fraction"] == 0.0 and len(n1["vis2_true_pairs"]) == 3
+    assert n1["best_fit_mas"] is not None and np.hypot(*(np.array(n1["best_fit_mas"]) - n1["truth_mas"])) < 3.0
+    assert n2["sigma_distance_frac_cumulative"] < n1["sigma_distance_frac_cumulative"] < 0.05
+    assert n1["sigma_periastron_deg_cumulative"] is None                        # circular: no periastron
+    g = res["global_fit"]
+    assert g["n_blocks"] == res["n_blocks"] * 3 * 2 and g["fit_periastron"] is False
+    assert g["a68_mas"][0] <= g["a_best_mas"] <= g["a68_mas"][1] and abs(g["a_best_mas"] / res["semimajor_mas"] - 1) < 0.02
+
+
+def test_nightmovie_spica_periastron_fit(tmp_path):
+    import numpy as np
+    """Spica's eccentric orbit on the ISI triangle, three nights, coarse
+    grids: the Fisher precision on (a, Omega, omega) tightens, the global
+    chi^2 over (scale, node, periastron) finds omega modulo 180 and the
+    advance against the 1971 reference on the expected branch."""
+    from hbtsim.run_campaign import RunOptions, run
+    cat = _tiny(tmp_path, "movie_spica_isi_orbit", "tiny_spica",
+                {"schedule": [{"side_m": 60.0, "nights": 3}], "fit_step_mas": 0.02, "fit_scale_step": 0.02,
+                 "fit_node_step_deg": 5.0, "fit_periastron_step_deg": 15.0})
+    res = run(cat, cat.load_campaign("tiny_spica"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert res["n_nights"] == 3 and res["n_pairs"] == 3 and res["eccentricity"] == 0.108 and res["arg_periastron_deg"] == 232.0
+    sp = [n["sigma_periastron_deg_cumulative"] for n in res["nights"]]
+    assert sp[2] < sp[1] and np.isfinite(sp[2])
+    g = res["global_fit"]
+    assert g["fit_periastron"] is True and 0 <= g["omega_best_deg"] < 180 and g["omega_truth_mod180_deg"] == 52.0
+    lo, hi = g["omega68_deg"]
+    assert lo <= hi and (lo - 15 <= 52.0 <= hi + 15 or any(abs(x - 52.0) < 30 for x in (g["omega_best_deg"],)))
+    assert g["reference_periastron"]["omega_deg"] == 90.0 and abs(g["omega_advance_deg"] - 142.0) <= 90.0
+    assert g["sigma_omega_advance_deg"] >= 10.0                                   # the reference's 10 deg floor
+    assert g["n_blocks"] <= res["n_blocks"] * 3 * 3

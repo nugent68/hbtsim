@@ -59,6 +59,18 @@ class SingleStar:
     mag_anchors: tuple = ()
     # optional resolved non-circular outline (gamma Cas's decretion disk)
     ellipse: Ellipse | None = None
+    # optional wavelength dependence of the drawn diameter ((nm, factor), ...):
+    # theta(lambda) = theta_ld_mas x factor, interpolated in wavelength and
+    # held constant beyond the table (a TiO-band disk larger than the
+    # continuum photosphere); empty = achromatic
+    theta_factor_nm: tuple = ()
+
+    def theta_factor(self, wavelength_nm) -> float:
+        """Diameter factor at a wavelength [nm]; 1 without a table."""
+        if not self.theta_factor_nm:
+            return 1.0
+        pts = sorted(self.theta_factor_nm)
+        return float(np.interp(float(wavelength_nm), [p[0] for p in pts], [p[1] for p in pts]))
 
     @property
     def drawn_diameter_mas(self) -> float:

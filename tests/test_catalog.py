@@ -282,3 +282,16 @@ def test_pair_generator_with_two_telescopes(tmp_path):
                                cat.load_spectrograph("filter_lpqi_500_1nm"))
     assert cfg.telescope.area_m2 == pytest.approx((arr.stations[0].telescope.area_m2 * arr.stations[1].telescope.area_m2) ** 0.5)
     assert cfg.ground_baseline_m == pytest.approx(531.8, abs=0.1) and "geometric mean" in cfg.telescope.name
+
+
+def test_schema_rejects_bad_chromatic_diameter(tmp_path):
+    """A single target's chromatic_diameter must be increasing [nm, factor > 0] pairs."""
+    import json
+    cat0 = Catalog(env=False)
+    (tmp_path / "targets").mkdir()
+    for bad, msg in (([[900.0, 1.0], [650.0, 1.1]], "increasing"), ([[650.0, -1.0]], "factor"), ([650.0, 1.1], "chromatic_diameter")):
+        d = cat0.raw("target", "betelgeuse")
+        d.update(name="bad_chrom", chromatic_diameter=bad)
+        (tmp_path / "targets" / "bad_chrom.json").write_text(json.dumps(d))
+        with pytest.raises(SchemaError, match=msg):
+            Catalog(paths=[tmp_path], env=False).load_target("bad_chrom")

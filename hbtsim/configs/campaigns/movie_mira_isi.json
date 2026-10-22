@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_mira_isi",
+  "runner": "nightmovie",
+  "night": {
+    "block_minutes": 5.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "outputs": {
+    "figures": true
+  },
+  "label": "Movie: Mira's diameter near maximum with the ISI line at 900 nm, three nights (the first intensity-interferometric size of a long-period variable)",
+  "target": "mira",
+  "instrument": {
+    "array": "isi_line"
+  },
+  "backends": [
+    "isi_pdm_900"
+  ],
+  "options": {
+    "schedule": [
+      {
+        "spacings_m": [
+          2.5,
+          3.0
+        ]
+      },
+      {
+        "spacings_m": [
+          3.0,
+          4.0
+        ]
+      },
+      {
+        "spacings_m": [
+          4.0,
+          5.0
+        ]
+      }
+    ],
+    "yscale": "log",
+    "seed": 7,
+    "display_bin_blocks": 6,
+    "theta_alternatives_pct": [
+      -5.0,
+      5.0
+    ],
+    "fps": 12,
+    "dpi": 110
+  },
+  "notes": [
+    "Baselines 2.5/3/5.5, 3/4/7 and 4/5/9 m: the first lobe, the 7.1 m null and the first sidelobe of a 32 mas disk at 900 nm. Mira sits just under the PDM's cap, so its S/N is its own: ~50 sigma per night, ~1.8 % on the diameter per night, ~1 % in three.",
+    "The diameter is phase-dependent (+/- 10 % over 332 d) and chromatic (the TiO-band disk at 650 nm ~40 % larger): the campaign is a snapshot near maximum; an optional 650 nm night would measure the molecular layer."
+  ]
+}

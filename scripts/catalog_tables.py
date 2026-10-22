@@ -203,8 +203,10 @@ def isi_parameters() -> str:
               "PDM datasheet (Feb 2018); PDE beyond 650 nm, timing of the 100 µm unit and the cap **assumed**"),
              ("filters", "; ".join(f"{f.channel_centers_nm[0]:.0f} nm ({f.channel_width_nm:.1f} nm)" for f in filters)
               + f"; throughput {filters[0].throughput:g}", "900 nm from the user (2026-10-21), 650 nm replacing the 1550 nm filter the silicon SPAD cannot see; widths and throughput **assumed**"),
-             ("targets", "Betelgeuse 42.3 mas, Aldebaran 20.58, Arcturus 21.05, μ Cep 14.1, ε Tau 2.59, HD 360 0.91; Capella (56 mas binary)",
-              "interferometric diameters (Montargès 2014, Richichi 2005, Lacour 2008, Perrin 2005); ε Tau from R/d; Torres et al. 2015")]
+             ("targets", "Betelgeuse 42.3 mas (×1.12 at 650 nm, ×1.02 at 900), Aldebaran 20.58, Arcturus 21.05, μ Cep 14.1, ε Tau 2.59, HD 360 0.91; "
+                         "Mira 32 (×1.4 at 650); Altair 3.67 × 2.96 and Regulus 1.65 × 1.25 (oblate); Capella (56 mas binary), Spica (e = 0.108)",
+              "interferometric diameters (Montargès 2014, Richichi 2005, Lacour 2008, Perrin 2005, Woodruff 2004, Monnier 2007, McAlister 2005); "
+              "ε Tau from R/d; Torres et al. 2015; Harrington 2016; the TiO-band factors **assumed**")]
     out = ["| " + " | ".join(rows[0]) + " |", "|---|---|---|"]
     out += ["| " + " | ".join(r) + " |" for r in rows[1:]]
     return "\n".join(out)

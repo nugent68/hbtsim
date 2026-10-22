@@ -22,8 +22,8 @@
   "inclination_deg": 63.1,
   "distance_pc": 76.6,
   "semimajor_au": 0.1311,
-  "eccentricity": 0.0,
-  "arg_periastron_deg": 0.0,
+  "eccentricity": 0.108,
+  "arg_periastron_deg": 232.0,
   "mag_anchors": [
     {
       "band": "g",
@@ -45,21 +45,26 @@
     "[T16] Tkachenko et al. 2016, MNRAS 458, 1964: masses, radii, Teffs, i = 63.1",
     "van Leeuwen 2007: parallax 13.06 mas (76.6 pc)",
     "Bailey et al. 2019 (polarimetric orbit): Omega 130.4 +/- 6.8 confirms the retrograde sense",
-    "V = 0.97, B-V = -0.235 -> g ~ 0.71 (Jester et al. 2005)"
+    "V = 0.97, B-V = -0.235 -> g ~ 0.71 (Jester et al. 2005)",
+    "Harrington et al. 2016, A&A 590, A54: e 0.108 +/- 0.014, omega (secondary) 232 +/- 1 deg, K1 121.1, K2 189.8 km/s",
+    "Robinette & Aufdenberg: apsidal period 139 +/- 6 yr (HE71: 124 +/- 11 yr)"
   ],
   "notes": [
-    "TRUE eccentricity 0.108 (with apsidal motion) approximated as circular: fine for visibility / SNR forecasts, not for timing work.",
     "The primary is a beta Cep pulsator and tidally distorted (ellipsoidal, non-eclipsing at i = 63): rendered as a static sphere.",
     "The i-band anchor is the anchored-blackbody colour of a ~25 kK photosphere (+/- ~0.1 mag; only shifts the red zero point).",
-    "semimajor_au from Kepler's third law with the [T16] masses."
+    "semimajor_au from Kepler's third law with the [T16] masses.",
+    "Eccentric orbit: e 0.108 +/- 0.014 (Harrington et al. 2016; 0.125 in their other solution), arg_periastron_deg 232 +/- 1 for the SECONDARY (Harrington 2016), which is hbtsim's convention (the secondary's relative orbit). If the 232 is the primary's spectroscopic omega the value here should be 52 (flagged).",
+    "Apsidal motion: the periastron advances with a period of 139 +/- 6 yr (Robinette & Aufdenberg) or 124 +/- 11 yr (Herbison-Evans et al. 1971); since the 1971 Narrabri orbit it has moved by ~142 deg, so omega(1971) ~ 90 deg in this convention. Periastron epoch JD 2454189.4 (Tkachenko 2016); BinarySystem carries no epoch, so a campaign's options.phase0 sets the phase of the first night.",
+    "Spica Ac (GRAVITY 2026, 111 mas, 1.4 Msun) contributes negligible light."
   ],
   "provenance": {
     "period_days": "[HE71]/[T16]",
     "inclination_deg": "[T16]",
     "distance_pc": "van Leeuwen 2007",
     "semimajor_au": "Kepler, [T16] masses",
-    "eccentricity": "circular approximation of e = 0.108",
-    "node_pa_deg": "[HE71]"
+    "eccentricity": "Harrington et al. 2016",
+    "node_pa_deg": "[HE71]",
+    "arg_periastron_deg": "Harrington et al. 2016 (secondary)"
   },
   "summary": {
     "short": "Spica",
@@ -67,5 +72,9 @@
     "eclipses": "none",
     "newera": "blackbody",
     "sources": "Herbison-Evans et al. 1971; Tkachenko et al. 2016"
-  }
+  },
+  "assumptions": [
+    "arg_periastron_deg convention (secondary, 232; primary would be 52)",
+    "no epoch: phase0 per campaign"
+  ]
 }

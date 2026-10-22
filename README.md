@@ -33,7 +33,7 @@ follow the baseline along the projected separation axis by default
 | Masses | 2.376 / 2.291 M☉ | 3.17 / 0.7 M☉ | 11.43 / 7.21 M☉ | 2.43 / 2.27 M☉ |
 | Radii | 2.762 / 2.568 R☉ | 2.73 / 3.48 R☉ | 7.47 / 3.74 R☉ | 2.97 / 2.52 R☉ |
 | T_eff | 9350 / 9200 K | 12550 / 4900 K | 25300 / 20900 K | 9450 / 9830 K |
-| Period | 3.96004 d | 2.867328 d | 4.0145 d | 45.1503 d, e = 0.29 |
+| Period | 3.96004 d | 2.867328 d | 4.0145 d, e = 0.108 | 45.1503 d, e = 0.29 |
 | Inclination | 76.8° | 98.7° | 63.1° | 89.0° |
 | Distance | 24.87 pc | 28.82 pc | 76.6 pc | 25.13 pc (orbital parallax) |
 | Angular semi-major axis | 3.29 mas | 2.15 mas | 1.71 mas | 16.54 mas |
@@ -68,8 +68,8 @@ reflection effect of the real out-of-eclipse lightcurve are absent.
 **Spica** (α Vir, V = 0.97; Herbison-Evans et al. 1971 Narrabri
 intensity-interferometer orbit, Tkachenko et al. 2016 disentangling) is
 the recommended bright target for three-telescope closure-phase work
-(true e = 0.108 approximated as circular; β Cep pulsations and tidal
-distortion not modeled; non-eclipsing). **δ Vel** (Mérand et al. 2011:
+(e = 0.108, ω = 232° for the secondary from Harrington et al. 2016; β Cep
+pulsations and tidal distortion not modeled; non-eclipsing). **δ Vel** (Mérand et al. 2011:
 eccentric 45-day orbit, both components rotating at ~145 km/s, not
 modeled as oblate) sits at 25.1 pc, so its 16.6 mas orbit puts the blue
 fringe period (4.7 m) below 8 m pupils: it is a target for 1–4 m
@@ -402,8 +402,11 @@ traced to its inputs. `suite_phase6` runs everything (`--jobs 4`).
 | `mc_sirius_b_lpqi_orm_r10000` | montecarlo | Sirius B on the five-telescope LPQI network with the final instrument: R = 10 000 spectrograph on the 10 ps IMSE-LPQI array, every pair |
 | `mc_sirius_b_lpqi_pathfinder` | montecarlo | Sirius B diameter Monte Carlo on the LPQI-Pathfinder (NOT + TNG, 550 m, one 1 nm filter) |
 | `mc_sirius_b_lpqi_r10000` | montecarlo | Sirius B on the LPQI-Pathfinder with the final instrument: R = 10 000 spectrograph on the 10 ps IMSE-LPQI array |
+| `movie_altair_isi_oblate` | nightmovie | Movie: Altair's oblateness with the three ISI trucks in a triangle at 650 nm, two nights (the first intensity-interferometric stellar shape) |
 | `movie_betcep_lpqi_pulsation` | nightmovie | Movie: beta Cep on the LPQI-Pathfinder, the pulsating diameter (one night, then a season folded on the 4.57 h period; 550 nm, MPD) |
 | `movie_betelgeuse_isi` | nightmovie | Movie: Betelgeuse's |V|^2(B) fully measured with the ISI pair at 900 nm, one baseline per night from 2.5 to 25 m |
+| `movie_betelgeuse_isi_chromatic` | nightmovie | Movie: Betelgeuse's TiO-band (650 nm) against near-continuum (900 nm) diameter with the ISI line, three nights |
+| `movie_capella_isi_orbit` | nightmovie | Movie: Capella's orbit with the ISI line at 900 nm, seven consecutive nights (the first intensity-interferometric binary orbit since Spica 1971) |
 | `movie_delori_lpqi_filters` | nightmovie | Movie: delta Ori Aa1 on the LPQI-Pathfinder with a different 1 nm filter each night (MPD), 20 nights |
 | `movie_delori_lpqi_night` | nightmovie | Movie: delta Ori Aa1 on the LPQI-Pathfinder, one night through the null and then 20 nights accumulated (550 nm, MPD) |
 | `movie_delori_lpqi_oblateness` | nightmovie | Movie: is delta Ori Aa1 oblate? H-alpha nights on the LPQI-Pathfinder against the equal-area circular disk (MPD, 40 nights) |
@@ -417,8 +420,11 @@ traced to its inputs. `suite_phase6` runs everything (`--jobs 4`).
 | `movie_etaori_lpqi_orbit` | nightmovie | Movie: eta Ori Aa through one 8-day orbit on the LPQI-Pathfinder, eight consecutive nights (H-alpha, MPD) |
 | `movie_etaori_lpqi_orbit_node90` | nightmovie | Movie: eta Ori Aa through one 8-day orbit on the LPQI-Pathfinder, eight consecutive nights, line of nodes rotated by 90 deg (H-alpha, MPD) |
 | `movie_iotaori_lpqi_orbit` | nightmovie | Movie: iota Ori Aa through one 29-day orbit on the LPQI-Pathfinder, eight nights every 3.64 d (650 nm red continuum, MPD) |
+| `movie_mira_isi` | nightmovie | Movie: Mira's diameter near maximum with the ISI line at 900 nm, three nights (the first intensity-interferometric size of a long-period variable) |
 | `movie_procyon_b_lpqi_orm` | specmovie | Movie: Procyon B's diameter on the five-telescope LPQI network with the final instrument (R = 10 000 spectrograph, 10 ps array) |
+| `movie_regulus_isi_oblate` | nightmovie | Movie: Regulus's oblateness with the three ISI trucks in a triangle at 650 nm, two nights |
 | `movie_sirius_b_lpqi_orm` | specmovie | Movie: Sirius B's diameter in one night on the five-telescope LPQI network with the final instrument (R = 10 000 spectrograph, 10 ps array) |
+| `movie_spica_isi_orbit` | nightmovie | Movie: Spica's eccentric orbit with the three ISI trucks in a 60 m triangle at 650 nm, seven consecutive nights (1.75 orbits): a, the node and the periastron against the 1971 Narrabri orbit |
 | `redclump_ii_dwarf` | scale | Red-clump scale precision (Kim & Kaiser comparison) with the 4800 K / log g 4.5 dwarf stand-in |
 | `redclump_ii_supergiant` | scale | Red-clump scale precision (Kim & Kaiser comparison) with the 5000 K / log g 0 supergiant stand-in |
 | `suite_phase6` | suite | Everything behind docs/three_telescope_feasibility.md and the paper tables (output/logs/run_*.sh) |

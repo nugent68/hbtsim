@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_betelgeuse_isi_chromatic",
+  "runner": "nightmovie",
+  "night": {
+    "block_minutes": 5.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "outputs": {
+    "figures": true
+  },
+  "label": "Movie: Betelgeuse's TiO-band (650 nm) against near-continuum (900 nm) diameter with the ISI line, three nights",
+  "target": "betelgeuse",
+  "instrument": {
+    "array": "isi_line"
+  },
+  "backends": [
+    "isi_pdm_650",
+    "isi_pdm_900"
+  ],
+  "options": {
+    "schedule": [
+      {
+        "backend": "isi_pdm_650",
+        "spacings_m": [
+          2.5,
+          2.5
+        ]
+      },
+      {
+        "backend": "isi_pdm_900",
+        "spacings_m": [
+          2.5,
+          3.0
+        ]
+      },
+      {
+        "backend": "isi_pdm_650",
+        "spacings_m": [
+          2.5,
+          3.0
+        ]
+      }
+    ],
+    "yscale": "log",
+    "seed": 7,
+    "display_bin_blocks": 6,
+    "theta_alternatives_pct": [
+      -5.0,
+      5.0
+    ],
+    "fps": 12,
+    "dpi": 110
+  },
+  "notes": [
+    "The target's chromatic_diameter table draws a 12 % larger disk at 650 nm (TiO bands) than in the near-IR continuum and 2 % larger at 900 nm; the runner fits the diameter per wavelength and reports the ratio and its significance.",
+    "At 650 nm the 47 mas TiO disk has its null at 3.45 m, so the trucks at their 2.5 m minimum spacing sit on the first lobe (|V|^2 0.2-0.55) and the 5 m pair in the first sidelobe. Expected: theta(650) to ~2.3 %, theta(900) to ~1.5 %, ratio 1.10 +/- 0.03."
+  ]
+}

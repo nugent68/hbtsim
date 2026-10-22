@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "regulus",
+  "label": "Regulus (alpha Leo A, B8 IVn, rapid rotator)",
+  "type": "single",
+  "star": {
+    "label": "alpha Leo A",
+    "mass_msun": 3.8,
+    "teff_k": 12500.0,
+    "ld_table": "claret11_spica",
+    "logg": 3.8
+  },
+  "theta_ld_mas": 1.436,
+  "v_mag": 1.4,
+  "dec_deg": 11.9672,
+  "ra_hours": 10.1395,
+  "distance_pc": 24.3,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 1.4
+    },
+    {
+      "band": "H",
+      "mag_vega": 1.6
+    },
+    {
+      "band": "K",
+      "mag_vega": 1.65
+    }
+  ],
+  "ellipse": {
+    "theta_major_mas": 1.65,
+    "axis_ratio": 1.32,
+    "pa_deg": 175.5,
+    "sources": [
+      "McAlister et al. 2005: equatorial 1.65 / polar 1.25 mas, polar axis at PA 85.5 deg"
+    ],
+    "notes": [
+      "Major axis (the equator) at PA 175.5 deg E of N."
+    ]
+  },
+  "sources": [
+    "McAlister et al. 2005, ApJ 628, 439 (CHARA, Roche model): polar diameter 1.25 +/- 0.02 mas, equatorial 1.65 +/- 0.02 mas (axis ratio 1.32), polar-axis PA 85.5 +/- 2.8 deg, i 90 (+0/-15) deg, V sin i 317 km/s (V/V_crit 0.86), T_pol 15400, T_eq 10314 K, mass 3.4 Msun, gravity-darkening beta 0.25",
+    "Gies et al. 2008 / modern: mass 4.15 Msun; van Leeuwen 2007: parallax 41.13 +/- 0.35 mas (24.3 pc); V 1.40; H, K ~1.6 (approximate)"
+  ],
+  "notes": [
+    "theta_ld_mas 1.436 = sqrt(1.65 x 1.25), the equal-area diameter; the `ellipse` block carries the shape (major axis along PA 175.5 deg = polar axis 85.5 + 90; the axis is ambiguous by 180 deg).",
+    "Regulus Ab (a 0.3 Msun white dwarf in a 40.1 d orbit) contributes negligible light; B and C at 177 arcsec are excluded by any field stop. i ~ 90 so the projected shape is the true flattening. Gravity darkening not modelled.",
+    "First null of the equal-area disk at 650 nm: 114 m; the oblateness campaigns use the ISI triangle with 70 m sides.",
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85).",
+    "The radius is derived from theta_LD and the distance."
+  ],
+  "assumptions": [
+    "star.mass_msun (3.4-4.15)",
+    "star.teff_k (disk average of 15400 / 10314)",
+    "star.ld_table (Spica's B-star law)",
+    "mag_anchors H, K (approximate)",
+    "ellipse (uniform-brightness affine disk; no gravity darkening)"
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "altair",
+  "label": "Altair (alpha Aql, A7 Vn, rapid rotator)",
+  "type": "single",
+  "star": {
+    "label": "alpha Aql",
+    "mass_msun": 1.79,
+    "teff_k": 7550.0,
+    "ld_table": "claret11_betaaur",
+    "logg": 4.1
+  },
+  "theta_ld_mas": 3.296,
+  "v_mag": 0.76,
+  "dec_deg": 8.8683,
+  "ra_hours": 19.8464,
+  "distance_pc": 5.13,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 0.76
+    },
+    {
+      "band": "H",
+      "mag_vega": 0.1
+    },
+    {
+      "band": "K",
+      "mag_vega": 0.1
+    }
+  ],
+  "ellipse": {
+    "theta_major_mas": 3.67,
+    "axis_ratio": 1.24,
+    "pa_deg": 28.2,
+    "sources": [
+      "Monnier et al. 2007: equatorial 3.67 / polar 2.96 mas, rotation axis at PA -61.8 deg"
+    ],
+    "notes": [
+      "Major axis (the equator) at PA 28.2 deg E of N."
+    ]
+  },
+  "sources": [
+    "Monnier et al. 2007, Science 317, 342 (CHARA/MIRC imaging, beta free): polar radius 1.634 Rsun = 1.479 mas angular radius, equatorial 2.029 Rsun = 1.835 mas (diameters 2.96 and 3.67 mas, axis ratio 1.24); inclination 57.2 +/- 1.9 deg; rotation-axis position angle -61.8 +/- 0.8 deg E of N; T_pol 8450, T_eq 6860 K; omega/omega_crit 0.923; v sin i 240 km/s",
+    "van Belle et al. 2001, ApJ 559, 1155 (PTI): ellipse 3.461 x 3.037 mas, axis ratio 1.14",
+    "van Leeuwen 2007: parallax 194.95 +/- 0.57 mas (5.13 pc); Ducati 2002: V 0.76; H, K ~0.1 (approximate)"
+  ],
+  "notes": [
+    "theta_ld_mas 3.296 = sqrt(3.67 x 2.96), the equal-area diameter of the Monnier 2007 ellipse; the `ellipse` block carries the shape (major axis along PA 28.2 deg = rotation axis -61.8 + 90).",
+    "Gravity darkening (the pole 1600 K hotter than the equator) is NOT modelled: hbtsim's ellipse is an affine, uniformly limb-darkened disk, so the real |V|^2 asymmetry differs in detail.",
+    "First null of the equal-area disk at 650 nm: 49.6 m; the oblateness campaigns use the ISI triangle with 30 m sides.",
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85).",
+    "The radius is derived from theta_LD and the distance."
+  ],
+  "assumptions": [
+    "star.teff_k (disk average of 8450 / 6860)",
+    "star.ld_table (A-type law of beta Aur at 9300 K; Altair is 7500 K)",
+    "mag_anchors H, K (approximate)",
+    "ellipse (uniform-brightness affine disk; no gravity darkening)"
+  ]
+}

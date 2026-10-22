@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_regulus_isi_oblate",
+  "runner": "nightmovie",
+  "night": {
+    "block_minutes": 5.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "outputs": {
+    "figures": true
+  },
+  "label": "Movie: Regulus's oblateness with the three ISI trucks in a triangle at 650 nm, two nights",
+  "target": "regulus",
+  "instrument": {
+    "array": "isi_triangle",
+    "array_params": {
+      "side_m": 70.0
+    }
+  },
+  "backends": [
+    "isi_pdm_650"
+  ],
+  "options": {
+    "oblateness": true,
+    "schedule": [
+      {
+        "side_m": 70.0
+      },
+      {
+        "side_m": 70.0,
+        "pa_deg": 30.0
+      }
+    ],
+    "detection_sigma": 3.0,
+    "seed": 7,
+    "display_bin_blocks": 6,
+    "fps": 12,
+    "dpi": 110
+  },
+  "notes": [
+    "Regulus is 32 % oblate (McAlister et al. 2005: 1.65 x 1.25 mas, equator at PA 175.5 deg, i ~ 90). Triangle of 70 m sides (null of the equal-area disk at 114 m), rotated by 30 deg on the second night.",
+    "Expected: ~20 sigma per night, sigma(q) 0.09 -> ~0.065 after two nights (q - 1 = 0.32 at ~5 sigma)."
+  ]
+}

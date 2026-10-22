@@ -37,6 +37,7 @@
     "Borisov et al. 2023: T_eff 3779 +/- 38 K (literature 3250-3690); mass 14 Msun (Neuhauser 2022; 9.5-21 in modern models)"
   ],
   "notes": [
+    "chromatic_diameter: the drawn diameter is theta_LD x factor(lambda): 1.12 at 650 nm (the TiO bands, where the optical uniform-disk diameters are 45-55 mas), 1.02 at 900 nm, 1.0 in the near-IR continuum -- ASSUMED, the quantity the two-filter campaign measures.",
     "Semi-regular variable, V 0.0-1.6: the anchors are mean values.",
     "First null 1.22 lambda/theta: 5.4 m at 900 nm, 3.9 m at 650 nm -- the ISI's whole first lobe sits within the trucks' 2.5 m minimum spacing and 6 m.",
     "The near-IR diameter is the photosphere; at 900 nm the TiO bands and the molecular layers make the star look larger (ISI's own 11 um result: 55 mas).",
@@ -48,6 +49,21 @@
     "distance_pc (168 vs 222 pc)",
     "teff_k",
     "mass_msun",
-    "v_mag (variable)"
+    "v_mag (variable)",
+    "chromatic_diameter (TiO-band excess 12 %, 900 nm 2 %)"
+  ],
+  "chromatic_diameter": [
+    [
+      650.0,
+      1.12
+    ],
+    [
+      900.0,
+      1.02
+    ],
+    [
+      1650.0,
+      1.0
+    ]
   ]
 }

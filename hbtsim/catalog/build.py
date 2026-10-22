@@ -267,7 +267,8 @@ def build_target(cat, d: dict):
         return SingleStar(label, _star(cat, d["star"], where, radius_rsun=radius_rsun),
                           theta_ld_mas=theta, v_mag=d["v_mag"], dec_deg=d["dec_deg"],
                           ra_hours=d["ra_hours"], distance_pc=dist, mag_anchors=anchors,
-                          ellipse=ellipse)
+                          ellipse=ellipse,
+                          theta_factor_nm=_pairs(d["chromatic_diameter"]) if d.get("chromatic_diameter") else ())
     return DiskTarget(label, **_given(d, ("theta_mas", "mag_ab", "dec_deg", "ld_u", "ra_hours")))
 
 

@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "mira",
+  "label": "Mira (omicron Cet A, M7 IIIe long-period variable)",
+  "type": "single",
+  "star": {
+    "label": "omicron Cet A",
+    "mass_msun": 1.0,
+    "teff_k": 3000.0,
+    "ld_table": "m_giant_rough",
+    "logg": 0.0
+  },
+  "theta_ld_mas": 32.0,
+  "v_mag": 3.5,
+  "dec_deg": -2.9776,
+  "ra_hours": 2.3224,
+  "distance_pc": 92.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 3.5
+    },
+    {
+      "band": "H",
+      "mag_vega": -2.3
+    },
+    {
+      "band": "K",
+      "mag_vega": -2.6
+    }
+  ],
+  "chromatic_diameter": [
+    [
+      650.0,
+      1.4
+    ],
+    [
+      900.0,
+      1.0
+    ],
+    [
+      1650.0,
+      0.95
+    ]
+  ],
+  "sources": [
+    "Woodruff et al. 2004, A&A 421, 703 (VLTI/VINCI, K band): Rosseland diameter 28.9 +/- 0.3 mas at phase 0.13 to 34.9 +/- 0.4 mas at phase 0.40; T_eff 3192 -> 2918 K",
+    "van Leeuwen 2007: parallax 10.91 +/- 1.22 mas (92 pc, 11 %); GCVS: V 2.0-10.1, period 332 d, mean maximum ~3.5; mass ~1 Msun (Zamanov et al. 2026); Mira B at 0.49 arcsec (negligible light)"
+  ],
+  "notes": [
+    "theta_ld_mas 32 mas is the 900 nm near-continuum size near maximum light, ASSUMED between the K-band Rosseland values; the optical TiO-band diameters are larger (40-50 mas), which the optional 650 nm night and the chromatic_diameter table represent.",
+    "The diameter changes by +/- 10 % over the 332 d pulsation and the star by 7 mag: the forecast is for nights near maximum, not a light-curve model; one night at 900 nm on a 2.5+3 m line gives ~2 %.",
+    "First null at 900 nm: 7.1 m (3.5 m at 650 nm for the 45 mas TiO disk).",
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85).",
+    "The radius is derived from theta_LD and the distance."
+  ],
+  "assumptions": [
+    "theta_ld_mas (32 mas at 900 nm near maximum)",
+    "v_mag (3.5, mean maximum)",
+    "star.teff_k",
+    "mag_anchors H, K (approximate)",
+    "chromatic_diameter (TiO/continuum ratio 1.4)"
+  ]
+}

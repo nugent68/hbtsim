@@ -87,3 +87,12 @@ def test_newera_sirius_vega(sirius_a, vega):
     v2 = single_star_vis2(p, 15.0, nm, (4.0, 4.0))[:, 0]
     th = ud_diameter_per_channel(v2, 15.0, nm, (4.0, 4.0))
     assert th[1] > th[0] and th[1] > th[2]
+
+
+def test_theta_factor_interpolation(vega):
+    """A chromatic diameter table scales the drawn disk per wavelength:
+    linear between the points, clamped outside, 1 without a table."""
+    assert vega.theta_factor(500.0) == 1.0
+    star = replace(vega, theta_factor_nm=((900.0, 1.02), (650.0, 1.12), (1650.0, 1.0)))   # any order
+    assert star.theta_factor(650.0) == 1.12 and star.theta_factor(900.0) == 1.02 and star.theta_factor(1650.0) == 1.0
+    assert star.theta_factor(775.0) == pytest.approx(1.07) and star.theta_factor(400.0) == 1.12 and star.theta_factor(2200.0) == 1.0

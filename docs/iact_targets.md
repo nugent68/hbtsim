@@ -53,8 +53,8 @@ B = 4.0 star, consistent with their statement that stars to ∼4 B mag are reali
 
 ## Spica on VERITAS (`scripts/spica_veritas.py`)
 
-hbtsim's `spica` target (blackbody + Spica linear limb darkening, anchored g and i; circular
-orbit, a = 1.71 mas, θ = 0.91 / 0.45 mas) at 416 nm, AB = 0.64, averaged over the 12 m
+hbtsim's `spica` target (blackbody + Spica linear limb darkening, anchored g and i; e = 0.108
+since 2026-10, circular when this script was run; a = 1.71 mas, θ = 0.91 / 0.45 mas) at 416 nm, AB = 0.64, averaged over the 12 m
 pupils, for eight nights spread over the 4.01-day orbit; FLWO sees Spica for 5.9 h above
 30° (H = ±2.93 h); 21 blocks of 17 min per night.
 

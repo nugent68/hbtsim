@@ -180,6 +180,7 @@ FIELDS = {
                # single
                Field("star", DICT), Field("theta_ld_mas", NUM, lo=0), Field("v_mag", NUM),
                Field("ellipse", DICT, nullable=True),
+               Field("chromatic_diameter", LIST),
                # uniform disk
                Field("theta_mas", NUM, lo=0), Field("mag_ab", NUM), Field("ld_u", NUM, lo=0, hi=1),
                Field("reference_results", DICT)),
@@ -341,6 +342,12 @@ def check_kind(where: str, kind: str, d: dict) -> None:
             if "radius_rsun" in d["star"]:
                 raise SchemaError(f"{where}: a single star's radius is derived from theta_ld_mas "
                                   f"and distance_pc; do not give radius_rsun")
+            if d.get("chromatic_diameter") is not None:
+                cd = d["chromatic_diameter"]
+                if (not cd or any(not isinstance(r, list) or len(r) != 2 for r in cd)
+                        or any(not (float(r[1]) > 0) for r in cd)
+                        or any(float(a[0]) >= float(b[0]) for a, b in zip(cd, cd[1:]))):
+                    raise SchemaError(f"{where}: chromatic_diameter must be [[nm, factor > 0], ...] with increasing nm")
             if d.get("ellipse") is not None:
                 check_fields(f"{where}: ellipse", d["ellipse"],
                              (Field("theta_minor_mas", NUM, lo=0), Field("theta_major_mas", NUM, lo=0),

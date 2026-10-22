@@ -21,7 +21,7 @@ def test_binary_orbits():
     assert (a.primary.teff, a.secondary.teff) == (12550.0, 4900.0) and a.node_pa_deg == 43.43
     s = cat.load_target("spica")
     assert (s.period_days, s.inclination_deg, s.distance_pc, s.semimajor_au) == (4.0145, 63.1, 76.6, 0.1311)
-    assert s.eccentricity == 0.0 and s.node_pa_deg == 131.6 and s.dec_deg == pytest.approx(-11.161319)
+    assert s.eccentricity == 0.108 and s.arg_periastron_deg == 232.0 and s.node_pa_deg == 131.6 and s.dec_deg == pytest.approx(-11.161319)
     d = cat.load_target("deltavel")
     assert (d.period_days, d.eccentricity, d.arg_periastron_deg, d.inclination_deg) == (45.1503, 0.290, 109.7, 89.0)
     assert (d.distance_pc, d.semimajor_au, d.node_pa_deg) == (25.13, 0.4156, 65.0)
@@ -246,8 +246,34 @@ def test_isi():
     c = cat.load_target("capella")
     assert c.period_days == 104.02128 and c.angular_semimajor_mas == pytest.approx(56.44, abs=0.05)
     assert 2 * c.angular_radius_mas(c.primary) == pytest.approx(8.47, abs=0.02) and c.node_pa_deg == 40.522
-    for name in ("g2_giants_isi", "g2_binaries_isi", "movie_betelgeuse_isi"):
+    for name in ("g2_giants_isi", "g2_binaries_isi", "movie_betelgeuse_isi", "movie_altair_isi_oblate", "movie_regulus_isi_oblate",
+                 "movie_betelgeuse_isi_chromatic", "movie_spica_isi_orbit", "movie_mira_isi", "movie_capella_isi_orbit"):
         camp = cat.load_campaign(name)
-        assert camp.option("instrument.array") == "isi_pair" and all("PDM" in b.name for b in camp.backends)
+        assert camp.option("instrument.array").startswith("isi_") and all("PDM" in b.name for b in camp.backends)
     assert len(cat.load_campaign("g2_giants_isi").option("options.baseline_schedule")) == 15
     assert len(cat.load_campaign("movie_betelgeuse_isi").option("options.schedule")) == 9
+
+
+def test_first_week_targets():
+    """The first-week science targets of the ISI: the oblate rotators'
+    ellipses (Monnier 2007, McAlister 2005), Mira's size and TiO-band
+    factor, Betelgeuse's chromatic diameter and Spica's eccentric orbit."""
+    a = cat.load_target("altair")
+    assert a.theta_ld_mas == 3.296 and (a.ellipse.theta_major_mas, a.ellipse.axis_ratio, a.ellipse.pa_deg) == (3.67, 1.24, 28.2)
+    assert a.dec_deg == pytest.approx(8.8683) and a.distance_pc == 5.13 and a.theta_factor(650.0) == 1.0
+    r = cat.load_target("regulus")
+    assert r.theta_ld_mas == 1.436 and (r.ellipse.theta_major_mas, r.ellipse.axis_ratio, r.ellipse.pa_deg) == (1.65, 1.32, 175.5)
+    assert abs(a.ellipse.theta_major_mas / a.ellipse.axis_ratio ** 0.5 - a.theta_ld_mas) < 0.002       # equal-area disks
+    assert abs(r.ellipse.theta_major_mas / r.ellipse.axis_ratio ** 0.5 - r.theta_ld_mas) < 0.002
+    m = cat.load_target("mira")
+    assert m.theta_ld_mas == 32.0 and m.dec_deg == pytest.approx(-2.9776) and m.distance_pc == 92.0
+    assert float(m.ab_mag(900.0)) < float(m.ab_mag(551.0)) and m.theta_factor(650.0) == 1.4 and m.theta_factor(900.0) == 1.0
+    b = cat.load_target("betelgeuse")
+    assert (b.theta_factor(650.0), b.theta_factor(900.0), b.theta_factor(1650.0), b.theta_factor(2200.0)) == (1.12, 1.02, 1.0, 1.0)
+    assert b.theta_factor(775.0) == pytest.approx(1.07)                                                # interpolated
+    s = cat.load_target("spica")
+    assert (s.eccentricity, s.arg_periastron_deg, s.node_pa_deg) == (0.108, 232.0, 131.6)
+    camp = cat.load_campaign("movie_spica_isi_orbit")
+    assert camp.option("options.reference_periastron")["omega_deg"] == 90.0 and camp.option("options.fit_periastron_step_deg") == 2.0
+    assert cat.load_campaign("movie_capella_isi_orbit").option("options.pupils") is True
+    assert cat.load_campaign("movie_altair_isi_oblate").option("options.oblateness") is True
