@@ -403,7 +403,7 @@ traced to its inputs. `suite_phase6` runs everything (`--jobs 4`).
 | `mc_sirius_b_lpqi_pathfinder` | montecarlo | Sirius B diameter Monte Carlo on the LPQI-Pathfinder (NOT + TNG, 550 m, one 1 nm filter) |
 | `mc_sirius_b_lpqi_r10000` | montecarlo | Sirius B on the LPQI-Pathfinder with the final instrument: R = 10 000 spectrograph on the 10 ps IMSE-LPQI array |
 | `movie_altair_isi_oblate` | nightmovie | Movie: Altair's oblateness with the three ISI trucks in a triangle at 650 nm, two nights (the first intensity-interferometric stellar shape) |
-| `movie_betaaur_isi_orbit` | nightmovie | Movie: beta Aurigae's orbit with the three ISI trucks in a 45 m triangle at 650 nm, seven consecutive nights (1.77 orbits): the orbital parallax against Hipparcos and the 2026 CHARA orbit |
+| `movie_betaaur_isi_orbit` | nightmovie | Movie: beta Aurigae with the three ISI trucks at 650 nm, three nights on a 30 m triangle and four on a 60 m one: the orbital parallax against Hipparcos and the 2026 CHARA orbit, and the twins' diameters free of the distance |
 | `movie_betcep_lpqi_pulsation` | nightmovie | Movie: beta Cep on the LPQI-Pathfinder, the pulsating diameter (one night, then a season folded on the 4.57 h period; 550 nm, MPD) |
 | `movie_betelgeuse_isi` | nightmovie | Movie: Betelgeuse's |V|^2(B) fully measured with the ISI pair at 900 nm, one baseline per night from 2.5 to 25 m |
 | `movie_betelgeuse_isi_chromatic` | nightmovie | Movie: Betelgeuse's TiO-band (650 nm) against near-continuum (900 nm) diameter with the ISI line, three nights |

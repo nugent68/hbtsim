@@ -282,5 +282,6 @@ def test_first_week_targets():
     ba = cat.load_target("betaaur")
     assert ba.angular_semimajor_mas == pytest.approx(3.292, abs=0.002) and 2 * ba.angular_radius_mas(ba.primary) == pytest.approx(1.033, abs=0.002)
     bc = cat.load_campaign("movie_betaaur_isi_orbit")
-    assert bc.option("instrument.array_params")["side_m"] == 45.0 and bc.option("options.fit_scale_step") == 0.002
+    assert [(e["side_m"], e["nights"]) for e in bc.option("options.schedule")] == [(30.0, 3), (60.0, 4)]
+    assert bc.option("options.fit_theta_range") == [0.85, 1.15] and bc.option("options.fit_scale_step") == 0.002
     assert [r["pc"] for r in bc.option("options.reference_distances")] == [24.87, 24.3]

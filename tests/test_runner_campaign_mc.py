@@ -362,3 +362,32 @@ def test_nightmovie_spica_periastron_fit(tmp_path):
     assert g["reference_periastron"]["omega_deg"] == 90.0 and abs(g["omega_advance_deg"] - 142.0) <= 90.0
     assert g["sigma_omega_advance_deg"] >= 10.0                                   # the reference's 10 deg floor
     assert g["n_blocks"] <= res["n_blocks"] * 3 * 3
+
+
+def test_nightmovie_betaaur_free_diameters(tmp_path):
+    import numpy as np
+    """beta Aur on the ISI triangle, one night at 30 m and one at 60 m,
+    coarse grids, the diameters a free factor k of the global fit and of
+    the Fisher matrix: the eclipse blocks are rendered (small grid) and
+    dropped from the fit, the 4-D chi^2 over (scale, node, k) finds the
+    orbit's scale and k near 1, and sigma(theta) tightens with the 60 m
+    night."""
+    from hbtsim.run_campaign import RunOptions, run
+    cat = _tiny(tmp_path, "movie_betaaur_isi_orbit", "tiny_betaaur",
+                {"schedule": [{"side_m": 30.0, "nights": 1}, {"side_m": 60.0, "nights": 1}], "fit_step_mas": 0.05,
+                 "fit_scale_step": 0.01, "fit_node_step_deg": 5.0, "fit_theta_range": [0.8, 1.2], "fit_theta_step": 0.02,
+                 "render_n_max": 1024})
+    res = run(cat, cat.load_campaign("tiny_betaaur"), RunOptions(out_dir=tmp_path / "out", figures=False))
+    assert res["n_nights"] == 2 and res["n_pairs"] == 3 and res["schedule"] == [0, 1]
+    assert res["configs"][0]["ground_baselines_m"] == pytest.approx([30.0] * 3) and res["configs"][1]["ground_baselines_m"] == pytest.approx([60.0] * 3)
+    n1, n2 = res["nights"]
+    assert 0.0 < n1["eclipse_fraction"] < 0.5 and n2["eclipse_fraction"] == 0.0          # phase 0.2: the first night grazes an eclipse
+    assert n1["sigma_theta_frac_cumulative"] > n2["sigma_theta_frac_cumulative"] > 0.0
+    assert n2["sigma_distance_frac_cumulative"] < n1["sigma_distance_frac_cumulative"]
+    g = res["global_fit"]
+    assert g["fit_diameters"] is True and g["fit_periastron"] is False
+    assert 0.8 <= g["theta_scale_best"] <= 1.2 and g["theta_scale68"][0] <= g["theta_scale_best"] <= g["theta_scale68"][1]
+    assert g["theta_primary_truth_mas"] == pytest.approx(1.033, abs=0.002) and g["theta_secondary_truth_mas"] == pytest.approx(0.960, abs=0.002)
+    assert abs(g["theta_primary_best_mas"] / g["theta_primary_truth_mas"] - 1) < 0.15 and abs(g["a_best_mas"] / res["semimajor_mas"] - 1) < 0.05
+    assert g["theta_primary68_mas"][0] <= g["theta_primary_best_mas"] <= g["theta_primary68_mas"][1]
+    assert res["cumulative_fit"][-1]["theta_scale_best"] == g["theta_scale_best"]

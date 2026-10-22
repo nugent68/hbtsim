@@ -13,12 +13,12 @@
   "outputs": {
     "figures": true
   },
-  "label": "Movie: beta Aurigae's orbit with the three ISI trucks in a 45 m triangle at 650 nm, seven consecutive nights (1.77 orbits): the orbital parallax against Hipparcos and the 2026 CHARA orbit",
+  "label": "Movie: beta Aurigae with the three ISI trucks at 650 nm, three nights on a 30 m triangle and four on a 60 m one: the orbital parallax against Hipparcos and the 2026 CHARA orbit, and the twins' diameters free of the distance",
   "target": "betaaur",
   "instrument": {
     "array": "isi_triangle",
     "array_params": {
-      "side_m": 45.0
+      "side_m": 30.0
     }
   },
   "backends": [
@@ -27,8 +27,12 @@
   "options": {
     "schedule": [
       {
-        "side_m": 45.0,
-        "nights": 7
+        "side_m": 30.0,
+        "nights": 3
+      },
+      {
+        "side_m": 60.0,
+        "nights": 4
       }
     ],
     "phase0": 0.2,
@@ -42,6 +46,11 @@
     ],
     "fit_scale_step": 0.002,
     "fit_step_mas": 0.01,
+    "fit_theta_range": [
+      0.85,
+      1.15
+    ],
+    "fit_theta_step": 0.005,
     "display_bin_blocks": 3,
     "reference_distances": [
       {
@@ -60,9 +69,9 @@
     "dpi": 110
   },
   "notes": [
-    "The 1.03 and 0.96 mas twins null at 158 and 170 m at 650 nm and the pair's fringe period lambda/a is 41 m at quadrature (a = 3.29 mas): the trucks in a 45 m equilateral triangle (projected baselines 23-45 m at three position angles 60 deg apart) sit inside the first lobe (disk |V|^2 0.74) and sweep a full fringe every night, |V|^2 running from ~0 to 0.8. Dec +45: 10.5 h per night above 30 deg at Palomar, twice Spica's window, which repays the factor two in flux.",
-    "Seven nights from phase 0.2 cover 1.77 of the 3.96 d orbit. The partial eclipses (i = 76.8, a cos i = 0.75 mas against R1 + R2 = 1.00 mas) last 6 h and cover 13 % of the orbit; 38-52 % of the blocks on four of the seven nights fall within hbtsim's near-eclipse margin, are rendered through the two-disk image grid and are dropped from the separation fit. The fit holds the radii fixed and scales the system, so a is the orbital parallax: with the spectroscopic a (AU) known to a few tenths of a percent, sigma(a)/a is sigma(d)/d.",
-    "Expected (Fisher): sigma(a)/a 0.7 %, sigma(node) 0.3 deg after seven nights, one chi^2 island from night 2. Kepler's law with the Southworth et al. 2007 masses gives 3.29 mas at the Hipparcos 24.87 pc; the 2026 CHARA orbit found 3.365 mas at 24.30 pc (2.3 % apart): the week decides between them. A 30 m side gives 0.9 % and 0.5 deg.",
-    "Not modelled: the diameters are not free parameters (a two-side schedule, 30 + 60 m, would separate them from the distance) and the eclipse blocks, where |V|^2 encodes the limb-darkened overlap, are not fitted."
+    "The 1.03 and 0.96 mas twins null at 158 and 170 m at 650 nm and the pair's fringe period lambda/a is 41 m at quadrature (a = 3.29 mas): the trucks in a 30 m equilateral triangle (projected 16-30 m, disk |V|^2 0.88) and then a 60 m one (31-60 m, disk |V|^2 0.58) sit inside the first lobe at three position angles 60 deg apart and sweep a full fringe every night, |V|^2 running from ~0 to 0.9. Dec +45: 10.5 h per night above 30 deg at Palomar, twice Spica's window, which repays the factor two in flux.",
+    "Seven nights from phase 0.2 (hbtsim's phase 0 is maximum separation; the eclipses fall at 0.25 and 0.75) cover 1.77 of the 3.96 d orbit. The partial eclipses (i = 76.8, a cos i = 0.75 mas against R1 + R2 = 1.00 mas) last 6 h and cover 13 % of the orbit; 38-52 % of the blocks on four of the seven nights fall within hbtsim's near-eclipse margin, are rendered through the two-disk image grid (the movie draws them) and are dropped from the separation fit.",
+    "fit_theta_range makes the diameters a free factor k on both catalog radii (their ratio and the SED fixed): the fringe phase pins the orbit's scale s (a and, with the spectroscopic a in AU, the distance), the disk envelope pins s x k, and the two sides of the triangle give the lever -- after the three 30 m nights sigma(theta)/theta is 10 %, after the first 60 m night 3.9 %, after seven 2.6 % (Fisher), while sigma(a)/a stays 0.71 % (0.68 % with the diameters held). The global chi^2 over (scale, node, k) of the seed-7 run is one island from night 2 and ends at a = 3.351 mas (68 % 3.311-3.384; truth 3.292), d = 24.4 pc (24.2-24.7), k = 0.960 (0.915-1.010): theta = 1.009 / 0.939 mas against 1.033 / 0.960 (the 68 % extents are the joint Delta chi^2 < 3.53 region, 1.9 x the marginal sigma).",
+    "Kepler's law with the Southworth et al. 2007 masses gives 3.29 mas at the Hipparcos 24.87 pc; the 2026 CHARA orbit found 3.365 mas at 24.30 pc (2.3 % apart): the week decides between them. Not modelled: the eclipse blocks, where |V|^2 encodes the limb-darkened overlap, are not fitted; the two diameters share one factor (a 1 mas twin pair cannot separate them at this S/N)."
   ]
 }

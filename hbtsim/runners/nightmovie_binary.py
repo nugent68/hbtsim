@@ -29,6 +29,13 @@ stations, night.block_minutes); options:
                          argument of periastron (0-360 deg): the right panel shows the distance
                          after each night with the surviving fringe-alias solutions; the closing
                          act shows the map and the family of orbits allowed at 68 %
+  fit_theta_range, fit_theta_step
+                         when given, the stars' angular diameters are a free parameter of the
+                         global fit and the Fisher matrix: a common factor k on both radii
+                         (their ratio and the SED fixed) over [lo, hi] in steps -- the fringe
+                         phase pins the orbit's scale, the disk envelope k, so a and the
+                         diameters separate (two sides of a triangle give the lever); the fit
+                         then reports theta_1, theta_2 beside a and d
   reference_distances    [{label, pc, lo_pc, hi_pc}] drawn on the distance panel (e.g. Hipparcos)
   reference_periastron   {label, omega_deg, sigma_deg[, expected_advance_deg]}: an earlier orbit's
                          periastron; the result carries the apsidal advance omega_fit - omega_ref
@@ -64,7 +71,7 @@ from hbtsim.snr import (Observation, g2_snr, incident_rate, polarization_streams
 from hbtsim.spectral import spectral_vis
 
 # Delta chi^2 of the 68 % and 95 % regions for 2 and 3 fitted parameters
-_DCHI2 = {2: (2.30, 6.17), 3: (3.53, 7.81)}
+_DCHI2 = {2: (2.30, 6.17), 3: (3.53, 7.81), 4: (4.72, 9.49)}
 
 
 def _budget_binary(system, lam, w, block_s, t1, t2, det, pol, throughput, f3):
@@ -216,19 +223,33 @@ def _fit_night(system, pos_track, ecl, bvecs, lam, v2_meas, sig, half, step, qua
     return best, cov, chi2, g
 
 
-def _fisher_night(system, night, with_omega):
-    """Fisher information of one night on (ln a_mas, Omega[, omega]):
+def _theta_scaled(system, k):
+    """The system with both stars' radii scaled by k -- the angular
+    diameters free of the orbit's scale -- with log g pinned so the SED
+    and limb darkening stay those of the catalog star."""
+    if k == 1.0:
+        return system
+    def sc(star):
+        return replace(star, radius_rsun=star.radius_rsun * k, logg=star.log_g)
+    return replace(system, primary=sc(system.primary), secondary=sc(system.secondary))
+
+
+def _fisher_night(system, night, with_omega, with_theta=False):
+    """Fisher information of one night on (ln a_mas, Omega[, omega][, ln k]):
     numerical derivatives of the analytic (pupil-averaged) |V|^2 of every
     pair and out-of-eclipse block with the distance (all angular sizes
-    scale), the node angle and the argument of periastron.  Blocks where a
-    perturbed orbit grazes the eclipse margin are skipped."""
-    names = ["lna", "Omega"] + (["omega"] if with_omega else [])
-    eps = {"lna": 0.01, "Omega": 0.5, "omega": 0.5}
+    scale), the node angle, the argument of periastron and, with
+    with_theta, the diameter factor k.  Blocks where a perturbed orbit
+    grazes the eclipse margin are skipped."""
+    names = ["lna", "Omega"] + (["omega"] if with_omega else []) + (["lnk"] if with_theta else [])
+    eps = {"lna": 0.01, "Omega": 0.5, "omega": 0.5, "lnk": 0.01}
     def pert(name, sgn):
         if name == "lna":                                      # ln a_mas = -ln d
             return replace(system, distance_pc=system.distance_pc * (1 - sgn * eps[name]))
         if name == "Omega":
             return replace(system, node_pa_deg=(system.node_pa_deg or 0.0) + sgn * eps[name])
+        if name == "lnk":
+            return _theta_scaled(system, 1 + sgn * eps[name])
         return replace(system, arg_periastron_deg=system.arg_periastron_deg + sgn * eps[name])
     systems = {nm: (pert(nm, +1), pert(nm, -1)) for nm in names}
     lam, P = night["lam"], night["bvec"].shape[0]
@@ -252,20 +273,23 @@ def _fisher_night(system, night, with_omega):
     return names, info
 
 
-def _islands(dchi2, grids, wrap_periods):
-    """The separate 95 % islands of a Delta chi^2 map over (scale, node[,
-    periastron]), the angle axes wrapping with the given periods; each
-    with its deepest point and its 68 % and 95 % extents per axis (the
-    extents of a wrapped axis follow the island across the wrap), deepest
-    first."""
+def _islands(dchi2, axes):
+    """The separate 95 % islands of a Delta chi^2 map; axes = [(name, grid,
+    wrap period or None)] in the map's axis order (scale, node[, periastron]
+    [, diameter factor]), the angle axes wrapping with their periods.  Each
+    island carries its deepest point and its 68 % and 95 % extents per axis
+    as <name>_best, <name>68, <name>95 (the extents of a wrapped axis follow
+    the island across the wrap; absent axes w, k give None), deepest first."""
     from scipy import ndimage
     nd = dchi2.ndim
     t68, t95 = _DCHI2[nd]
-    reps = (1,) + (3,) * (nd - 1)
-    tiled = np.tile(dchi2, reps)
-    ext = [grids[0]] + [np.concatenate([g - per, g, g + per]) for g, per in zip(grids[1:], wrap_periods)]
+    names = [a[0] for a in axes]
+    grids = [np.asarray(a[1], dtype=float) for a in axes]
+    wraps = [a[2] for a in axes]
+    tiled = np.tile(dchi2, tuple(3 if w else 1 for w in wraps))
+    ext = [np.concatenate([g - w, g, g + w]) if w else g for g, w in zip(grids, wraps)]
     lab, _ = ndimage.label(tiled < t95)
-    centre = tuple([slice(None)] + [slice(g.size, 2 * g.size) for g in grids[1:]])
+    centre = tuple(slice(g.size, 2 * g.size) if w else slice(None) for g, w in zip(grids, wraps))
     mid = lab[centre]
     out = []
     for L in set(np.unique(mid)) - {0}:
@@ -279,31 +303,40 @@ def _islands(dchi2, grids, wrap_periods):
                      float(ext[ax][np.any(mask, axis=tuple(o for o in range(nd) if o != ax))].max())) for ax in range(nd)]
         e95 = extent(comp)
         e68 = extent(comp & (tiled < t68))
-        isl = dict(s_best=float(grids[0][idx[0]]), om_best=float(grids[1][idx[1]]), dchi2_min=float(dchi2[idx]),
-                   s68=tuple(e68[0]) if e68 else None, s95=tuple(e95[0]),
-                   om68=tuple(e68[1]) if e68 else None, om95=tuple(e95[1]),
-                   w_best=float(grids[2][idx[2]]) if nd == 3 else None,
-                   w68=tuple(e68[2]) if (e68 and nd == 3) else None, w95=tuple(e95[2]) if nd == 3 else None)
+        isl = dict(dchi2_min=float(dchi2[idx]))
+        for ax, nm in enumerate(names):
+            isl[f"{nm}_best"] = float(grids[ax][idx[ax]])
+            isl[f"{nm}95"] = tuple(e95[ax])
+            isl[f"{nm}68"] = tuple(e68[ax]) if e68 else None
+        for nm in ("w", "k"):
+            if nm not in names:
+                isl[f"{nm}_best"] = isl[f"{nm}68"] = isl[f"{nm}95"] = None
         out.append(isl)
     return sorted(out, key=lambda d: d["dchi2_min"])
 
 
-def _global_fit(system, nights, s_grid, om_grid, w_grid=None):
+def _global_fit(system, nights, s_grid, om_grid, w_grid=None, k_grid=None):
     """chi^2 of every out-of-eclipse block of every pair over the orbit's
     angular scale s (a_mas = s x the assumed value, all angular sizes
-    scaling with it), the node angle offset Omega and, when w_grid is
-    given, the argument of periastron omega.  Positions are computed once
-    per (omega, block) at s = 1 and scaled; the node rotation is analytic;
-    A, C once per (s, pair).  The chi^2 is accumulated night by night, so
-    the result carries the fit after 1, 2, ... N nights as well as the
-    final map and its islands (the fringe aliases)."""
+    scaling with it), the node angle offset Omega, when w_grid is given
+    the argument of periastron omega and, when k_grid is given, a common
+    factor k on the two diameters (so the disks measure s x k and the
+    fringe s: the diameters come free of the distance).  Positions are
+    computed once per (omega, block) at s = 1 and scaled; the node
+    rotation is analytic; A, C once per (s, k, pair).  The chi^2 is
+    accumulated night by night, so the result carries the fit after 1,
+    2, ... N nights as well as the final map and its islands (the fringe
+    aliases)."""
     fit_w = w_grid is not None
+    fit_k = k_grid is not None
     W = np.asarray(w_grid if fit_w else [system.arg_periastron_deg], dtype=float)
+    Kd = np.asarray(k_grid if fit_k else [1.0], dtype=float)
     om = np.radians(om_grid)
     cos_o, sin_o = np.cos(om)[None, :, None], np.sin(om)[None, :, None]
-    shape = (s_grid.size, om_grid.size) + ((W.size,) if fit_w else ())
+    shape = (s_grid.size, om_grid.size) + ((W.size,) if fit_w else ()) + ((Kd.size,) if fit_k else ())
     chi2 = np.zeros(shape)
-    sys_s = [replace(system, distance_pc=system.distance_pc / sc) for sc in s_grid]
+    sys_sk = [[_theta_scaled(replace(system, distance_pc=system.distance_pc / sc), float(kk)) for kk in Kd] for sc in s_grid]
+    axes = [("s", s_grid, None), ("om", om_grid, 180.0)] + ([("w", W, 180.0)] if fit_w else []) + ([("k", Kd, None)] if fit_k else [])
     per_night, n_blocks = [], 0
     for j, nn in enumerate(nights):
         ks = [k for k in range(len(nn["phases"])) if not nn["eclipse"][k]]
@@ -327,30 +360,39 @@ def _global_fit(system, nights, s_grid, om_grid, w_grid=None):
                 if quad is not None:
                     o = quad.offsets_m / lam_m                 # (M, 2)
                     ph_o = (o[:, 0, None, None, None] * dxr[None] + o[:, 1, None, None, None] * dyr[None]) * MAS
+                    pts = quad.points(bv).reshape(-1, 2)
                 data = np.asarray(nn["v2_meas"])[p, ks]
                 sig = nn["sigma"][p]
                 for i, sc in enumerate(s_grid):
                     if quad is None:
-                        a, c = _pair_terms(sys_s[i], None, bv, nn["lam"])
                         fr = np.cos(2 * np.pi * sc * ph0)
                     else:
-                        pts = quad.points(bv).reshape(-1, 2)
-                        am, cm = _pair_terms(sys_s[i], None, pts, nn["lam"])
-                        am, cm = am.reshape(len(ks), -1), cm.reshape(len(ks), -1)
-                        a = quad.reduce(am)
-                        wc = quad.weights[None, :] * cm                       # (K, M): amplitude-weighted envelope
                         arg = 2 * np.pi * sc * ph0
-                        env_c = np.einsum("km,mkow->kow", wc, np.cos(2 * np.pi * sc * ph_o))
-                        env_s = np.einsum("km,mkow->kow", wc, np.sin(2 * np.pi * sc * ph_o))
-                        fr = np.cos(arg) * env_c - np.sin(arg) * env_s
-                        c = np.ones(len(ks))
-                    model = a[:, None, None] + c[:, None, None] * fr          # (K, OM, W)
-                    r = ((data[:, None, None] - model) / sig) ** 2
-                    chi2[i] += r.sum(axis=0) if fit_w else r.sum(axis=0)[:, 0]
+                        cos_po, sin_po = np.cos(2 * np.pi * sc * ph_o), np.sin(2 * np.pi * sc * ph_o)
+                    for ik in range(Kd.size):
+                        if quad is None:
+                            a, c = _pair_terms(sys_sk[i][ik], None, bv, nn["lam"])
+                            model = a[:, None, None] + c[:, None, None] * fr          # (K, OM, W)
+                        else:
+                            am, cm = _pair_terms(sys_sk[i][ik], None, pts, nn["lam"])
+                            am, cm = am.reshape(len(ks), -1), cm.reshape(len(ks), -1)
+                            a = quad.reduce(am)
+                            wc = quad.weights[None, :] * cm                       # (K, M): amplitude-weighted envelope
+                            env_c = np.einsum("km,mkow->kow", wc, cos_po)
+                            env_s = np.einsum("km,mkow->kow", wc, sin_po)
+                            model = a[:, None, None] + np.cos(arg) * env_c - np.sin(arg) * env_s
+                        r = (((data[:, None, None] - model) / sig) ** 2).sum(axis=0)   # (OM, W)
+                        if not fit_w:
+                            r = r[:, 0]
+                        if fit_k:
+                            chi2[i, ..., ik] += r
+                        else:
+                            chi2[i] += r
                 n_blocks += len(ks)
         d = chi2 - chi2.min()
-        isl = _islands(d, [s_grid, om_grid] + ([W] if fit_w else []), [180.0] + ([180.0] if fit_w else []))
+        isl = _islands(d, axes)
         per_night.append(dict(new_info=new, s_best=isl[0]["s_best"], om_best=isl[0]["om_best"], w_best=isl[0]["w_best"],
+                              k_best=isl[0]["k_best"], k68_best_island=(isl[0]["k68"] or isl[0]["k95"]) if fit_k else None,
                               s68_best_island=isl[0]["s68"] or isl[0]["s95"], islands=isl, n_islands95=len(isl)))
     d = chi2 - chi2.min()
     idx = np.unravel_index(int(np.argmin(chi2)), chi2.shape)
@@ -360,7 +402,9 @@ def _global_fit(system, nights, s_grid, om_grid, w_grid=None):
     fin = per_night[-1]
     best = fin["islands"][0]
     return dict(chi2=chi2, dchi2=d, s_grid=s_grid, om_grid=om_grid, w_grid=W if fit_w else None, fit_w=fit_w,
+                k_grid=Kd if fit_k else None, fit_k=fit_k,
                 s_best=float(s_grid[idx[0]]), om_best=float(om_grid[idx[1]]), w_best=float(W[idx[2]]) if fit_w else None,
+                k_best=float(Kd[idx[-1]]) if fit_k else None, k68_best_island=fin["k68_best_island"],
                 s68=s_rng(d < t68), s95=s_rng(d < t95), s68_best_island=fin["s68_best_island"], n_islands95=fin["n_islands95"],
                 om68_best_island=best["om68"] or best["om95"], w68_best_island=(best["w68"] or best["w95"]) if fit_w else None,
                 n_blocks=n_blocks, per_night=per_night)
@@ -427,11 +471,15 @@ def run_binary(campaign, cat, opts, out_dir: Path) -> dict:
     lam = c0["lam"]
     P_orb = system.period_days
     with_omega = system.eccentricity > 0.0
+    k_rng = opt("options.fit_theta_range")
+    with_theta = bool(k_rng)
+    k_grid = np.arange(float(k_rng[0]), float(k_rng[1]) + 1e-9, float(opt("options.fit_theta_step", 0.01))) if with_theta else None
     print(f"{system.name}: a = {system.angular_semimajor_mas:.3f} mas, P = {P_orb:.4f} d, e = {system.eccentricity:.3f}"
           + (f" (omega {system.arg_periastron_deg:.1f} deg)" if with_omega else "") + ", "
           f"diameters {2 * system.angular_radius_mas(system.primary):.3f} / "
           f"{2 * system.angular_radius_mas(system.secondary):.3f} mas, d = {system.distance_pc:.0f} pc; "
-          f"{len(cfgs)} configuration(s) over {n_nights} nights" + (", pupil-averaged model" if pupils else ""))
+          f"{len(cfgs)} configuration(s) over {n_nights} nights" + (", pupil-averaged model" if pupils else "")
+          + (", diameters free" if with_theta else ""))
     for c in cfgs:
         bud = c["bud"]
         print(f"  {'+'.join(c['stations'])} ({', '.join(c['pair_names'])}), {c['label']}: {c['mids'].size} blocks of {block_minutes:g} min, "
@@ -491,16 +539,18 @@ def run_binary(campaign, cat, opts, out_dir: Path) -> dict:
                   f"({100 * ecl.mean():.0f} % of the blocks), |V|^2 {v2_true.min():.3f}-{v2_true.max():.3f}, no fringe")
         nights.append(night)
         # the cumulative (a, Omega[, omega]) precision after this night
-        names, info = _fisher_night(system, night, with_omega)
+        names, info = _fisher_night(system, night, with_omega, with_theta)
         F_tot = info if F_tot is None else F_tot + info
         try:
             cov_so = np.linalg.inv(F_tot)
             sigs = [float(np.sqrt(cov_so[i, i])) for i in range(len(names))]
         except np.linalg.LinAlgError:
             sigs = [float("inf")] * len(names)
-        night.update(sigma_lna=sigs[0], sigma_omega_deg=sigs[1], sigma_periastron_deg=sigs[2] if with_omega else None)
+        night.update(sigma_lna=sigs[0], sigma_omega_deg=sigs[1], sigma_periastron_deg=sigs[2] if with_omega else None,
+                     sigma_lnk=sigs[-1] if with_theta else None)
         print(f"    after {j + 1} night(s): sigma(a)/a = sigma(d)/d = {100 * sigs[0]:.2f} %, sigma(Omega) = {sigs[1]:.2f} deg"
-              + (f", sigma(omega) = {sigs[2]:.2f} deg" if with_omega else ""))
+              + (f", sigma(omega) = {sigs[2]:.2f} deg" if with_omega else "")
+              + (f", sigma(theta)/theta = {100 * sigs[-1]:.2f} %" if with_theta else ""))
 
     gfit = None
     w_step = opt("options.fit_periastron_step_deg")
@@ -511,7 +561,7 @@ def run_binary(campaign, cat, opts, out_dir: Path) -> dict:
         om_grid = np.arange(0.0, 180.0, float(opt("options.fit_node_step_deg", 1.5)))
         # |V|^2 is even in the separation, so omega and omega + 180 are indistinguishable: fit omega modulo 180
         w_grid = np.arange(0.0, 180.0, float(w_step)) if (w_step and with_omega) else None
-        gfit = _global_fit(system, nights, s_grid, om_grid, w_grid)
+        gfit = _global_fit(system, nights, s_grid, om_grid, w_grid, k_grid)
         a0 = system.angular_semimajor_mas
         d0 = system.distance_pc
         for j, pn in enumerate(gfit["per_night"]):
@@ -521,12 +571,20 @@ def run_binary(campaign, cat, opts, out_dir: Path) -> dict:
             print(f"    global fit after night {j + 1}: d = {d0 / pn['s_best']:.1f} pc (68 % {d0 / hi:.1f}-{d0 / lo:.1f}), "
                   f"{pn['n_islands95']} island(s)" + ("" if pn["n_islands95"] == 1 else
                   "; others at d = " + ", ".join(f"{d0 / x['s_best']:.0f}" for x in pn["islands"][1:4]) + " pc")
-                  + (f"; omega {pn['w_best']:.0f} deg" if gfit["fit_w"] else ""))
+                  + (f"; omega {pn['w_best']:.0f} deg" if gfit["fit_w"] else "")
+                  + (f"; theta x {pn['k_best']:.3f}" if gfit["fit_k"] else ""))
         print(f"  global fit of all {n_nights} nights ({gfit['n_blocks']} pair-blocks out of eclipse) over scale x node"
-              + (" x periastron" if gfit["fit_w"] else "") + f": best a = {gfit['s_best'] * a0:.4f} mas (d = {d0 / gfit['s_best']:.1f} pc), "
+              + (" x periastron" if gfit["fit_w"] else "") + (" x diameters" if gfit["fit_k"] else "") + f": best a = {gfit['s_best'] * a0:.4f} mas (d = {d0 / gfit['s_best']:.1f} pc), "
               f"node offset {gfit['om_best']:+.2f} deg; 68 % in the best island a = {gfit['s68_best_island'][0] * a0:.4f}-"
               f"{gfit['s68_best_island'][1] * a0:.4f} mas, 68 % overall {gfit['s68'][0] * a0:.4f}-{gfit['s68'][1] * a0:.4f} mas; "
               f"{gfit['n_islands95']} separate 95 % island(s)")
+        if gfit["fit_k"]:
+            k68 = gfit["k68_best_island"]
+            th1, th2 = 2 * system.angular_radius_mas(system.primary), 2 * system.angular_radius_mas(system.secondary)
+            kk = gfit["k_best"] * gfit["s_best"]                       # the diameters measure s x k
+            print(f"  diameters (factor k on the catalog radii, free of the distance): k = {gfit['k_best']:.3f} (68 % {k68[0]:.3f}-{k68[1]:.3f}); "
+                  f"theta = {kk * th1:.3f} / {kk * th2:.3f} mas (truth {th1:.3f} / {th2:.3f}), "
+                  f"sigma(theta)/theta {100 * 0.5 * (k68[1] - k68[0]) / gfit['k_best']:.1f} %")
         if gfit["fit_w"]:
             w68 = gfit["w68_best_island"]
             print(f"  argument of periastron (modulo 180; the spectroscopic orbit picks the half): {gfit['w_best']:.1f} deg "
@@ -555,7 +613,8 @@ def run_binary(campaign, cat, opts, out_dir: Path) -> dict:
                        "truth_in_region68": n.get("truth_in_region"),
                        "sigma_distance_frac_cumulative": n["sigma_lna"],
                        "sigma_omega_deg_cumulative": n["sigma_omega_deg"],
-                       "sigma_periastron_deg_cumulative": n["sigma_periastron_deg"]} for n in nights]}
+                       "sigma_periastron_deg_cumulative": n["sigma_periastron_deg"],
+                       "sigma_theta_frac_cumulative": n["sigma_lnk"]} for n in nights]}
     if gfit is not None:
         a0 = system.angular_semimajor_mas
         out["global_fit"] = {"scale_best": gfit["s_best"], "a_best_mas": gfit["s_best"] * a0,
@@ -563,7 +622,16 @@ def run_binary(campaign, cat, opts, out_dir: Path) -> dict:
                              "a68_mas": [x * a0 for x in gfit["s68"]], "a95_mas": [x * a0 for x in gfit["s95"]],
                              "a68_best_island_mas": [x * a0 for x in gfit["s68_best_island"]],
                              "node68_best_island_deg": list(gfit["om68_best_island"]), "n_islands95": gfit["n_islands95"],
-                             "n_blocks": gfit["n_blocks"], "fit_periastron": gfit["fit_w"]}
+                             "n_blocks": gfit["n_blocks"], "fit_periastron": gfit["fit_w"], "fit_diameters": gfit["fit_k"]}
+        if gfit["fit_k"]:
+            k68 = gfit["k68_best_island"]
+            th1, th2 = 2 * system.angular_radius_mas(system.primary), 2 * system.angular_radius_mas(system.secondary)
+            kk = gfit["k_best"] * gfit["s_best"]
+            out["global_fit"].update(theta_scale_best=gfit["k_best"], theta_scale68=list(k68),
+                                     theta_primary_best_mas=kk * th1, theta_secondary_best_mas=kk * th2,
+                                     theta_primary68_mas=[k68[0] * gfit["s_best"] * th1, k68[1] * gfit["s_best"] * th1],
+                                     theta_primary_truth_mas=th1, theta_secondary_truth_mas=th2,
+                                     sigma_theta_frac=0.5 * (k68[1] - k68[0]) / gfit["k_best"])
         if gfit["fit_w"]:
             w68 = gfit["w68_best_island"]
             out["global_fit"].update(omega_best_deg=gfit["w_best"], omega68_deg=list(w68),
@@ -574,6 +642,7 @@ def run_binary(campaign, cat, opts, out_dir: Path) -> dict:
                                  {"nights": j + 1, "new_info": pn["new_info"], "distance_best_pc": system.distance_pc / pn["s_best"],
                                   "distance68_pc": [system.distance_pc / pn["s68_best_island"][1], system.distance_pc / pn["s68_best_island"][0]],
                                   "a_best_mas": pn["s_best"] * a0, "n_islands95": pn["n_islands95"], "omega_best_deg": pn["w_best"],
+                                  "theta_scale_best": pn["k_best"],
                                   "other_islands_pc": [system.distance_pc / x["s_best"] for x in pn["islands"][1:]]}
                                  for j, pn in enumerate(gfit["per_night"])]
     if opts.figures:
@@ -686,6 +755,7 @@ def _render_binary(path, system, cfgs, nights, nbin_show, f3, fps=15, dpi=110, g
         d_txt.set_text(f"after {j + 1} night(s): d = {d0 / pn['s_best']:.1f} pc (68 %: {d0 / hi:.1f}–{d0 / lo:.1f})\n"
                        f"{pn['n_islands95']} solution(s) survive at 95 %"
                        + (f"\nω = {pn['w_best']:.0f}°" if gfit["fit_w"] else "")
+                       + (f"\nθ = {pn['k_best'] * pn['s_best'] * 2 * r1:.3f} / {pn['k_best'] * pn['s_best'] * 2 * r2:.3f} mas" if gfit["fit_k"] else "")
                        + ("" if pn["new_info"] else "  — eclipse night, nothing added"))
 
     def frame(j, k):
@@ -726,7 +796,9 @@ def _render_binary(path, system, cfgs, nights, nbin_show, f3, fps=15, dpi=110, g
             pts[p].remove()
             pts[p] = ax_v.errorbar(xs, ys, yerr=es, fmt="o", color=pair_colors[p % len(pair_colors)], ms=5, capsize=2, lw=1)
             curs[p].set_data([mids[k]], [nn["v2_true"][p, k]])
-        v_txt.set_text(f"night {j + 1} of {N}" + (f": {c['label'][:24]}" if len(cfgs) > 1 else "")
+        gb = sorted(set(round(float(x)) for x in c["ground_baselines_m"]))
+        cfg_lbl = c["label"][:24] if len(labels) > 1 else (f"B {gb[0]} m" if len(gb) == 1 else f"B {gb[0]}–{gb[-1]} m")
+        v_txt.set_text(f"night {j + 1} of {N}" + (f": {cfg_lbl}" if len(cfgs) > 1 else "")
                        + ("  — eclipse: the fringe is gone" if nn["eclipse"].mean() >= 0.5 else ""))
         pending.set_xdata([j + 1, j + 1])
         if k == n - 1:
@@ -737,7 +809,7 @@ def _render_binary(path, system, cfgs, nights, nbin_show, f3, fps=15, dpi=110, g
     if gfit is not None:
         d, S, OMg = gfit["dchi2"], gfit["s_grid"], gfit["om_grid"]
         t68, t95 = _DCHI2[d.ndim]
-        d_map = d.min(axis=2) if gfit["fit_w"] else d           # the profile over the periastron
+        d_map = d.reshape(d.shape[0], d.shape[1], -1).min(axis=2)   # the profile over the periastron and the diameters
         cand = np.argwhere(d < t68)
         rng_draw = np.random.default_rng(1)
         if cand.shape[0] > 50:
@@ -765,7 +837,8 @@ def _render_binary(path, system, cfgs, nights, nbin_show, f3, fps=15, dpi=110, g
         ax_chi.set_xlim(gfit["om_best"] - min(h_om, 90.0), gfit["om_best"] + min(h_om, 90.0))
         ax_chi.set_ylim(max(S[0], gfit["s_best"] - h_s), min(S[-1], gfit["s_best"] + h_s))
         ax_chi.set_xlabel("node angle offset [°]"); ax_chi.set_ylabel("orbit scale a / a₀ = d₀ / d")
-        ax_chi.set_title(f"χ² of all nights: Δχ² < {t68:.1f} (68 %), < {t95:.1f} (95 %)" + (", profiled over ω" if gfit["fit_w"] else ""), fontsize=9)
+        prof = [nm for nm, f in (("ω", gfit["fit_w"]), ("θ", gfit["fit_k"])) if f]
+        ax_chi.set_title(f"χ² of all nights: Δχ² < {t68:.1f} (68 %), < {t95:.1f} (95 %)" + (f", profiled over {', '.join(prof)}" if prof else ""), fontsize=9)
         ax_chi.legend(fontsize=8, loc="upper right")
         ax_orb = fig.add_axes(ax_v.get_position()); ax_orb.set_visible(False)
         ax_orb.plot(ox, oy, color="0.75", lw=1.5)
@@ -782,6 +855,11 @@ def _render_binary(path, system, cfgs, nights, nbin_show, f3, fps=15, dpi=110, g
                 w_txt += f"\nadvance since {ref_w['label'].split(' (')[0].split(':')[0]} (ω {float(ref_w['omega_deg']):.0f}°): {adv:+.0f} ± {s_adv:.0f}°"
         else:
             w_txt = ""
+        if gfit["fit_k"]:
+            k68 = gfit["k68_best_island"]
+            kk = gfit["k_best"] * gfit["s_best"]
+            w_txt += ("\n" if w_txt else "") + (f"θ = {kk * 2 * r1:.3f} / {kk * 2 * r2:.3f} mas (68 % ±{100 * 0.5 * (k68[1] - k68[0]) / gfit['k_best']:.1f} %), "
+                                                 f"truth {2 * r1:.3f} / {2 * r2:.3f}")
         fam = []
 
         def final(k):
