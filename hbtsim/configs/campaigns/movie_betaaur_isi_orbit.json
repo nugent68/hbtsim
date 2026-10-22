@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "movie_betaaur_isi_orbit",
+  "runner": "nightmovie",
+  "night": {
+    "block_minutes": 10.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "outputs": {
+    "figures": true
+  },
+  "label": "Movie: beta Aurigae's orbit with the three ISI trucks in a 45 m triangle at 650 nm, seven consecutive nights (1.77 orbits): the orbital parallax against Hipparcos and the 2026 CHARA orbit",
+  "target": "betaaur",
+  "instrument": {
+    "array": "isi_triangle",
+    "array_params": {
+      "side_m": 45.0
+    }
+  },
+  "backends": [
+    "isi_pdm_650"
+  ],
+  "options": {
+    "schedule": [
+      {
+        "side_m": 45.0,
+        "nights": 7
+      }
+    ],
+    "phase0": 0.2,
+    "night_step_days": 1.0,
+    "third_light_fraction": 0.0,
+    "pupils": false,
+    "fit_node_step_deg": 1.0,
+    "fit_scale_range": [
+      0.9,
+      1.1
+    ],
+    "fit_scale_step": 0.002,
+    "fit_step_mas": 0.01,
+    "display_bin_blocks": 3,
+    "reference_distances": [
+      {
+        "label": "Hipparcos (van Leeuwen 2007)",
+        "pc": 24.87,
+        "lo_pc": 24.73,
+        "hi_pc": 25.01
+      },
+      {
+        "label": "CHARA orbit (Jonak et al. 2026)",
+        "pc": 24.3
+      }
+    ],
+    "seed": 7,
+    "fps": 12,
+    "dpi": 110
+  },
+  "notes": [
+    "The 1.03 and 0.96 mas twins null at 158 and 170 m at 650 nm and the pair's fringe period lambda/a is 41 m at quadrature (a = 3.29 mas): the trucks in a 45 m equilateral triangle (projected baselines 23-45 m at three position angles 60 deg apart) sit inside the first lobe (disk |V|^2 0.74) and sweep a full fringe every night, |V|^2 running from ~0 to 0.8. Dec +45: 10.5 h per night above 30 deg at Palomar, twice Spica's window, which repays the factor two in flux.",
+    "Seven nights from phase 0.2 cover 1.77 of the 3.96 d orbit. The partial eclipses (i = 76.8, a cos i = 0.75 mas against R1 + R2 = 1.00 mas) last 6 h and cover 13 % of the orbit; 38-52 % of the blocks on four of the seven nights fall within hbtsim's near-eclipse margin, are rendered through the two-disk image grid and are dropped from the separation fit. The fit holds the radii fixed and scales the system, so a is the orbital parallax: with the spectroscopic a (AU) known to a few tenths of a percent, sigma(a)/a is sigma(d)/d.",
+    "Expected (Fisher): sigma(a)/a 0.7 %, sigma(node) 0.3 deg after seven nights, one chi^2 island from night 2. Kepler's law with the Southworth et al. 2007 masses gives 3.29 mas at the Hipparcos 24.87 pc; the 2026 CHARA orbit found 3.365 mas at 24.30 pc (2.3 % apart): the week decides between them. A 30 m side gives 0.9 % and 0.5 deg.",
+    "Not modelled: the diameters are not free parameters (a two-side schedule, 30 + 60 m, would separate them from the distance) and the eclipse blocks, where |V|^2 encodes the limb-darkened overlap, are not fitted."
+  ]
+}

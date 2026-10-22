@@ -92,7 +92,8 @@ few-percent measurement per season. The binaries (`g2_binaries_isi`, 5 m to
 beyond 35 m (two 6–8 mas giants resolved), 69σ over the eleven nights but no
 orbit; β Aur, Algol and Spica are detected at 77–95σ over the schedule, their
 information in the 300–1000 m nights, their g/i anchors extrapolated to the
-red.
+red -- though a 45 m triangle, sweeping a full fringe of β Aur every night,
+gives its orbit (`movie_betaaur_isi_orbit`, below).
 
 ## The movie (`hbtsim run movie_betelgeuse_isi`)
 
@@ -154,11 +155,11 @@ on a coefficient of 0.6, because the sidelobe of a 2.6 mas star sits at
 ~4000 such nights, or a detector without the dead-time cap. The diameter, at
 1 % in a season, is the measurement the trucks deliver.
 
-## The first week: four science cases
+## The first week: five science cases
 
 What the three trucks can do in a week that nobody has done -- each a
 campaign of its own (`hbtsim run movie_<name>`), each a season (Spica in
-spring; Betelgeuse, Mira and Capella in winter; Altair in summer–autumn;
+spring; Betelgeuse, Mira, Capella and β Aur in winter; Altair in summer–autumn;
 Regulus in winter–spring), each movie ending on the fitted quantity. Numbers
 from the runs with seed 7; "Fisher" is the expected precision, "fit" the
 realized one.
@@ -230,6 +231,28 @@ orbital parallax (13.159 pc, 0.04 %), not an improvement on it; Capella never ec
 image grid is needed (its 8192-pixel grid was what stopped the earlier
 runner).
 
+**β Aurigae's orbital parallax** (`movie_betaaur_isi_orbit`). hbtsim's
+original target on the trucks: the 1.03 and 0.96 mas twins null at 158 and
+170 m at 650 nm, the fringe period λ/a is 41 m (a = 3.29 mas), and at
+Dec +45° the pair is above 30° for 10.5 h a night at Palomar, twice Spica's
+window, which repays the factor two in flux. The 45 m triangle (projected
+23–45 m, disk |V|² 0.74) sweeps a full fringe every night, |V|² running from
+~0 to 0.8, and seven nights from phase 0.2 (1.77 orbits) give, by Fisher,
+σ(a)/a 0.68 % and σ(Ω) 0.33° (a 30 m side: 0.87 %, 0.48°). The global χ² over
+(scale, node) is one island from night 2 and ends at a = 3.331 mas (68 %
+3.298–3.364; truth 3.292, 1.2σ), d = 24.6 pc (24.3–24.8). The spectroscopic
+a (AU) is known to a few tenths of a percent, so this is a distance to 0.7 %
+-- Hipparcos is 24.87 ± 0.14 pc -- and it arbitrates a 2.3 % tension already
+in the catalog: Kepler's law with Southworth et al.'s masses gives 3.29 mas
+at 24.87 pc, the 2026 CHARA orbit (Jonak et al.) 3.365 mas at 24.30 pc. The
+partial eclipses (i = 76.8°, a cos i = 0.75 mas against R₁ + R₂ = 1.00 mas)
+last 6 h and cover 13 % of the orbit; 38–52 % of the blocks on four of the
+seven nights fall in the near-eclipse margin, are rendered through the two-
+disk image grid (the movie draws them) and are dropped from the fit. Two
+things the runner does not yet do, and that β Aur would reward: fit the
+diameters free of the distance (a 30 + 60 m schedule has the lever) and fit
+the eclipse blocks, where |V|² encodes the limb-darkened overlap.
+
 | case | campaign | nights | configuration | result |
 |---|---|---|---|---|
 | Altair's shape | `movie_altair_isi_oblate` | 2 | triangle 30 m, 650 nm, rotated 30° | q = 1.24 at 4.5σ |
@@ -238,12 +261,14 @@ runner).
 | Spica's apsides | `movie_spica_isi_orbit` | 7 | triangle 60 m, 650 nm | a 1.7 %, ω ± 2.3° (mod 180) |
 | Mira's size | `movie_mira_isi` | 3 | line 2.5–9 m, 900 nm | θ to 1.0 % |
 | Capella's orbit | `movie_capella_isi_orbit` | 7 | line 5+7 m, 900 nm, pupil-averaged | a 0.23 %, Ω 0.12° |
+| β Aur's orbital parallax | `movie_betaaur_isi_orbit` | 7 | triangle 45 m, 650 nm | a 0.68 %, d to 0.7 % |
 
 Sources: Monnier et al. 2007, Science 317, 342 (Altair); McAlister et al.
 2005, ApJ 628, 439 (Regulus); Woodruff et al. 2004, A&A 421, 703 (Mira);
 Herbison-Evans et al. 1971, MNRAS 151, 161 and Harrington et al. 2016, ApJ
 827, 104 (Spica); Robinette & Aufdenberg (Spica's apsidal period); Torres et
-al. 2015, ApJ 807, 26 (Capella).
+al. 2015, ApJ 807, 26 (Capella); Southworth, Bruntt & Buzasi 2007, A&A 467,
+1215, van Leeuwen 2007 and Jonak et al. 2026, arXiv:2609.03886 (β Aur).
 
 ## What would change the verdict
 

@@ -247,7 +247,8 @@ def test_isi():
     assert c.period_days == 104.02128 and c.angular_semimajor_mas == pytest.approx(56.44, abs=0.05)
     assert 2 * c.angular_radius_mas(c.primary) == pytest.approx(8.47, abs=0.02) and c.node_pa_deg == 40.522
     for name in ("g2_giants_isi", "g2_binaries_isi", "movie_betelgeuse_isi", "movie_altair_isi_oblate", "movie_regulus_isi_oblate",
-                 "movie_betelgeuse_isi_chromatic", "movie_spica_isi_orbit", "movie_mira_isi", "movie_capella_isi_orbit"):
+                 "movie_betelgeuse_isi_chromatic", "movie_spica_isi_orbit", "movie_mira_isi", "movie_capella_isi_orbit",
+                 "movie_betaaur_isi_orbit"):
         camp = cat.load_campaign(name)
         assert camp.option("instrument.array").startswith("isi_") and all("PDM" in b.name for b in camp.backends)
     assert len(cat.load_campaign("g2_giants_isi").option("options.baseline_schedule")) == 15
@@ -257,7 +258,8 @@ def test_isi():
 def test_first_week_targets():
     """The first-week science targets of the ISI: the oblate rotators'
     ellipses (Monnier 2007, McAlister 2005), Mira's size and TiO-band
-    factor, Betelgeuse's chromatic diameter and Spica's eccentric orbit."""
+    factor, Betelgeuse's chromatic diameter, Spica's eccentric orbit and
+    beta Aur's orbital parallax."""
     a = cat.load_target("altair")
     assert a.theta_ld_mas == 3.296 and (a.ellipse.theta_major_mas, a.ellipse.axis_ratio, a.ellipse.pa_deg) == (3.67, 1.24, 28.2)
     assert a.dec_deg == pytest.approx(8.8683) and a.distance_pc == 5.13 and a.theta_factor(650.0) == 1.0
@@ -277,3 +279,8 @@ def test_first_week_targets():
     assert camp.option("options.reference_periastron")["omega_deg"] == 90.0 and camp.option("options.fit_periastron_step_deg") == 2.0
     assert cat.load_campaign("movie_capella_isi_orbit").option("options.pupils") is True
     assert cat.load_campaign("movie_altair_isi_oblate").option("options.oblateness") is True
+    ba = cat.load_target("betaaur")
+    assert ba.angular_semimajor_mas == pytest.approx(3.292, abs=0.002) and 2 * ba.angular_radius_mas(ba.primary) == pytest.approx(1.033, abs=0.002)
+    bc = cat.load_campaign("movie_betaaur_isi_orbit")
+    assert bc.option("instrument.array_params")["side_m"] == 45.0 and bc.option("options.fit_scale_step") == 0.002
+    assert [r["pc"] for r in bc.option("options.reference_distances")] == [24.87, 24.3]
