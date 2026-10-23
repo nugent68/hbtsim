@@ -106,6 +106,9 @@ class Telescope:
     throughput: float = 0.3
     collecting_area_m2: float | None = None
     name: str = ""
+    # Siderostat that points only into the southern half of the sky (azimuth
+    # 90-270 deg, south through the zenith): the ISI's trucks at Mount Wilson.
+    south_only: bool = False
 
     @property
     def area_m2(self) -> float:

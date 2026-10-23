@@ -84,6 +84,18 @@ def hour_angle_window(dec_deg: float, lat_deg: float,
     return (-h, h)
 
 
+def south_window(dec_deg: float, lat_deg: float) -> tuple:
+    """(H_min, H_max) in hours over which the source is south of the prime
+    vertical (azimuth 90-270 deg) in the northern hemisphere: always for
+    dec <= 0, never for dec >= latitude, else |H| <= arccos(tan dec / tan lat)."""
+    if dec_deg <= 0.0:
+        return (-12.0, 12.0)
+    if dec_deg >= lat_deg:
+        return (0.0, 0.0)
+    h = np.degrees(np.arccos(np.tan(np.radians(dec_deg)) / np.tan(np.radians(lat_deg)))) / 15.0
+    return (-h, h)
+
+
 def hour_angle_blocks(h_start: float, h_end: float, block_minutes: float) -> np.ndarray:
     """Block mid-points [h] covering [h_start, h_end] in equal blocks of
     (at most) block_minutes."""

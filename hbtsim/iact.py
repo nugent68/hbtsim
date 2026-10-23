@@ -32,7 +32,7 @@ import numpy as np
 
 from .aperture import PupilQuadrature, fringe_period_m, pupil_pair_quadrature, pupil_pair_quadrature_for
 from .bispectrum import Array, Station, binary_vis_complex_analytic
-from .geometry import hour_angle_blocks, hour_angle_window
+from .geometry import hour_angle_blocks, hour_angle_window, south_window
 from .orbit import positions_at
 from .params import AB_ZERO_FNU, C_LIGHT, DAY, H_PLANCK, MAS
 from .snr import Detector, Telescope
@@ -159,6 +159,11 @@ def pair_track(array: Array, dec_deg: float, lambda_nm: float, vis2_fn, *, block
     not applied."""
     h0, h1 = (hour_angle_window(dec_deg, array.site.latitude_deg, min_alt_deg)
               if hour_angle_window_h is None else hour_angle_window_h)
+    if any(s.telescope.south_only for s in array.stations):
+        s0, s1 = south_window(dec_deg, array.site.latitude_deg)
+        h0, h1 = max(h0, s0), min(h1, s1)
+        if h1 <= h0:
+            h0 = h1 = 0.0
     mids = hour_angle_blocks(h0, h1, block_minutes)
     block_s = (h1 - h0) / max(mids.size, 1) * 3600.0
     pairs0 = array.pairs()
