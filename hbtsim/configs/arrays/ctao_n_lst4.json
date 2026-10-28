@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "ctao_n_lst4",
+  "label": "CTAO-North, the four LSTs",
+  "site": "orm",
+  "stations": [
+    {
+      "name": "LST-1",
+      "east_m": 49.9,
+      "north_m": -70.2,
+      "up_m": 38.0,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "LST-2",
+      "east_m": -68.1,
+      "north_m": -34.5,
+      "up_m": 23.9,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "LST-3",
+      "east_m": -52.4,
+      "north_m": 76.4,
+      "up_m": 19.4,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "LST-4",
+      "east_m": 61.3,
+      "north_m": 31.9,
+      "up_m": 25.6,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    }
+  ],
+  "sources": [
+    "CTAO-North array element positions (CTAN_ArrayElements_Positions.ecsv, CTAO gitlab, via ctapipe_io_zfits), reference 28.762158 N, -17.892009 E, 2147 m"
+  ],
+  "notes": [
+    "Baselines 103-179 m (LST-1-LST-2 123 m, LST-1-LST-3 179 m, LST-1-LST-4 103 m); the first of the three CTAO-SII stages simulated by Luce et al. (4 LSTs: ~1 % on theta_UD for B < 3 in 2.5 h)."
+  ]
+}

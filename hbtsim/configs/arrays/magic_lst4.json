@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "magic_lst4",
+  "label": "MAGIC-I + MAGIC-II + LST-1 to LST-4 (ORM)",
+  "site": "orm",
+  "stations": [
+    {
+      "name": "MAGIC-I",
+      "east_m": 146.7,
+      "north_m": -27.2,
+      "up_m": 50.0,
+      "telescope": "magic_17m",
+      "detector": "magic_pmt"
+    },
+    {
+      "name": "MAGIC-II",
+      "east_m": 96.8,
+      "north_m": -96.4,
+      "up_m": 51.0,
+      "telescope": "magic_17m",
+      "detector": "magic_pmt"
+    },
+    {
+      "name": "LST-1",
+      "east_m": 49.9,
+      "north_m": -70.2,
+      "up_m": 38.0,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "LST-2",
+      "east_m": -68.1,
+      "north_m": -34.5,
+      "up_m": 23.9,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "LST-3",
+      "east_m": -52.4,
+      "north_m": 76.4,
+      "up_m": 19.4,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "LST-4",
+      "east_m": 61.3,
+      "north_m": 31.9,
+      "up_m": 25.6,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    }
+  ],
+  "sources": [
+    "CTAO-North array element positions (CTAN_ArrayElements_Positions.ecsv, CTAO gitlab, via ctapipe_io_zfits), reference 28.762158 N, -17.892009 E, 2147 m",
+    "MAGIC-I/II: ctapipe_io_magic (cta-observatory) 'MAGIC telescope positions wrt the center of CTA simulations' (-27.24, -146.66, 50.00) and (-96.44, -96.77, 51.00) m in the CORSIKA frame (x north, y west, z up), i.e. 85.3 m apart (published 85-86 m)",
+    "Abe et al. 2025 (arXiv:2506.04994): MAGIC + 4 CTAO LSTs ~11 times more sensitive than MAGIC SII alone"
+  ],
+  "notes": [
+    "LST-2 to LST-4 under construction (CTAO: by the end of 2025); the 2026 'intermediate configuration' slide shows them in place."
+  ]
+}

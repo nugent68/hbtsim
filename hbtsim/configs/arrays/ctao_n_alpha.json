@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "ctao_n_alpha",
+  "label": "CTAO-North alpha configuration: four LSTs + nine MSTs",
+  "site": "orm",
+  "stations": [
+    {
+      "name": "LST-1",
+      "east_m": 49.9,
+      "north_m": -70.2,
+      "up_m": 38.0,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "LST-2",
+      "east_m": -68.1,
+      "north_m": -34.5,
+      "up_m": 23.9,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "LST-3",
+      "east_m": -52.4,
+      "north_m": 76.4,
+      "up_m": 19.4,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "LST-4",
+      "east_m": 61.3,
+      "north_m": 31.9,
+      "up_m": 25.6,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "MST-01",
+      "east_m": -7.7,
+      "north_m": -211.4,
+      "up_m": 48.5,
+      "telescope": "ctao_mst_11p5m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "MST-02",
+      "east_m": -170.9,
+      "north_m": -152.9,
+      "up_m": 28.7,
+      "telescope": "ctao_mst_11p5m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "MST-03",
+      "east_m": -210.5,
+      "north_m": 27.8,
+      "up_m": 11.4,
+      "telescope": "ctao_mst_11p5m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "MST-04",
+      "east_m": -75.0,
+      "north_m": 177.1,
+      "up_m": 9.5,
+      "telescope": "ctao_mst_11p5m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "MST-05",
+      "east_m": 186.7,
+      "north_m": 141.5,
+      "up_m": 31.0,
+      "telescope": "ctao_mst_11p5m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "MST-06",
+      "east_m": 186.6,
+      "north_m": -75.0,
+      "up_m": 44.2,
+      "telescope": "ctao_mst_11p5m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "MST-07",
+      "east_m": 165.0,
+      "north_m": -215.6,
+      "up_m": 65.0,
+      "telescope": "ctao_mst_11p5m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "MST-10",
+      "east_m": 349.9,
+      "north_m": 21.2,
+      "up_m": 62.0,
+      "telescope": "ctao_mst_11p5m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "MST-15",
+      "east_m": 0.5,
+      "north_m": 0.4,
+      "up_m": 29.5,
+      "telescope": "ctao_mst_11p5m",
+      "detector": "ctao_pmt"
+    }
+  ],
+  "sources": [
+    "CTAO-North array element positions (CTAN_ArrayElements_Positions.ecsv, CTAO gitlab, via ctapipe_io_zfits), reference 28.762158 N, -17.892009 E, 2147 m (15 MST pads listed; the nine of the alpha layout identified against CTAO's released layout map, CTAO_North_Alpha_Final_2024.png)",
+    "Biteau & Luce 2024-09-13, 'Stellar Intensity Interferometry with NectarCAM on the MSTs-N', CTA-N table (slides 18, 23): 4 LSTs + 9 MSTs, baselines to ~500 m; ~1 % on theta_UD for B < 4 in 2.5 h (Luce et al.)"
+  ],
+  "notes": [
+    "MST pads of the alpha layout: MSTN-01, 02, 03, 04, 05, 06, 07, 10, 15 (the remaining six, MSTN-08, 09, 11-14, are reserve pads); CTAO says final positions may shift by less than ten metres."
+  ]
+}

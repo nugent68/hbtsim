@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "ctao_pmt",
+  "label": "CTAO camera PMT, SII readout (Stage I: QE 0.40, ~400 MHz)",
+  "pde_table_nm": {
+    "flat": 0.4,
+    "range_nm": [
+      300.0,
+      700.0
+    ]
+  },
+  "timing": {
+    "electronic_bandwidth_hz": 400000000.0
+  },
+  "dead_time_ns": 0.0,
+  "dark_cps_per_pixel": 0.0,
+  "n_pixels": 1,
+  "readout": "correlator",
+  "max_total_cps": null,
+  "sources": [
+    "Biteau 2026-10-08, 'Stellar intensity interferometry with the CTAO' (La Palma), Stage I / Stage II table (slides 15-16, T. Hassan): Stage I photodetector QE 0.40, inverse time resolution ~400 MHz, noise factor 1.15",
+    "Biteau & Luce 2024-09-13, 'Stellar Intensity Interferometry with NectarCAM on the MSTs-N', CTA-N table (slides 18, 23): PMT QE at 420 nm 39 %, excess noise factor 1.21, transit-time spread 1.5 ns; maximum electronic bandwidth 650 MHz (LST) / 600 MHz (MST); simulations at 500 MHz"
+  ],
+  "notes": [
+    "Analog PMT 'detector' for the photon-counting cross-check path and for per-station backends (iact.IACTBackend.per_station: alpha = pde(lambda)).",
+    "The 2024 table gives 0.39 and F = 1.21, the 2026 Stage I table 0.40 and 1.15; the 2026 values are used."
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "ctao_sii_stage2",
+  "label": "CTAO-SII Stage II (1 nm x 10 channels, dedicated photodetectors, > 2 GHz)",
+  "model": "analog",
+  "lambda_nm": 425.0,
+  "dlambda_nm": 1.0,
+  "alpha": 0.45,
+  "q": null,
+  "b_el_hz": 2000000000.0,
+  "noise_factor": 1.05,
+  "sigma_spec": 1.0,
+  "beta": 0.0,
+  "time_resolution_ns": 0.5,
+  "per_station": true,
+  "n_channels": 10,
+  "sources": [
+    "Biteau 2026-10-08, 'Stellar intensity interferometry with the CTAO' (La Palma), Stage I / Stage II table (slides 15-16, T. Hassan): Stage II QE 0.45, > 2 GHz, F 1.05, 1 nm bandpass, 10 channels; dedicated photodetectors, focal-plane corrective optics; S/N proportional to sqrt(N_baselines N_channels)"
+  ],
+  "notes": [
+    "alpha is fixed by the backend (dedicated photodetectors replace the camera PMTs); q still per telescope (0.64 / 0.73)."
+  ],
+  "assumptions": [
+    "lambda 425 nm (the Stage II band is not stated)",
+    "sigma_spec 1.0 for a 1 nm filter",
+    "b_el 2 GHz (the table says > 2 GHz)",
+    "beta = 0"
+  ]
+}

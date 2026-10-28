@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "ctao_n_2027",
+  "label": "CTAO-North intermediate configuration 2027: four LSTs + one MST",
+  "site": "orm",
+  "stations": [
+    {
+      "name": "LST-1",
+      "east_m": 49.9,
+      "north_m": -70.2,
+      "up_m": 38.0,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "LST-2",
+      "east_m": -68.1,
+      "north_m": -34.5,
+      "up_m": 23.9,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "LST-3",
+      "east_m": -52.4,
+      "north_m": 76.4,
+      "up_m": 19.4,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "LST-4",
+      "east_m": 61.3,
+      "north_m": 31.9,
+      "up_m": 25.6,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
+    },
+    {
+      "name": "MST-03",
+      "east_m": -210.5,
+      "north_m": 27.8,
+      "up_m": 11.4,
+      "telescope": "ctao_mst_11p5m",
+      "detector": "ctao_pmt"
+    }
+  ],
+  "sources": [
+    "CTAO-North array element positions (CTAN_ArrayElements_Positions.ecsv, CTAO gitlab, via ctapipe_io_zfits), reference 28.762158 N, -17.892009 E, 2147 m",
+    "Biteau 2026-10-08, 'Stellar intensity interferometry with the CTAO' (La Palma), Stage I / Stage II table (slides 15-16, T. Hassan), slide 18: CTAO North interm. config. '27"
+  ],
+  "notes": [
+    "The slide shows four LSTs and one MST west of them; MSTN-03 (the alpha-layout pad 211 m west of the reference) is the match by eye."
+  ],
+  "assumptions": [
+    "which MST pad (MSTN-03)"
+  ]
+}

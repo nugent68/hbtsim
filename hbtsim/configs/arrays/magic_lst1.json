@@ -7,33 +7,35 @@
   "stations": [
     {
       "name": "MAGIC-I",
-      "east_m": 0.0,
-      "north_m": 0.0,
+      "east_m": 146.7,
+      "north_m": -27.2,
+      "up_m": 50.0,
       "telescope": "magic_17m",
       "detector": "magic_pmt"
     },
     {
       "name": "MAGIC-II",
-      "east_m": 86.0,
-      "north_m": 0.0,
+      "east_m": 96.8,
+      "north_m": -96.4,
+      "up_m": 51.0,
       "telescope": "magic_17m",
       "detector": "magic_pmt"
     },
     {
       "name": "LST-1",
-      "east_m": 43.0,
-      "north_m": 90.3,
-      "telescope": "lst1_23m",
-      "detector": "magic_pmt"
+      "east_m": 49.9,
+      "north_m": -70.2,
+      "up_m": 38.0,
+      "telescope": "ctao_lst_23m",
+      "detector": "ctao_pmt"
     }
   ],
   "sources": [
-    "MAGIC-I to MAGIC-II 86 m; LST-1 adds two baselines of ~100 m (Raiola et al. 2025)"
+    "CTAO-North array element positions (CTAN_ArrayElements_Positions.ecsv, CTAO gitlab, via ctapipe_io_zfits), reference 28.762158 N, -17.892009 E, 2147 m: LSTN-01 at 28.761526 N, -17.891497 E, 2185 m",
+    "MAGIC-I/II: ctapipe_io_magic (cta-observatory) 'MAGIC telescope positions wrt the center of CTA simulations' (-27.24, -146.66, 50.00) and (-96.44, -96.77, 51.00) m in the CORSIKA frame (x north, y west, z up), i.e. 85.3 m apart (published 85-86 m)",
+    "Raiola et al. 2025, PoS ICRC2025 957 / Abe et al. 2023 (arXiv:2310.01954): MAGIC-I to MAGIC-II 85-86 m, LST-1 '~100 m' from the MAGIC telescopes"
   ],
   "notes": [
-    "The ORIENTATION of the triangle on the ground is ASSUMED (MAGIC-I -> MAGIC-II due east, LST-1 to the north); it affects which position angles each pair samples."
-  ],
-  "assumptions": [
-    "stations (orientation)"
+    "Surveyed geometry: MAGIC-I-II 85.3 m, LST-1-MAGIC-I 105.8 m, LST-1-MAGIC-II 53.6 m. The papers describe the two LST-1 baselines as 'approximately 100 m'; the surveyed positions make one of them 54 m. The MAGIC positions are the collaboration's software constants, not a survey document."
   ]
 }

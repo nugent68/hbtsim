@@ -5,7 +5,8 @@ Models: the MAGIC circular fit (theta_LD = 0.532 mas); the VERITAS 2025
 ellipse (minor 0.43 mas, axis ratio 1.28, PA 116 deg); each with a Gaussian
 disk (FWHM 2.9 mas, the literature envelope) carrying 0, 10 or 20 % of the
 flux at 425 nm.  Sensitivity: MAGIC's published S/N form and constants,
-LST-1 scaled by its mirror area.  One night from Roque de los Muchachos
+LST-1 with the CTAO-North mirror area, optical efficiency and QE (per
+station, hbtsim.iact).  One night from Roque de los Muchachos
 in 20-minute blocks; Fisher estimate of the axis-ratio precision from the
 three baselines' rotation; bias of a circular uniform-disk fit when a disk
 is present.  Gravity darkening (Roche-von Zeipel) is not modeled.
@@ -76,7 +77,7 @@ def main():
                      block_minutes=args.block_minutes)
     sig_blk = track_sigma(circ, mag, MAGIC_SII)
     sig_h = track_sigma(circ, mag, MAGIC_SII, 3600.0)
-    print("  MAGIC sensitivity (their Eq. 4 with their constants; LST-1 area 390 m^2 assumed):")
+    print("  MAGIC sensitivity (their Eq. 4; MAGIC alpha 0.295, q 0.304, 236 m^2; LST-1 alpha 0.40, q 0.64, 370 m^2, CTAO-N tables):")
     for p, name in enumerate(circ.pair_names):
         print(f"    {name:16s} projected {circ.baseline_len_m[p].min():.0f}-{circ.baseline_len_m[p].max():.0f} m, "
               f"PA {circ.position_angle_deg[p].min():.0f}..{circ.position_angle_deg[p].max():.0f} deg; "

@@ -21,6 +21,15 @@ efficiency is not published here, so calibrate_q solves for it from a
 published precision (sigma(|V|^2) = 0.016 per pair in 4.25 h on epsilon
 Ori, Abeysekara et al. 2020).
 
+Mixed arrays (MAGIC + LST-1, the CTAO-North LSTs + MSTs) have a
+different mirror area, optical efficiency and photomultiplier QE per
+telescope: a backend with per_station=True takes q from each station's
+Telescope.throughput and alpha from each station's Detector.pde(lambda)
+(unless the backend fixes alpha), and the pair's S/N carries
+sqrt(A_i alpha_i q_i A_j alpha_j q_j), the product of the two photon
+rates.  n_channels > 1 (the CTAO Stage II multi-channel setup) adds
+sqrt(n_channels).
+
 Assumptions are flagged in the preset comments; see docs/iact_targets.md.
 """
 
@@ -75,14 +84,25 @@ class IACTBackend:
     name: str
     lambda_nm: float
     dlambda_nm: float
-    alpha: float              # quantum efficiency at the passband
-    q: float                  # optical efficiency of the rest of the system
+    alpha: float | None       # quantum efficiency at the passband (None: per station)
+    q: float | None           # optical efficiency of the rest of the system (None: per station)
     b_el_hz: float            # electronic bandwidth
     noise_factor: float = 1.0 # F
     sigma_spec: float = 1.0   # normalized spectral factor of the passband
     beta: float = 0.0         # background-to-starlight ratio
     time_resolution_ns: float = 4.0
     anchor: PrecisionAnchor | None = None   # for calibrated()
+    # q from each station's telescope throughput and, when alpha is None,
+    # alpha from each station's detector PDE at lambda_nm (track_sigma)
+    per_station: bool = False
+    n_channels: int = 1       # simultaneous spectral channels (S/N x sqrt)
+
+    def station_alpha_q(self, station) -> tuple:
+        """(alpha, q) of one station under this backend."""
+        if not self.per_station:
+            return self.alpha, self.q
+        alpha = self.alpha if self.alpha is not None else float(station.detector.pde(self.lambda_nm))
+        return alpha, float(station.telescope.throughput)
 
 
 # ---------------------------------------------------------------------------
@@ -96,19 +116,33 @@ def photon_spectral_flux(mag_ab, wavelength_nm):
     return AB_ZERO_FNU * 10.0 ** (-0.4 * np.asarray(mag_ab, dtype=float)) / (H_PLANCK * nu)
 
 
-def classic_snr(vis2, mag_ab, area1_m2, area2_m2, backend: IACTBackend, t_s, q=None):
+def classic_snr(vis2, mag_ab, area1_m2, area2_m2, backend: IACTBackend, t_s, q=None, alpha=None):
     """Their S/N (module docstring) for |V|^2 (array-capable) on a pair of
-    dishes; q overrides the backend's optical efficiency."""
+    dishes; q and alpha override the backend's optical and quantum
+    efficiency (for a mixed pair pass their geometric means, as
+    track_sigma does)."""
     q = backend.q if q is None else q
+    alpha = backend.alpha if alpha is None else alpha
+    if q is None or alpha is None:
+        raise ValueError(f"backend {backend.name!r} takes alpha and q per station: pass them")
     n_nu = photon_spectral_flux(mag_ab, backend.lambda_nm)
     a = np.sqrt(area1_m2 * area2_m2)
-    return (a * backend.alpha * q * n_nu * np.asarray(vis2, dtype=float) * np.sqrt(backend.b_el_hz)
+    return (a * alpha * q * n_nu * np.asarray(vis2, dtype=float) * np.sqrt(backend.b_el_hz * backend.n_channels)
             * backend.sigma_spec / (np.sqrt(2.0) * backend.noise_factor * (1.0 + backend.beta)) * np.sqrt(t_s))
 
 
-def vis2_sigma(mag_ab, area1_m2, area2_m2, backend: IACTBackend, t_s, q=None):
+def vis2_sigma(mag_ab, area1_m2, area2_m2, backend: IACTBackend, t_s, q=None, alpha=None):
     """sigma(|V|^2) in t_s: 1 / S/N at |V|^2 = 1 (noise is independent of |V|^2)."""
-    return 1.0 / classic_snr(1.0, mag_ab, area1_m2, area2_m2, backend, t_s, q)
+    return 1.0 / classic_snr(1.0, mag_ab, area1_m2, area2_m2, backend, t_s, q, alpha)
+
+
+def pair_snr(vis2, mag_ab, station_i, station_j, backend: IACTBackend, t_s):
+    """Their S/N on one pair of stations, each with its own mirror area,
+    optical efficiency and QE under the backend (station_alpha_q)."""
+    ai, qi = backend.station_alpha_q(station_i)
+    aj, qj = backend.station_alpha_q(station_j)
+    return classic_snr(vis2, mag_ab, station_i.telescope.area_m2, station_j.telescope.area_m2, backend, t_s,
+                       q=np.sqrt(qi * qj), alpha=np.sqrt(ai * aj))
 
 
 def calibrate_q(backend: IACTBackend, area_m2, mag_ab, sigma_vis2, t_s) -> float:
@@ -142,6 +176,7 @@ class PairTrack:
     baseline_len_m: np.ndarray    # (n_pair, n_blk)
     vis2: np.ndarray              # (n_pair, n_blk)
     block_s: float
+    stations: tuple = ()          # (station_i, station_j) per pair, for per-station backends
 
     @property
     def position_angle_deg(self) -> np.ndarray:
@@ -178,7 +213,8 @@ def pair_track(array: Array, dec_deg: float, lambda_nm: float, vis2_fn, *, block
         for p, (i, j, b) in enumerate(proj):
             bv[p, k] = b
             v2[p, k] = float(np.asarray(vis2_fn(b[None, :], lambda_nm, phase, diam[p]))[0])
-    return PairTrack(names, diam, areas, mids, ph, bv, np.hypot(bv[..., 0], bv[..., 1]), v2, block_s)
+    st = tuple((array.stations[i], array.stations[j]) for i, j, _ in pairs0)
+    return PairTrack(names, diam, areas, mids, ph, bv, np.hypot(bv[..., 0], bv[..., 1]), v2, block_s, st)
 
 
 def binary_vis2_fn(system, pupils: bool = True):
@@ -210,6 +246,12 @@ def single_vis2_fn(vis_fn, pupils: bool = True):
 
 
 def track_sigma(track: PairTrack, mag_ab, backend: IACTBackend, t_s=None, q=None) -> np.ndarray:
-    """sigma(|V|^2) per pair (n_pair,) in t_s (default one block)."""
+    """sigma(|V|^2) per pair (n_pair,) in t_s (default one block).  A
+    per-station backend draws each pair's alpha and q from its two
+    stations (pair_snr); q, when given, overrides for every pair."""
     t = track.block_s if t_s is None else t_s
+    if backend.per_station and q is None:
+        if not track.stations:
+            raise ValueError("per-station backend needs a track built by pair_track")
+        return np.array([1.0 / pair_snr(1.0, mag_ab, si, sj, backend, t) for si, sj in track.stations])
     return np.array([vis2_sigma(mag_ab, a1, a2, backend, t, q) for a1, a2 in track.areas_m2])

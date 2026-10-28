@@ -2,10 +2,14 @@
   "schema_version": 1,
   "kind": "site",
   "name": "orm",
-  "label": "Roque de los Muchachos (MAGIC, LST-1)",
-  "latitude_deg": 28.762,
-  "longitude_deg": -17.892,
-  "elevation_m": 2200.0,
-  "sources": [],
-  "notes": []
+  "label": "Roque de los Muchachos (CTAO-North reference point; MAGIC, LST-1)",
+  "latitude_deg": 28.762158,
+  "longitude_deg": -17.892009,
+  "elevation_m": 2147.0,
+  "sources": [
+    "CTAO-North array element positions (CTAN_ArrayElements_Positions.ecsv, CTAO gitlab, via ctapipe_io_zfits), reference 28.762158 N, -17.892009 E, 2147 m"
+  ],
+  "notes": [
+    "The arrays magic_lst1, magic_lst4 and ctao_n_* give east/north offsets from this point; MAGIC and LST-1 stand at 2185-2200 m."
+  ]
 }

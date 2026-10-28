@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "ctao_sii_stage1",
+  "label": "CTAO-SII Stage I (425/26 nm, camera PMTs, ~400 MHz)",
+  "model": "analog",
+  "lambda_nm": 425.0,
+  "dlambda_nm": 26.0,
+  "alpha": null,
+  "q": null,
+  "b_el_hz": 400000000.0,
+  "noise_factor": 1.15,
+  "sigma_spec": 0.91,
+  "beta": 0.0,
+  "time_resolution_ns": 2.5,
+  "per_station": true,
+  "n_channels": 1,
+  "sources": [
+    "Biteau 2026-10-08, 'Stellar intensity interferometry with the CTAO' (La Palma), Stage I / Stage II table (slides 15-16, T. Hassan): QE 0.40, ~400 MHz, F 1.15, 26 nm bandpass, 1 channel; robotic narrow-band filters, raw streaming of one photodetector per camera, GPU correlator (validated on LST-1 + MAGIC)",
+    "Biteau & Luce 2024-09-13, 'Stellar Intensity Interferometry with NectarCAM on the MSTs-N', CTA-N table (slides 18, 23): normalized spectral distribution 0.91 with a 420 nm filter for a 21 deg cone; q 0.64 (LST) / 0.73 (MST)"
+  ],
+  "notes": [
+    "alpha from the stations' ctao_pmt (0.40), q from ctao_lst_23m (0.64) / ctao_mst_11p5m (0.73)."
+  ],
+  "assumptions": [
+    "beta = 0 (dark time)"
+  ]
+}

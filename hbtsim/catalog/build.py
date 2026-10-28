@@ -232,7 +232,8 @@ def build_backend(cat, d: dict):
         anchor = PrecisionAnchor(a["star"], mag_ab, float(a["sigma_vis2"]), float(a["t_s"]))
     return IACTBackend(name=label, anchor=anchor,
                        **_given(d, ("lambda_nm", "dlambda_nm", "alpha", "q", "b_el_hz",
-                                    "noise_factor", "sigma_spec", "beta", "time_resolution_ns")))
+                                    "noise_factor", "sigma_spec", "beta", "time_resolution_ns",
+                                    "per_station", "n_channels")))
 
 
 def _star(cat, s: dict, where: str, radius_rsun=None) -> Star:

@@ -87,8 +87,30 @@ def test_iact_backends():
     assert v.anchor.star == "eps Ori" and v.anchor.mag_ab == pytest.approx(1.50 - 0.09)
     assert (v.anchor.sigma_vis2, v.anchor.t_s) == (0.016, 4.25 * 3600.0)
     m = cat.load_backend("magic_sii")
-    assert (m.lambda_nm, m.dlambda_nm, m.alpha, m.q, m.noise_factor, m.sigma_spec) == (425.0, 26.0, 0.295, 0.304, 1.15, 0.87)
-    assert m.anchor is None
+    assert (m.lambda_nm, m.dlambda_nm, m.alpha, m.q, m.noise_factor, m.sigma_spec) == (425.0, 26.0, None, None, 1.15, 0.87)
+    assert m.anchor is None and m.per_station
+    # MAGIC's Table 4 values live on the MAGIC stations
+    assert (cat.load_telescope("magic_17m").throughput, cat.load_detector("magic_pmt").pde(425.0)) == (0.304, 0.295)
+
+
+def test_ctao_catalog():
+    """The CTAO-North entries from the 2024 (MST-N) and 2026 (La Palma) talks."""
+    lst, mst = cat.load_telescope("ctao_lst_23m"), cat.load_telescope("ctao_mst_11p5m")
+    assert (lst.diameter_m, lst.collecting_area_m2, lst.throughput) == (23.0, 370.0, 0.64)
+    assert (mst.diameter_m, mst.collecting_area_m2, mst.throughput) == (11.5, 88.0, 0.73)
+    pmt = cat.load_detector("ctao_pmt")
+    assert pmt.pde(425.0) == 0.40 and pmt.readout == "correlator"
+    s1, s2 = cat.load_backend("ctao_sii_stage1"), cat.load_backend("ctao_sii_stage2")
+    assert (s1.alpha, s1.q, s1.b_el_hz, s1.noise_factor, s1.dlambda_nm, s1.n_channels, s1.per_station) == (None, None, 4e8, 1.15, 26.0, 1, True)
+    assert (s2.alpha, s2.q, s2.b_el_hz, s2.noise_factor, s2.dlambda_nm, s2.n_channels, s2.per_station) == (0.45, None, 2e9, 1.05, 1.0, 10, True)
+    assert s1.sigma_spec == 0.91
+    orm = cat.load_site("orm")
+    assert (orm.latitude_deg, orm.longitude_deg, orm.elevation_m) == (28.762158, -17.892009, 2147.0)
+    raw = cat.raw("array", "ctao_n_alpha")
+    assert [s["name"] for s in raw["stations"]] == ["LST-1", "LST-2", "LST-3", "LST-4"] + [f"MST-{k:02d}" for k in (1, 2, 3, 4, 5, 6, 7, 10, 15)]
+    assert "MSTN-03" in " ".join(cat.raw("array", "ctao_n_2027")["assumptions"])
+    lst1 = raw["stations"][0]
+    assert (lst1["east_m"], lst1["north_m"]) == (49.9, -70.2)      # LSTN-01: 28.761526 N, -17.891497 E
 
 
 def test_lpqi_pathfinder():

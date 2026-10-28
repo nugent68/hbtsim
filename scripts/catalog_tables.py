@@ -111,42 +111,74 @@ def maunakea_baselines() -> str:
     return "\n".join(rows)
 
 
+def _md_table(rows) -> str:
+    out = ["| " + " | ".join(rows[0]) + " |", "|" + "---|" * len(rows[0])]
+    out += ["| " + " | ".join(r) + " |" for r in rows[1:]]
+    return "\n".join(out)
+
+
 def iact_parameters() -> str:
-    ver, mag = cat.load_array("veritas"), cat.load_array("magic_lst1")
-    vt, mt, lt = (cat.load_telescope(n) for n in ("veritas_12m", "magic_17m", "lst1_23m"))
-    vb, mb = cat.load_backend("veritas_sii"), cat.load_backend("magic_sii")
-    from hbtsim.iact import calibrated
-    q_cal = calibrated(vb, vt.area_m2).q
-    asm = {n: set(cat.raw("telescope", n).get("assumptions", ())) for n in ("veritas_12m", "magic_17m", "lst1_23m")}
+    """The telescopes: VERITAS, MAGIC and the CTAO-North LST / MST (the
+    per-station alpha and q of iact.IACTBackend.per_station)."""
+    ver, mag, alpha = (cat.load_array(n) for n in ("veritas", "magic_lst1", "ctao_n_alpha"))
+    tel = {n: cat.load_telescope(n) for n in ("veritas_12m", "magic_17m", "ctao_lst_23m", "ctao_mst_11p5m")}
+    det = {n: cat.load_detector(n) for n in ("veritas_pmt", "magic_pmt", "ctao_pmt")}
+    asm = {n: set(cat.raw("telescope", n).get("assumptions", ())) for n in tel}
 
     def site(s):
         return f"{s.name} ({s.latitude_deg:g}°, {s.longitude_deg:g}°, {s.elevation_m:g} m)"
 
-    def area(t, n):
+    def area(n):
+        t = tel[n]
         return f"{t.collecting_area_m2:g} m²" + (" (**assumed**)" if "collecting_area_m2" in asm[n] else "")
-    vl = sorted(round(float(np.hypot(*b)), 1) for _, _, b in ver.pairs())
-    ml = sorted(round(float(np.hypot(*b)), 1) for _, _, b in mag.pairs())
+
+    def lens(a):
+        return sorted(float(np.hypot(*b)) for _, _, b in a.pairs())
+    vl, ml, al = lens(ver), lens(mag), lens(alpha)
     rows = [
-        ("", "VERITAS", "MAGIC", "LST-1"),
-        ("dishes", f"{len(ver.stations)} × {vt.diameter_m:g} m, {area(vt, 'veritas_12m')}",
-         f"2 × {mt.diameter_m:g} m, {area(mt, 'magic_17m')}", f"{lt.diameter_m:g} m, {area(lt, 'lst1_23m')}"),
-        ("site", site(ver.site), site(mag.site), "same"),
-        ("baselines", ", ".join(f"{x:g}" for x in vl) + " m (fitted to the published values)",
-         f"MAGIC-I–II {ml[0]:g} m", f"{ml[1]:g}, {ml[2]:g} m to LST-1; **orientation assumed**"),
-        ("filter", f"{vb.lambda_nm:g} nm, {vb.dlambda_nm:g} nm effective",
-         f"{mb.lambda_nm:g} nm / {mb.dlambda_nm:g} nm", "as MAGIC (assumed)"),
-        ("QE α", f"{vb.alpha:g}", f"{mb.alpha:g}", "as MAGIC"),
-        ("optical q", f"**calibrated: {q_cal:.3f}** (file: {vb.q:g})", f"{mb.q:g}", "as MAGIC"),
-        ("b_el", f"{vb.b_el_hz / 1e6:g} MHz; {vb.time_resolution_ns:g} ns time resolution",
-         f"{mb.b_el_hz / 1e6:g} MHz effective; {mb.time_resolution_ns:g} ns", "as MAGIC"),
-        ("F, σ_spec", "absorbed into q" if vb.anchor else f"{vb.noise_factor:g}, {vb.sigma_spec:g}",
-         f"{mb.noise_factor:g}, {mb.sigma_spec:g}", "as MAGIC"),
-        ("precision anchor", f"{vb.anchor.star}: σ(|V|²) = {vb.anchor.sigma_vis2:g} per pair in "
-                             f"{vb.anchor.t_s / 3600:g} h at AB {vb.anchor.mag_ab:.2f}" if vb.anchor else "—", "—", "—"),
+        ("", "VERITAS", "MAGIC", "CTAO LST", "CTAO MST"),
+        ("dishes", f"{len(ver.stations)} × {tel['veritas_12m'].diameter_m:g} m, {area('veritas_12m')}",
+         f"2 × {tel['magic_17m'].diameter_m:g} m, {area('magic_17m')}",
+         f"4 × {tel['ctao_lst_23m'].diameter_m:g} m, {area('ctao_lst_23m')} (with shadowing)",
+         f"9 × {tel['ctao_mst_11p5m'].diameter_m:g} m, {area('ctao_mst_11p5m')} (with shadowing)"),
+        ("site", site(ver.site), site(mag.site), "same (CTAO-North reference point)", "same"),
+        ("positions", "read off Abeysekara et al. 2020, Fig. 1, fitted to the published baselines",
+         "ctapipe_io_magic CTA-frame constants", "CTAO array-element position file (LSTN-01..04)",
+         "CTAO position file; the nine alpha pads matched to CTAO's layout map"),
+        ("baselines", ", ".join(f"{x:.1f}" for x in vl) + " m",
+         f"MAGIC-I–II {ml[1]:.1f} m; LST-1 {ml[0]:.1f} m from MAGIC-II, {ml[2]:.1f} m from MAGIC-I",
+         f"LST–LST {min(x for x in al if x > 100):.0f}–{max(lens(cat.load_array('ctao_n_lst4'))):.0f} m",
+         f"alpha layout {al[0]:.0f}–{al[-1]:.0f} m, {len(al)} pairs"),
+        ("optical q (telescope throughput)", f"{tel['veritas_12m'].throughput:g} (**calibrated** in the backend)",
+         f"{tel['magic_17m'].throughput:g}", f"{tel['ctao_lst_23m'].throughput:g} at 420 nm", f"{tel['ctao_mst_11p5m'].throughput:g} at 420 nm"),
+        ("camera PMT QE α at 425 nm", f"{det['veritas_pmt'].pde(425.0):g}", f"{det['magic_pmt'].pde(425.0):g}",
+         f"{det['ctao_pmt'].pde(425.0):g} (2024 table: 0.39)", f"{det['ctao_pmt'].pde(425.0):g}"),
+        ("sources", "Abeysekara et al. 2020", "Abe et al. 2024, Table 4",
+         "Biteau & Luce 2024-09-13 (CTA-N table); Biteau 2026-10-08 (Stage I)", "Biteau & Luce 2024-09-13 (CTA-N table)"),
     ]
-    out = ["| " + " | ".join(rows[0]) + " |", "|---|---|---|---|"]
-    out += ["| " + " | ".join(r) + " |" for r in rows[1:]]
-    return "\n".join(out)
+    return _md_table(rows)
+
+
+def iact_backends() -> str:
+    """The analog backends (filter, bandwidth, noise factor) and what each
+    takes per station."""
+    from hbtsim.iact import calibrated
+    vt = cat.load_telescope("veritas_12m")
+    rows = [("", "filter", "QE α", "optical q", "b_el", "F", "σ_spec", "channels", "per station")]
+    for n, lab in (("veritas_sii", "VERITAS SII"), ("magic_sii", "MAGIC SII (+ LST-1)"),
+                   ("ctao_sii_stage1", "CTAO-SII Stage I"), ("ctao_sii_stage2", "CTAO-SII Stage II")):
+        b = cat.load_backend(n)
+        alpha = "from the station's detector" if b.alpha is None else f"{b.alpha:g}"
+        if b.anchor:
+            q = f"**calibrated: {calibrated(b, vt.area_m2).q:.3f}** (file: {b.q:g})"
+        else:
+            q = "from the station's telescope" if b.q is None else f"{b.q:g}"
+        rows.append((lab, f"{b.lambda_nm:g} nm / {b.dlambda_nm:g} nm", alpha, q,
+                     f"{b.b_el_hz / 1e6:g} MHz" + (f" ({b.time_resolution_ns:g} ns)" if b.time_resolution_ns else ""),
+                     "absorbed into q" if b.anchor else f"{b.noise_factor:g}",
+                     "absorbed into q" if b.anchor else f"{b.sigma_spec:g}",
+                     f"{b.n_channels}", "yes" if b.per_station else "no"))
+    return _md_table(rows)
 
 
 def lpqi_parameters() -> str:
@@ -223,7 +255,7 @@ def campaigns_table() -> str:
 BLOCKS = {
     "README.md": {"systems": systems_table, "hardware": hardware_list, "campaigns": campaigns_table},
     "docs/three_telescope_feasibility.md": {"maunakea_baselines": maunakea_baselines},
-    "docs/iact_targets.md": {"iact_parameters": iact_parameters},
+    "docs/iact_targets.md": {"iact_parameters": iact_parameters, "iact_backends": iact_backends},
     "docs/lpqi_pathfinder.md": {"lpqi_parameters": lpqi_parameters},
     "docs/isi_hbt.md": {"isi_parameters": isi_parameters},
 }

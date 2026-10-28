@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "ctao_mst_11p5m",
+  "label": "CTAO MST 11.5 m (NectarCAM)",
+  "diameter_m": 11.5,
+  "throughput": 0.73,
+  "collecting_area_m2": 88.0,
+  "sources": [
+    "Biteau & Luce 2024-09-13, 'Stellar Intensity Interferometry with NectarCAM on the MSTs-N', CTA-N table (slides 18, 23): effective mirror area 88 m^2 including shadowing; optical efficiency at 420 nm 0.73; modified Davies-Cotton, f = 16 m, cone half angle 20 deg, arrival-time spread 0.7 ns rms from the dish shape"
+  ],
+  "notes": [
+    "The 0.7 ns rms dish-shape spread is below the Stage I electronic bandwidth (1/400 MHz = 2.5 ns) and is not modelled separately."
+  ]
+}

@@ -2,19 +2,24 @@
   "schema_version": 1,
   "kind": "backend",
   "name": "magic_sii",
-  "label": "MAGIC SII (425/26 nm)",
+  "label": "MAGIC SII (425/26 nm), per-station alpha and q",
   "model": "analog",
   "lambda_nm": 425.0,
   "dlambda_nm": 26.0,
-  "alpha": 0.295,
-  "q": 0.304,
+  "alpha": null,
+  "q": null,
   "b_el_hz": 110000000.0,
   "noise_factor": 1.15,
   "sigma_spec": 0.87,
   "beta": 0.0,
   "time_resolution_ns": 2.0,
+  "per_station": true,
+  "n_channels": 1,
   "sources": [
-    "Abe et al. 2024, MNRAS 529, 4387, Table 4 and Eq. 4: Semrock 425/26 filter, QE 0.295, q 0.304, b_el 110 MHz effective, F 1.15, sigma_spec 0.87, 2 ns"
+    "Abe et al. 2024, MNRAS 529, 4387, Table 4 and Eq. 4: Semrock 425/26 filter, QE 0.295, q 0.304, b_el 110 MHz effective, F 1.15, sigma_spec 0.87, 2 ns",
+    "Raiola et al. 2025, PoS ICRC2025 957: the same S/N form for the MAGIC-LST1 interferometer; LST-1 signal sent by optical fibre to the MAGIC correlator (Abe et al. 2025, arXiv:2506.04994)"
   ],
-  "notes": []
+  "notes": [
+    "alpha and q come from each station (magic_pmt 0.295 / magic_17m 0.304 reproduce Table 4 on MAGIC-I-II; ctao_pmt 0.40 / ctao_lst_23m 0.64 on the LST-1 pairs); the pair bandwidth, F and sigma_spec are MAGIC's correlator chain."
+  ]
 }

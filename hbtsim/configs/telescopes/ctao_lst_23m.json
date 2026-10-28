@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "ctao_lst_23m",
+  "label": "CTAO LST 23 m (LST-1 to LST-4)",
+  "diameter_m": 23.0,
+  "throughput": 0.64,
+  "collecting_area_m2": 370.0,
+  "sources": [
+    "Biteau & Luce 2024-09-13, 'Stellar Intensity Interferometry with NectarCAM on the MSTs-N', CTA-N table (slides 18, 23): effective mirror area 370 m^2 including shadowing; optical efficiency at 420 nm 0.64 (mirror reflectivity, entrance window, filters, light cones); parabolic, f = 28 m, cone half angle 22 deg",
+    "Abe et al. 2023, A&A (arXiv:2310.01954): LST-1 23 m parabolic, f = 28 m, peak PMT QE 41 %"
+  ],
+  "notes": [
+    "throughput is the optical efficiency q of the analog S/N (iact.py) for per-station backends; the photon-counting cross-check path uses it too."
+  ]
+}

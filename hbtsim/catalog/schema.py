@@ -159,10 +159,11 @@ FIELDS = {
                 Field("kw", DICT),
                 # analog (IACT)
                 Field("lambda_nm", NUM, lo=0), Field("dlambda_nm", NUM, lo=0),
-                Field("alpha", NUM, lo=0, hi=1), Field("q", NUM, lo=0, hi=1),
+                Field("alpha", NUM, lo=0, hi=1, nullable=True), Field("q", NUM, lo=0, hi=1, nullable=True),
                 Field("b_el_hz", NUM, lo=0), Field("noise_factor", NUM, lo=0),
                 Field("sigma_spec", NUM, lo=0), Field("beta", NUM, lo=0),
-                Field("time_resolution_ns", NUM, lo=0), Field("anchor", DICT, nullable=True)),
+                Field("time_resolution_ns", NUM, lo=0), Field("anchor", DICT, nullable=True),
+                Field("per_station", BOOL), Field("n_channels", (int,), lo=1)),
     "array": (Field("site", REF, nullable=True),
               Field("stations", LIST), Field("generator", DICT)),
     "resource": (Field("path", STR, required=True), Field("env_override", STR, nullable=True),
@@ -303,6 +304,10 @@ def check_kind(where: str, kind: str, d: dict) -> None:
             for k in ("lambda_nm", "dlambda_nm", "alpha", "q", "b_el_hz"):
                 if k not in d:
                     raise SchemaError(f"{where}: analog backend needs '{k}'")
+            if not d.get("per_station"):
+                for k in ("alpha", "q"):
+                    if d[k] is None:
+                        raise SchemaError(f"{where}: '{k}' may be null only with per_station: true")
             if d.get("anchor") is not None:
                 _check_one_anchor(f"{where}: anchor", d["anchor"],
                                   (Field("star", STR, required=True),
