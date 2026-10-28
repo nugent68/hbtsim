@@ -188,7 +188,7 @@ FIELDS = {
                Field("reference_results", DICT)),
     "campaign": (Field("runner", STR, required=True,
                        choices=("g3", "g2", "g3_campaign", "chromatic", "montecarlo",
-                                "scale", "suite", "nightmovie", "specmovie")),
+                                "scale", "suite", "nightmovie", "specmovie", "iact")),
                  Field("target", STR), Field("targets", LIST), Field("array", STR),
                  Field("array_params", DICT), Field("instrument", DICT),
                  Field("backends", LIST), Field("track_backends", LIST),

@@ -18,6 +18,7 @@ RUNNERS = {
     "suite": "suite",
     "nightmovie": "nightmovie",
     "specmovie": "specmovie",
+    "iact": "iact",
 }
 
 

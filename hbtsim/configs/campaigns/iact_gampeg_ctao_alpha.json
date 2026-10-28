@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "iact_gampeg_ctao_alpha",
+  "label": "gamma Peg (0.35 mas, B2 IV) on the CTAO-North alpha array (4 LSTs + 9 MSTs, 78 baselines to 560 m): diameter and limb darkening past the first null, Stage I against Stage II",
+  "runner": "iact",
+  "target": "gampeg",
+  "instrument": {
+    "array": "ctao_n_alpha"
+  },
+  "backends": [
+    "ctao_sii_stage1",
+    "ctao_sii_stage2"
+  ],
+  "night": {
+    "block_minutes": 20.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "nights": 1,
+    "fit_u": true,
+    "pupils": true,
+    "diameter_precision": 0.01,
+    "seed": 3,
+    "display_bin_blocks": 6
+  },
+  "notes": [
+    "The MST pairs carry the star through its first null (300 m) into the second lobe, where the limb darkening is; Luce et al.: ~1 % on theta_UD for B < 4 and ~10 % on u for B < 1.2 in 2.5 h with 4 LSTs + 9 MSTs.",
+    "Stage II (dedicated photodetectors, 2 GHz, 1 nm x 10 channels) is 9.6x Stage I per pair in this model: the analog S/N does not depend on the filter width."
+  ]
+}

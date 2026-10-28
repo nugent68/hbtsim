@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "iact_gammacas_ctao_alpha",
+  "label": "gamma Cas on the CTAO-North alpha array at 425 nm: the ellipse (major axis, axis ratio, PA) in one night, Stage I against Stage II",
+  "runner": "iact",
+  "target": "gammacas",
+  "instrument": {
+    "array": "ctao_n_alpha"
+  },
+  "backends": [
+    "ctao_sii_stage1",
+    "ctao_sii_stage2"
+  ],
+  "night": {
+    "block_minutes": 20.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "nights": 1,
+    "ellipse": true,
+    "pupils": true,
+    "diameter_precision": 0.01,
+    "seed": 3,
+    "display_bin_blocks": 6
+  },
+  "notes": [
+    "The 2026 talk's Stage I example (MAGIC + CTAO-LST1 image of gamma Cas, under review) on the full alpha array: 78 baselines from 68 to 560 m rotate through the night, the 0.55 x 0.43 mas ellipse nulls at 190-250 m depending on the position angle."
+  ]
+}

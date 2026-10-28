@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "iact_spica_magic_lst1",
+  "label": "Spica on MAGIC-I + MAGIC-II + LST-1 at 425 nm: the binary fringe through four consecutive nights of the 4.01 d orbit (ln a, node, periastron free)",
+  "runner": "iact",
+  "target": "spica",
+  "instrument": {
+    "array": "magic_lst1"
+  },
+  "backends": [
+    "magic_sii"
+  ],
+  "night": {
+    "block_minutes": 20.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "nights": 4,
+    "phase0": "max_separation",
+    "night_step_days": 1.0,
+    "pupils": true,
+    "diameter_precision": 0.01,
+    "seed": 3
+  },
+  "notes": [
+    "Raiola et al. 2025 simulated the same system on these three baselines (Herbison-Evans 1971 orbit, a = 1.54 mas); hbtsim's Spica has a = 1.09 mas at phase 0 from the masses, period and 76.6 pc with e = 0.108.",
+    "Spica's fringe period lambda/rho is 80-200 m at 425 nm: the 45-107 m projected baselines sit on the first fringe; the 17 and 23 m pupils are averaged over."
+  ]
+}

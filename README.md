@@ -376,7 +376,10 @@ run (`--set night.block_minutes=30`, `--set atmosphere.use=false`),
 `--no-figures`, `--no-track`, `--newera-dir` / `--no-newera` as on the
 other tools. `results.json` records the resolved campaign definition, its
 content hash and the git revision, so a number in a table can always be
-traced to its inputs. `suite_phase6` runs everything (`--jobs 4`).
+traced to its inputs. `suite_phase6` runs everything (`--jobs 4`). The
+Cherenkov-telescope arrays (MAGIC + LST-1, CTAO-North, VERITAS) run through
+the `iact` runner with the groups' analog photomultiplier sensitivity
+([docs/iact_targets.md](docs/iact_targets.md)): `hbtsim run iact_spica_magic_lst1`.
 
 <!-- catalog:campaigns -->
 | Campaign | Runner | What it computes |
@@ -398,6 +401,11 @@ traced to its inputs. `suite_phase6` runs everything (`--jobs 4`).
 | `g3_deltavel_eonsii_paranal` | g3_campaign | delta Vel closure-phase campaign with three EON-SII units at Paranal |
 | `g3_deltavel_vlt` | g3 | delta Vel closure phases with the four VLT UTs |
 | `g3_spica_vlt` | g3 | Spica closure phases with the four VLT UTs (docs/three_telescope_feasibility.md) |
+| `iact_gammacas_ctao_alpha` | iact | gamma Cas on the CTAO-North alpha array at 425 nm: the ellipse (major axis, axis ratio, PA) in one night, Stage I against Stage II |
+| `iact_gammacas_magic_lst1` | iact | gamma Cas on MAGIC-I + MAGIC-II + LST-1 at 425 nm: the VERITAS ellipse (major axis, axis ratio, PA) over three nights with MAGIC's analog correlator |
+| `iact_gampeg_ctao_alpha` | iact | gamma Peg (0.35 mas, B2 IV) on the CTAO-North alpha array (4 LSTs + 9 MSTs, 78 baselines to 560 m): diameter and limb darkening past the first null, Stage I against Stage II |
+| `iact_gampeg_ctao_lst4` | iact | gamma Peg (0.35 mas, B2 IV) on the four CTAO-North LSTs: diameter and linear limb darkening, Stage I against Stage II, one night |
+| `iact_spica_magic_lst1` | iact | Spica on MAGIC-I + MAGIC-II + LST-1 at 425 nm: the binary fringe through four consecutive nights of the 4.01 d orbit (ln a, node, periastron free) |
 | `mc_sirius_b_eonsii` | montecarlo | Sirius B diameter Monte Carlo with the EON-SII pair (paper Table 2 cross-check) |
 | `mc_sirius_b_lpqi_orm_r10000` | montecarlo | Sirius B on the five-telescope LPQI network with the final instrument: R = 10 000 spectrograph on the 10 ps IMSE-LPQI array, every pair |
 | `mc_sirius_b_lpqi_pathfinder` | montecarlo | Sirius B diameter Monte Carlo on the LPQI-Pathfinder (NOT + TNG, 550 m, one 1 nm filter) |

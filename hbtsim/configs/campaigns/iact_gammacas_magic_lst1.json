@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "iact_gammacas_magic_lst1",
+  "label": "gamma Cas on MAGIC-I + MAGIC-II + LST-1 at 425 nm: the VERITAS ellipse (major axis, axis ratio, PA) over three nights with MAGIC's analog correlator",
+  "runner": "iact",
+  "target": "gammacas",
+  "instrument": {
+    "array": "magic_lst1"
+  },
+  "backends": [
+    "magic_sii"
+  ],
+  "night": {
+    "block_minutes": 20.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "nights": 3,
+    "ellipse": true,
+    "pupils": true,
+    "diameter_precision": 0.01,
+    "seed": 3
+  },
+  "notes": [
+    "The three surveyed baselines (MAGIC-I-II 85 m, LST-1 54 and 106 m from MAGIC-II and -I) sweep different position angles through the 10.6 h night; the Fisher matrix on (theta_major, axis ratio, PA, N0) accumulates over three consecutive nights.",
+    "Sensitivity per station: MAGIC 236 m^2, q 0.304, QE 0.295 (Abe et al. 2024); LST-1 370 m^2, q 0.64, QE 0.40 (CTAO-N tables); MAGIC's correlator chain (110 MHz, F 1.15, sigma_spec 0.87)."
+  ]
+}

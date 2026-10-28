@@ -5,7 +5,7 @@
     hbtsim run suite_phase6 --jobs 4              # every member campaign
 
 Each campaign names a runner (hbtsim/runners/<runner>.py: g3, g2,
-g3_campaign, chromatic, montecarlo, scale, suite) and the catalog objects
+g3_campaign, chromatic, montecarlo, scale, suite, nightmovie, specmovie, iact) and the catalog objects
 it works on; the runner returns a dict of results.  Everything lands in
 output/campaigns/<name>[_<suffix>]/: results.json (the numbers, the
 resolved campaign definition, its content hash and the git revision),

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "iact_gampeg_ctao_lst4",
+  "label": "gamma Peg (0.35 mas, B2 IV) on the four CTAO-North LSTs: diameter and linear limb darkening, Stage I against Stage II, one night",
+  "runner": "iact",
+  "target": "gampeg",
+  "instrument": {
+    "array": "ctao_n_lst4"
+  },
+  "backends": [
+    "ctao_sii_stage1",
+    "ctao_sii_stage2"
+  ],
+  "night": {
+    "block_minutes": 20.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "nights": 1,
+    "fit_u": true,
+    "pupils": true,
+    "diameter_precision": 0.01,
+    "seed": 3
+  },
+  "notes": [
+    "The 103-179 m LST baselines reach x = pi B theta / lambda up to 2.2 at 425 nm (first null at 300 m): the diameter from the main lobe's curvature, the limb-darkening coefficient from the shape near the null, both with the zero-baseline normalization free.",
+    "Luce et al. (2024 talk): ~1 % on theta_UD for B < 3 with the four LSTs in 2.5 h."
+  ]
+}

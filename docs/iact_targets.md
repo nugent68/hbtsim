@@ -164,6 +164,37 @@ B < 1.2. These are the groups' numbers, not reproduced here; the MST pairs are w
 0.1–0.2 mas star past its first null (slide 25: θ = 0.1 mas at B = 3 to ±0.005 mas with the LSTs,
 ±0.000 with the MSTs added).
 
+## Campaigns: runner `iact`
+
+`hbtsim run <campaign>` on these arrays goes through `hbtsim/runners/iact.py`: every pair's
+|V|² along each night's uv track, σ(|V|²) per block from the backend's constants and the
+stations' areas, QE and optical efficiencies, and the Fisher matrix accumulated night by night
+on the model parameters with the zero-baseline normalization N₀ free (the groups fit
+|V|² = N₀ V²): a single star's diameter (and, with `fit_u`, the linear limb-darkening
+coefficient), its ellipse (`ellipse`: major axis, axis ratio, PA), or a binary's (ln a, Ω, ω)
+with the phase advancing night to night. The first night is also simulated (seeded noise) and,
+for circular stars, fitted. Outputs: `table.md` (per backend and pair), `table_nights.md`
+(precision after each night), `<name>.png` (uv coverage, |V|² against baseline, precision by
+night) and `results.json`. The numbers are statistics only: no calibration systematics, no
+gravity darkening, no circumstellar disk (see above for why a disk hides in N₀).
+
+| campaign | target, array, nights | statistics-only result (N₀ free) |
+|---|---|---|
+| `iact_gammacas_magic_lst1` | γ Cas's ellipse on MAGIC + LST-1, 3 nights, MAGIC's correlator | σ(θ_major)/θ 0.34 %, σ(axis ratio) 0.005, σ(PA) 0.5° |
+| `iact_spica_magic_lst1` | Spica's orbit on MAGIC + LST-1, 4 consecutive nights | σ(a)/a 0.08 %, σ(Ω) 0.09°, σ(ω) 0.08° |
+| `iact_gampeg_ctao_lst4` | γ Peg (0.35 mas) on the four LSTs, 1 night, θ and u free | Stage I: σ(θ)/θ 5.0 % jointly with u (0.11 % with u fixed), σ(u) 0.52; Stage II: 0.52 % (0.012 %), σ(u) 0.055 |
+| `iact_gampeg_ctao_alpha` | γ Peg on the alpha array (78 baselines to 560 m), 1 night | Stage I: σ(θ)/θ 0.56 % (0.05 % with u fixed), σ(u) 0.057; Stage II: 0.06 % (0.005 %), σ(u) 0.006 |
+| `iact_gammacas_ctao_alpha` | γ Cas's ellipse on the alpha array, 1 night | Stage I: σ(axis ratio) 0.0008, σ(PA) 0.07°; Stage II: 0.00008, 0.007° |
+
+Reading these: the LSTs alone (103–179 m) see γ Peg only on its main lobe (|V|² 0.26–0.86), so
+θ and u are degenerate and u costs a factor 45 in θ at Stage I; the MST pairs carry the star
+through its first null at 300 m, which pins u to 0.06 in one Stage I night, in line with Luce
+et al.'s "10 % on u for B < 1.2 in 2.5 h" once the 8.5 h night and γ Peg's B = 2.6 are
+accounted for. Spica on MAGIC + LST-1 reproduces Raiola et al.'s conclusion that the
+interferometric elements (a, Ω, ω) come from a few nights. The Stage II numbers are the
+model's 9.6× per pair carried through; whether a 10⁻⁴ precision survives calibration is not
+a question this runner answers.
+
 Not in the catalog: CTAO-South (14 MSTs + 37 SSTs, Paranal), the SSTs' optical design for SII,
 the NectarCAM 1 ON + 5 OFF pixel scheme, the 0.7 ns dish-shape spread of the MSTs, and the
 Stage II corrective optics' throughput.
