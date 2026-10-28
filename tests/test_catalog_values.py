@@ -258,7 +258,7 @@ def test_isi():
         cat.load_array("isi_line", spacings_m=[1.0, 30.0])
     assert cat.load_campaign("movie_epstau_isi_line").option("instrument.array") == "isi_line"
     for name, theta, dec in (("betelgeuse", 42.3, 7.4071), ("aldebaran", 20.58, 16.5093), ("arcturus", 21.05, 19.1824),
-                             ("mu_cep", 14.1, 58.78), ("eps_tau", 2.59, 19.1804)):
+                             ("mu_cep", 14.1, 58.78), ("eps_tau", 2.733, 19.1804)):
         st = cat.load_target(name)
         assert st.theta_ld_mas == theta and st.dec_deg == pytest.approx(dec) and st.mag_anchors[-1][0] == 2190.0
         assert float(st.ab_mag(900.0)) < float(st.ab_mag(551.0))                        # red stars: brighter in the red

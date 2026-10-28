@@ -74,3 +74,32 @@ def test_iact_ellipse_and_binary(tmp_path):
     assert n2["phase0"] == pytest.approx((n1["phase0"] + 1.0 / 4.0145) % 1.0)
     assert n2["sigma_rel_cumulative"] < n1["sigma_rel_cumulative"] and b["sigma_rel"] < 0.01
     assert b["sigmas"]["Omega"] < 2.0 and b["sigmas"]["omega"] < 5.0
+
+
+def test_iact_hyades_profiles(tmp_path):
+    """Two Hyades giants with NewEra stand-in profiles on MAGIC + LST-1:
+    several targets in one campaign, every baseline past the first null,
+    and compare_models fitting the compact profile to the extended one."""
+    import os
+    cat0 = Catalog(env=False)
+    d = cat0.load_resource("newera_redclump").resolved_path
+    if not all(os.path.exists(os.path.join(d, f"newera_{m}_380-1000nm_0.02nm.npz"))
+               for m in ("lte05000-4.50-0.0", "lte05000-0.00-0.0")):
+        pytest.skip("Hyades stand-in tables not present")
+    cat = _tiny(tmp_path, "iact_hyades_magic_lst1", "tiny_iact_hyades",
+                {"nights": 1, "compare_models": ["lte05000-0.00-0.0"]}, targets=["eps_tau", "tet1_tau"])
+    res, out = _run(cat, "tiny_iact_hyades", tmp_path)
+    assert res["target_names"] == ["eps_tau", "tet1_tau"] and set(res["targets"]) == {"eps_tau", "tet1_tau"}
+    e = res["targets"]["eps_tau"]
+    assert e["profile"].startswith("lte05000-4.50-0.0") and e["theta_ld_mas"] == 2.733     # CHARA, Boyajian et al. 2009
+    b = e["backends"]["MAGIC SII (425/26 nm), per-station alpha and q"]
+    assert b["lobes"]["null_m"] == pytest.approx(44.2, abs=0.3) and b["lobes"]["lobe2_vis2"] == pytest.approx(0.0078, abs=0.0005)
+    by = {p["pair"]: p for p in b["pairs"]}
+    for k in ("MAGIC-I-MAGIC-II", "MAGIC-I-LST-1"):                   # past the null all night
+        assert by[k]["baseline_min_m"] > 55 and by[k]["vis2_max"] < 0.01
+    assert by["MAGIC-II-LST-1"]["baseline_min_m"] < 44 and by["MAGIC-II-LST-1"]["vis2_max"] < 0.3   # crosses the null at low altitude
+    assert b["nights"][0]["snr"] < 3                                   # sidelobes only: ~1 sigma per night
+    c = b["compare_models"]["lte05000-0.00-0.0"]
+    assert c["drawn_diameter_mas"] == pytest.approx(2.733 * 1.165, rel=0.01)   # the supergiant's outer radius
+    assert c["sigma_per_night"] < 0.5 and c["nights_to_3sigma"] > 100
+    assert (out / "table_eps_tau.md").exists() and (out / "table_nights_tet1_tau.md").exists()

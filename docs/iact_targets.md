@@ -185,6 +185,8 @@ gravity darkening, no circumstellar disk (see above for why a disk hides in N₀
 | `iact_gampeg_ctao_lst4` | γ Peg (0.35 mas) on the four LSTs, 1 night, θ and u free | Stage I: σ(θ)/θ 5.0 % jointly with u (0.11 % with u fixed), σ(u) 0.52; Stage II: 0.52 % (0.012 %), σ(u) 0.055 |
 | `iact_gampeg_ctao_alpha` | γ Peg on the alpha array (78 baselines to 560 m), 1 night | Stage I: σ(θ)/θ 0.56 % (0.05 % with u fixed), σ(u) 0.057; Stage II: 0.06 % (0.005 %), σ(u) 0.006 |
 | `iact_gammacas_ctao_alpha` | γ Cas's ellipse on the alpha array, 1 night | Stage I: σ(axis ratio) 0.0008, σ(PA) 0.07°; Stage II: 0.00008, 0.007° |
+| `iact_hyades_magic_lst1` | the four Hyades giants (2.3–2.7 mas, PHOENIX stand-ins), 10 nights on MAGIC + LST-1 | S/N 1–2.5 per night past the first null; σ(θ)/θ 15–36 % after ten nights; compact-vs-extended profile 0.1 σ per night ([docs/hyades_ld.md](hyades_ld.md)) |
+| `iact_hyades_ctao_alpha` | the same on the alpha array, 3 nights | Stage I: σ(θ)/θ 18–34 %; Stage II: 1.9–3.6 % and the profiles 2.2–2.9 σ apart per night |
 
 Reading these: the LSTs alone (103–179 m) see γ Peg only on its main lobe (|V|² 0.26–0.86), so
 θ and u are degenerate and u costs a factor 45 in θ at Stage I; the MST pairs carry the star

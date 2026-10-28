@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "iact_hyades_ctao_alpha",
+  "label": "The four Hyades giants on the CTAO-North alpha array (4 LSTs + 9 MSTs) at Stage I and II with NewEra PHOENIX stand-ins: the sidelobes to 560 m and the compact-versus-extended profile test",
+  "runner": "iact",
+  "targets": [
+    "eps_tau",
+    "gam_tau",
+    "del1_tau",
+    "tet1_tau"
+  ],
+  "instrument": {
+    "array": "ctao_n_alpha"
+  },
+  "backends": [
+    "ctao_sii_stage1",
+    "ctao_sii_stage2"
+  ],
+  "night": {
+    "block_minutes": 20.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": true,
+    "resource": "newera_redclump",
+    "stand_in": "lte05000-4.50-0.0"
+  },
+  "options": {
+    "nights": 3,
+    "pupils": true,
+    "diameter_precision": 0.01,
+    "seed": 5,
+    "compare_models": [
+      "lte05000-0.00-0.0",
+      "lte05000-4.50+0.5"
+    ],
+    "display_bin_blocks": 6
+  },
+  "notes": [
+    "Companion to iact_hyades_magic_lst1: the 68-560 m alpha baselines sample the second to the twelfth lobe of a 2.3-2.7 mas disk at 425 nm; the MST pairs' lower S/N per pair is repaid by 78 baselines."
+  ]
+}

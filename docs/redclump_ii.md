@@ -127,6 +127,9 @@ assumed, the test the authors say G/K atmospheres need.
 
 ## 5. Caveats
 
+The same dwarf / supergiant bracket is applied to the four Hyades giants on the
+Cherenkov-telescope arrays in [docs/hyades_ld.md](hyades_ld.md).
+
 - **Stand-in profiles.** Every profile-dependent number above is for
   a dwarf or a supergiant of the right temperature. The gravity
   dependence between them is small for the UD ratios (< 1 %) and large

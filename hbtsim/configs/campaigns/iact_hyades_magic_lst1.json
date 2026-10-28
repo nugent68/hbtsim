@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "iact_hyades_magic_lst1",
+  "label": "The four Hyades giants on MAGIC-I + MAGIC-II + LST-1 at 425 nm with NewEra PHOENIX stand-ins: diameters beyond the first null, and whether ten nights separate the compact and extended limb-darkening profiles",
+  "runner": "iact",
+  "targets": [
+    "eps_tau",
+    "gam_tau",
+    "del1_tau",
+    "tet1_tau"
+  ],
+  "instrument": {
+    "array": "magic_lst1"
+  },
+  "backends": [
+    "magic_sii"
+  ],
+  "night": {
+    "block_minutes": 20.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": true,
+    "resource": "newera_redclump",
+    "stand_in": "lte05000-4.50-0.0"
+  },
+  "options": {
+    "nights": 10,
+    "pupils": true,
+    "diameter_precision": 0.01,
+    "seed": 5,
+    "compare_models": [
+      "lte05000-0.00-0.0",
+      "lte05000-4.50+0.5"
+    ],
+    "display_bin_blocks": 6
+  },
+  "notes": [
+    "CHARA (Boyajian et al. 2009, K' band) measured theta_LD = 2.517 / 2.408 / 2.733 / 2.305 mas for gamma / delta1 / epsilon / theta1 Tau to 1.3-1.9 %. At 425 nm their first nulls lie at 39-46 m: every MAGIC + LST-1 baseline (43-107 m projected) is past the null, in the second and third lobes (|V|^2 < 0.02), except the short end of MAGIC-II-LST-1 which crosses the null itself.",
+    "No NewEra model exists at the giants' gravity. The campaign draws the giants with the 5000 K dwarf profile (compact limit) and compares against the 5000 K supergiant (extended limit: outer radius 1.165 R_tau1) and the +0.5 dex dwarf (metallicity); the real giant lies between the first two. compare_models fits the compact profile (theta, N0 free) to the extended profile's track and reports the residual chi^2 per night.",
+    "The blue flux of a K giant is model-dependent: the PHOENIX stand-in is 0.43 mag fainter at 425 nm than the blackbody anchored to B and V (the B anchor at 445 nm is held constant blueward)."
+  ]
+}

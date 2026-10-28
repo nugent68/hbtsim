@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "del1_tau",
+  "label": "delta1 Tauri (Hyadum II, K0 III red clump, Hyades)",
+  "type": "single",
+  "star": {
+    "label": "delta1 Tau",
+    "mass_msun": 2.6,
+    "teff_k": 4826.0,
+    "ld_table": "k_giant_rough",
+    "logg": 2.67
+  },
+  "theta_ld_mas": 2.408,
+  "v_mag": 3.76,
+  "dec_deg": 17.54251388888889,
+  "ra_hours": 4.382248611111111,
+  "distance_pc": 49.24,
+  "mag_anchors": [
+    {
+      "band": "B",
+      "mag_vega": 4.74
+    },
+    {
+      "band": "V",
+      "mag_vega": 3.76
+    },
+    {
+      "band": "H",
+      "mag_vega": 1.579
+    },
+    {
+      "band": "K",
+      "mag_vega": 1.59
+    }
+  ],
+  "atmosphere": {
+    "resource": "newera_redclump",
+    "model": "lte05000-4.50-0.0"
+  },
+  "sources": [
+    "Boyajian et al. 2009, ApJ 691, 1243 (CHARA Classic, K' band): theta_LD = 2.408 +/- 0.038 mas",
+    "Gaia DR3 parallax (SIMBAD): 20.3092 +/- 0.2276 mas -> 49.24 pc",
+    "SIMBAD: B V (Ducati 2002 / Oja 1993), H (2MASS), K (Ducati 2002)",
+    "Boyajian et al. 2009 Table 3: T_eff, log g range, radius; masses 2.48-2.70 Msun"
+  ],
+  "notes": [
+    "Hyades red-clump giant (K0 III, [Fe/H] ~ +0.15). The atmosphere block names the 5000 K dwarf as a STAND-IN: no NewEra model exists at log g ~2.6; the Hyades campaigns bracket the giant between lte05000-4.50-0.0 (compact) and lte05000-0.00-0.0 (extended), with lte05000-4.50+0.5 for the metallicity (docs/hyades_ld.md).",
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets; the B anchor sets the 425 nm flux for the IACT campaigns.",
+    "The radius is derived from theta_LD and the distance. At 425 nm the first null is at 1.22 lambda / theta.",
+    "Mark III 2.338 +/- 0.033 and NPOI 2.21 +/- 0.08 mas gave smaller diameters (Boyajian 2009, Table 4)."
+  ],
+  "assumptions": [
+    "atmosphere.model (stand-in: a 5000 K dwarf, not a giant)"
+  ]
+}

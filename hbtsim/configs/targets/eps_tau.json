@@ -11,12 +11,16 @@
     "ld_table": "k_giant_rough",
     "logg": 2.66
   },
-  "theta_ld_mas": 2.59,
+  "theta_ld_mas": 2.733,
   "v_mag": 3.53,
   "dec_deg": 19.1804,
   "ra_hours": 4.4769,
   "distance_pc": 44.7,
   "mag_anchors": [
+    {
+      "band": "B",
+      "mag_vega": 4.54
+    },
     {
       "band": "V",
       "mag_vega": 3.53
@@ -31,16 +35,23 @@
     }
   ],
   "sources": [
-    "Anugu et al. 2026: radius 12.46 +/- 0.10 Rsun; Gaia DR3 parallax 22.3654 +/- 0.1721 mas -> 44.7 pc: theta_LD = 2R/d = 2.59 mas (no direct interferometric diameter found)",
+    "Boyajian et al. 2009, ApJ 691, 1243 (CHARA Classic, K' band): theta_LD = 2.733 +/- 0.031 mas (uniform disk 2.659; includes the van Belle et al. 1999 PTI point); earlier Mark III 2.671, NPOI 2.41, PTI 2.57",
+    "Anugu et al. 2026: radius 12.46 +/- 0.10 Rsun; Gaia DR3 parallax 22.3654 +/- 0.1721 mas -> 44.7 pc: 2R/d = 2.59 mas; the CHARA diameter is 5 % larger",
     "Baines et al. 2025: T_eff 4880 +/- 67 K; Teng et al. 2023: log g 2.66; Arentoft et al. 2019: mass 2.458 +/- 0.073 Msun",
-    "Sato et al. 2007: V 3.53, red-clump giant with a planet; 2MASS H 1.314, K 1.31"
+    "Sato et al. 2007: V 3.53, red-clump giant with a planet; 2MASS H 1.314, K 1.31",
+    "SIMBAD: B V (Ducati 2002 / Oja 1993), H (2MASS), K (Ducati 2002)"
   ],
   "notes": [
     "A northern red-clump calibrator for the ISI (hd360 and hd17652 are the southern ones); first null 84 m at 900 nm, 61 m at 650 nm.",
     "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85); 900 and 900 nm fall inside the anchored range.",
-    "The radius is derived from theta_LD and the distance. No NewEra model exists below 4700 K: blackbody + linear law."
+    "theta_LD is the CHARA K'-band limb-darkened diameter (2008 data); 2R/d from the Anugu et al. 2026 radius and the Gaia distance gives 2.59 mas, 5 % smaller. The radius used is derived from theta_LD and the distance.",
+    "The atmosphere block names the 5000 K dwarf as a STAND-IN: no NewEra model exists at log g 2.66; the Hyades campaigns bracket the giant between lte05000-4.50-0.0 (compact) and lte05000-0.00-0.0 (extended), with lte05000-4.50+0.5 for the metallicity (docs/hyades_ld.md)."
   ],
   "assumptions": [
-    "theta_ld_mas (2R/d, no interferometric measurement)"
-  ]
+    "atmosphere.model (stand-in: a 5000 K dwarf, not a giant)"
+  ],
+  "atmosphere": {
+    "resource": "newera_redclump",
+    "model": "lte05000-4.50-0.0"
+  }
 }

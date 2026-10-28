@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "tet1_tau",
+  "label": "theta1 Tauri (K0 IIIb red clump, Hyades; SB1 with an F dwarf)",
+  "type": "single",
+  "star": {
+    "label": "theta1 Tau",
+    "mass_msun": 2.6,
+    "teff_k": 4811.0,
+    "ld_table": "k_giant_rough",
+    "logg": 2.71
+  },
+  "theta_ld_mas": 2.305,
+  "v_mag": 3.84,
+  "dec_deg": 15.962283333333332,
+  "ra_hours": 4.476249444444445,
+  "distance_pc": 40.37,
+  "mag_anchors": [
+    {
+      "band": "B",
+      "mag_vega": 4.78
+    },
+    {
+      "band": "V",
+      "mag_vega": 3.84
+    },
+    {
+      "band": "H",
+      "mag_vega": 1.754
+    },
+    {
+      "band": "K",
+      "mag_vega": 1.73
+    }
+  ],
+  "atmosphere": {
+    "resource": "newera_redclump",
+    "model": "lte05000-4.50-0.0"
+  },
+  "sources": [
+    "Boyajian et al. 2009, ApJ 691, 1243 (CHARA Classic, K' band): theta_LD = 2.305 +/- 0.043 mas",
+    "Gaia DR3 parallax (SIMBAD): 24.7693 +/- 0.4363 mas -> 40.37 pc",
+    "SIMBAD: B V (Ducati 2002 / Oja 1993), H (2MASS), K (Ducati 2002)",
+    "Boyajian et al. 2009 Table 3: T_eff, log g range, radius; masses 2.48-2.70 Msun"
+  ],
+  "notes": [
+    "Hyades red-clump giant (K0 III, [Fe/H] ~ +0.15). The atmosphere block names the 5000 K dwarf as a STAND-IN: no NewEra model exists at log g ~2.6; the Hyades campaigns bracket the giant between lte05000-4.50-0.0 (compact) and lte05000-0.00-0.0 (extended), with lte05000-4.50+0.5 for the metallicity (docs/hyades_ld.md).",
+    "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets; the B anchor sets the 425 nm flux for the IACT campaigns.",
+    "The radius is derived from theta_LD and the distance. At 425 nm the first null is at 1.22 lambda / theta.",
+    "SB1 (P ~ 16.3 yr) with a late-F dwarf companion ~3 % of the light (Torres et al. 1997; Boyajian 2009 corrected F_bol by 3 %); the companion is ignored here (an unresolved 3 % point source would scale |V|^2 by ~0.94 at all baselines, absorbed by the fits' free normalization)."
+  ],
+  "assumptions": [
+    "atmosphere.model (stand-in: a 5000 K dwarf, not a giant)"
+  ]
+}
