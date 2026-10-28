@@ -11,29 +11,31 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: false   # no lockfile in the repository; the cache warning otherwise
       - run: uv build
       - name: Smoke-test the wheel
         run: |
           uv venv /tmp/wheel-venv
           uv pip install -p /tmp/wheel-venv/bin/python dist/hbtsim-*.whl
           /tmp/wheel-venv/bin/hbtsim catalog validate
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
 
   publish:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: pypi
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
