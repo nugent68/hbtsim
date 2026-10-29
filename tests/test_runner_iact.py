@@ -103,3 +103,22 @@ def test_iact_hyades_profiles(tmp_path):
     assert c["drawn_diameter_mas"] == pytest.approx(2.733 * 1.165, rel=0.01)   # the supergiant's outer radius
     assert c["sigma_per_night"] < 0.5 and c["nights_to_3sigma"] > 100
     assert (out / "table_eps_tau.md").exists() and (out / "table_nights_tet1_tau.md").exists()
+
+
+def test_iact_compare_models_null_beyond_array(tmp_path):
+    """A 0.9 mas star on MAGIC + LST-1 has its first null (~120 m at 425 nm)
+    beyond the longest baseline: compare_models must report null_m None and
+    not crash on the printout."""
+    import os
+    cat0 = Catalog(env=False)
+    d = cat0.load_resource("newera_redclump").resolved_path
+    if not os.path.exists(os.path.join(d, "newera_lte05000-0.00-0.0_380-1000nm_0.02nm.npz")):
+        pytest.skip("stand-in table not present")
+    cat = _tiny(tmp_path, "iact_hyades_magic_lst1", "tiny_iact_small",
+                {"nights": 1, "compare_models": ["lte05000-0.00-0.0"]}, targets=["hd360"])
+    res, _ = _run(cat, "tiny_iact_small", tmp_path)
+    b = res["backends"]["MAGIC SII (425/26 nm), per-station alpha and q"]
+    assert b["lobes"]["null_m"] is None
+    c = b["compare_models"]["lte05000-0.00-0.0"]
+    assert c["null_m"] is None and c["lobe2_vis2"] is None and c["sigma_per_night"] >= 0
+    assert all(p["vis2_min"] > 0.02 for p in b["pairs"])          # main lobe only

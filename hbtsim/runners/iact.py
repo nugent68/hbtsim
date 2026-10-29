@@ -389,7 +389,9 @@ def _run_one(campaign, cat, opts, out_dir: Path, target, array, backends, suffix
                                       theta_fit_mas=f_alt[0], theta_bias_frac=f_alt[0] / target.theta_ld_mas - 1.0, N0_fit=f_alt[2],
                                       vis2_diff_max=float(np.abs(dv).max()), drawn_diameter_mas=float(alt.drawn_diameter_mas),
                                       null_m=lob["null_m"], lobe2_vis2=lob["lobe2_vis2"])
-                print(f"  vs {m}: drawn {alt.drawn_diameter_mas:.3f} mas, null {lob['null_m']:.1f} m, second lobe {lob['lobe2_vis2']:.4f}; "
+                lobtxt = (f"null {lob['null_m']:.1f} m, second lobe {lob['lobe2_vis2']:.4f}" if lob["null_m"]
+                          else "null beyond the longest baseline")
+                print(f"  vs {m}: drawn {alt.drawn_diameter_mas:.3f} mas, {lobtxt}; "
                       f"max ||V|^2 difference| on the track {np.abs(dv).max():.4f}; the campaign profile fitted to it: theta {f_alt[0]:.4f} mas "
                       f"({100 * (f_alt[0] / target.theta_ld_mas - 1):+.2f} %), N0 {f_alt[2]:.3f}, residual chi2 {chi2:.2f} per night "
                       f"= {np.sqrt(chi2):.2f} sigma -> {9.0 / chi2 if chi2 > 0 else float('inf'):.3g} nights to 3 sigma")
