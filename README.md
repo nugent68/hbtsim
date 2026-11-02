@@ -406,7 +406,9 @@ the `iact` runner with the groups' analog photomultiplier sensitivity
 | `iact_gampeg_ctao_alpha` | iact | gamma Peg (0.35 mas, B2 IV) on the CTAO-North alpha array (4 LSTs + 9 MSTs, 78 baselines to 560 m): diameter and limb darkening past the first null, Stage I against Stage II |
 | `iact_gampeg_ctao_lst4` | iact | gamma Peg (0.35 mas, B2 IV) on the four CTAO-North LSTs: diameter and linear limb darkening, Stage I against Stage II, one night |
 | `iact_hyades_ctao_alpha` | iact | The four Hyades giants on the CTAO-North alpha array (4 LSTs + 9 MSTs) at Stage I and II with NewEra PHOENIX stand-ins: the sidelobes to 560 m and the compact-versus-extended profile test |
+| `iact_hyades_ctao_alpha_giants` | iact | The four Hyades giants on the CTAO-North alpha array (4 LSTs + 9 MSTs) at Stage I and II with the real NewEra giant models (log g 2.5): the sidelobes to 560 m and the gravity / metallicity profile tests |
 | `iact_hyades_magic_lst1` | iact | The four Hyades giants on MAGIC-I + MAGIC-II + LST-1 at 425 nm with NewEra PHOENIX stand-ins: diameters beyond the first null, and whether ten nights separate the compact and extended limb-darkening profiles |
+| `iact_hyades_magic_lst1_giants` | iact | The four Hyades giants on MAGIC-I + MAGIC-II + LST-1 at 425 nm with the real NewEra giant models (log g 2.5): diameters beyond the first null and the gravity / metallicity profile tests |
 | `iact_spica_magic_lst1` | iact | Spica on MAGIC-I + MAGIC-II + LST-1 at 425 nm: the binary fringe through four consecutive nights of the 4.01 d orbit (ln a, node, periastron free) |
 | `mc_sirius_b_eonsii` | montecarlo | Sirius B diameter Monte Carlo with the EON-SII pair (paper Table 2 cross-check) |
 | `mc_sirius_b_lpqi_orm_r10000` | montecarlo | Sirius B on the five-telescope LPQI network with the final instrument: R = 10 000 spectrograph on the 10 ps IMSE-LPQI array, every pair |

@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "iact_hyades_ctao_alpha_giants",
+  "label": "The four Hyades giants on the CTAO-North alpha array (4 LSTs + 9 MSTs) at Stage I and II with the real NewEra giant models (log g 2.5): the sidelobes to 560 m and the gravity / metallicity profile tests",
+  "runner": "iact",
+  "targets": [
+    "eps_tau",
+    "gam_tau",
+    "del1_tau",
+    "tet1_tau"
+  ],
+  "instrument": {
+    "array": "ctao_n_alpha"
+  },
+  "backends": [
+    "ctao_sii_stage1",
+    "ctao_sii_stage2"
+  ],
+  "night": {
+    "block_minutes": 20.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": true,
+    "resource": "newera_redclump"
+  },
+  "options": {
+    "nights": 3,
+    "pupils": true,
+    "diameter_precision": 0.01,
+    "seed": 5,
+    "compare_models": [
+      "lte04800-2.00-0.0",
+      "lte04800-3.00-0.0",
+      "lte04900-2.50+0.5",
+      "lte05000-4.50-0.0",
+      "lte05000-0.00-0.0"
+    ],
+    "display_bin_blocks": 6
+  },
+  "notes": [
+    "Companion to iact_hyades_magic_lst1: the 68-560 m alpha baselines sample the second to the twelfth lobe of a 2.3-2.7 mas disk at 425 nm; the MST pairs' lower S/N per pair is repaid by 78 baselines.",
+    "Real giant models from the 2026-11-01 NewEra cool-giant box: each target's own atmosphere.model (epsilon Tau lte04900-2.50-0.0; gamma, delta1, theta1 Tau lte04800-2.50-0.0; no campaign-wide stand_in). compare_models brackets the gravity (log g 2.0 and 3.0 at 4800 K), the metallicity (4900 K / 2.5 at +0.5), and repeats the 2026-10 stand-ins (5000 K dwarf and supergiant) so the old bracket can be compared with the real profile.",
+    "Companion of iact_hyades_ctao_alpha (the 2026-10-28 stand-in run); docs/hyades_ld.md compares the two."
+  ]
+}

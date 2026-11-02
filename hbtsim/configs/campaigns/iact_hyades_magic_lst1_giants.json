@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "iact_hyades_magic_lst1_giants",
+  "label": "The four Hyades giants on MAGIC-I + MAGIC-II + LST-1 at 425 nm with the real NewEra giant models (log g 2.5): diameters beyond the first null and the gravity / metallicity profile tests",
+  "runner": "iact",
+  "targets": [
+    "eps_tau",
+    "gam_tau",
+    "del1_tau",
+    "tet1_tau"
+  ],
+  "instrument": {
+    "array": "magic_lst1"
+  },
+  "backends": [
+    "magic_sii"
+  ],
+  "night": {
+    "block_minutes": 20.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": true,
+    "resource": "newera_redclump"
+  },
+  "options": {
+    "nights": 10,
+    "pupils": true,
+    "diameter_precision": 0.01,
+    "seed": 5,
+    "compare_models": [
+      "lte04800-2.00-0.0",
+      "lte04800-3.00-0.0",
+      "lte04900-2.50+0.5",
+      "lte05000-4.50-0.0",
+      "lte05000-0.00-0.0"
+    ],
+    "display_bin_blocks": 6
+  },
+  "notes": [
+    "CHARA (Boyajian et al. 2009, K' band) measured theta_LD = 2.517 / 2.408 / 2.733 / 2.305 mas for gamma / delta1 / epsilon / theta1 Tau to 1.3-1.9 %. At 425 nm their first nulls lie at 39-46 m: every MAGIC + LST-1 baseline (43-107 m projected) is past the null, in the second and third lobes (|V|^2 < 0.02), except the short end of MAGIC-II-LST-1 which crosses the null itself.",
+    "Real giant models from the 2026-11-01 NewEra cool-giant box: each target's own atmosphere.model (epsilon Tau lte04900-2.50-0.0; gamma, delta1, theta1 Tau lte04800-2.50-0.0; no campaign-wide stand_in). compare_models brackets the gravity (log g 2.0 and 3.0 at 4800 K), the metallicity (4900 K / 2.5 at +0.5), and repeats the 2026-10 stand-ins (5000 K dwarf and supergiant) so the old bracket can be compared with the real profile.",
+    "Companion of iact_hyades_magic_lst1 (the 2026-10-28 stand-in run); docs/hyades_ld.md compares the two."
+  ]
+}
