@@ -2,12 +2,12 @@
   "schema_version": 1,
   "kind": "resource",
   "name": "newera_redclump",
-  "label": "NewEra stand-in tables for the red-clump giants",
+  "label": "NewEra tables for the red-clump and Hyades giants (cool-giant box + the 2026-09 stand-ins)",
   "path": "data/newera_redclump",
   "pattern": "newera_lte*.npz",
   "contents": "prepare_newera .npz, 380-1000 nm (0.02 nm) and 380-2500 nm (0.1 nm) ranges",
   "notes": [
-    "Stand-ins: lte04800-4.50-0.0 (dwarf) and lte05000-0.00-0.0 (supergiant); no 4800 K / log g 2.5 model exists yet.",
+    "Cool-giant box (P. Hauschildt, Perlmutter, 2026-11-01): 4500-5500 K in 100 K steps x log g 2.0, 2.5, 3.0, 3.5 at [M/H] 0; 4900, 5000 K x log g 2.5, 3.0 at +0.5; 4800 K / 2.5 at -0.5. Plus the 2026-09/10 stand-ins kept for the bracketing campaigns: lte04700/04800/05000-4.50-0.0 (dwarfs), lte05000-4.50+0.5, lte05000-0.00-0.0 and lte06000-0.50-0.0 (supergiants). Source: /global/cfs/projectdirs/newera/binned at NERSC.",
     "Directory search order: $HBTSIM_NEWERA_REDCLUMP_DIR, then this `path` relative to the current directory, then <data_dir>/newera_redclump ($HBTSIM_DATA_DIR or the user cache). `hbtsim data fetch` downloads from `remote.base_url` ($HBTSIM_DATA_URL overrides) using its manifest.json; HBTSIM_AUTO_FETCH=1 or --fetch pulls missing tables on demand."
   ],
   "env_override": "HBTSIM_NEWERA_REDCLUMP_DIR",

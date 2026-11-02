@@ -36,7 +36,7 @@
   ],
   "atmosphere": {
     "resource": "newera_redclump",
-    "model": "lte05000-4.50-0.0"
+    "model": "lte04800-2.50-0.0"
   },
   "sources": [
     "Boyajian et al. 2009, ApJ 691, 1243 (CHARA Classic, K' band): theta_LD = 2.305 +/- 0.043 mas",
@@ -45,12 +45,9 @@
     "Boyajian et al. 2009 Table 3: T_eff, log g range, radius; masses 2.48-2.70 Msun"
   ],
   "notes": [
-    "Hyades red-clump giant (K0 III, [Fe/H] ~ +0.15). The atmosphere block names the 5000 K dwarf as a STAND-IN: no NewEra model exists at log g ~2.6; the Hyades campaigns bracket the giant between lte05000-4.50-0.0 (compact) and lte05000-0.00-0.0 (extended), with lte05000-4.50+0.5 for the metallicity (docs/hyades_ld.md).",
+    "The atmosphere block names the nearest real NewEra giant model from the 2026-11-01 cool-giant box (4500-5500 K x log g 2.0-3.5, [M/H] 0; P. Hauschildt, NERSC): lte04800-2.50-0.0. Earlier campaigns bracketed the star between lte05000-4.50-0.0 (compact) and lte05000-0.00-0.0 (extended) with lte05000-4.50+0.5 for the metallicity (docs/hyades_ld.md); lte04900-2.50+0.5 / lte05000-2.50+0.5 now exist for the +0.15 dex Hyades metallicity.",
     "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets; the B anchor sets the 425 nm flux for the IACT campaigns.",
     "The radius is derived from theta_LD and the distance. At 425 nm the first null is at 1.22 lambda / theta.",
     "SB1 (P ~ 16.3 yr) with a late-F dwarf companion ~3 % of the light (Torres et al. 1997; Boyajian 2009 corrected F_bol by 3 %); the companion is ignored here (an unresolved 3 % point source would scale |V|^2 by ~0.94 at all baselines, absorbed by the fits' free normalization)."
-  ],
-  "assumptions": [
-    "atmosphere.model (stand-in: a 5000 K dwarf, not a giant)"
   ]
 }

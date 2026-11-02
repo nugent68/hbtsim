@@ -30,7 +30,7 @@ def mirror(tmp_path):
     d = tmp_path / "mirror"
     d.mkdir()
     models = ["lte09200-3.50-0.0", "lte09200-4.00-0.0", "lte09400-3.50-0.0", "lte09400-4.00-0.0",
-              "lte12000-4.00-0.0", "lte04800-4.50-0.0"]
+              "lte12000-4.00-0.0", "lte04800-2.50-0.0"]
     for m in models:
         _tiny_table(d / data.table_name(m), float(m[3:8]))
     _tiny_table(d / "newera_lte09200-4.00-0.0_350-560nm_0.01nm.npz", 9200.0)     # a blue table
@@ -116,10 +116,10 @@ def test_fetch_for_target_and_auto_attach(mirror, tmp_path, monkeypatch):
     got = data.fetch_for_target(cat, "betaaur", progress=None)
     assert sorted(p.name for p in got) == sorted(data.table_name(m) for m in
                                                  ("lte09200-3.50-0.0", "lte09200-4.00-0.0", "lte09400-3.50-0.0", "lte09400-4.00-0.0"))
-    # a stand-in pointer fetches the named model into the red-clump resource
+    # a target's atmosphere.model pointer fetches that model into the red-clump resource
     monkeypatch.setenv("HBTSIM_NEWERA_REDCLUMP_DIR", str(tmp_path / "cache" / "newera_redclump"))
     got = data.fetch_for_target(cat, "hd17652", progress=None)
-    assert [p.name for p in got] == [data.table_name("lte04800-4.50-0.0")] and got[0].parent.name == "newera_redclump"
+    assert [p.name for p in got] == [data.table_name("lte04800-2.50-0.0")] and got[0].parent.name == "newera_redclump"
     # attach with fetch=True on a target whose tables are not there yet
     t, report = cat.attach_atmosphere(cat.load_target("betaaur"), name="betaaur", fetch=True)
     assert t.primary.flux_table is not None and all("fetched" in v for v in report.values())

@@ -32,7 +32,7 @@
   ],
   "atmosphere": {
     "resource": "newera_redclump",
-    "model": "lte04800-4.50-0.0"
+    "model": "lte04800-2.50-0.0"
   },
   "sources": [
     "Kim & Kaiser 2026, PASP 138, 044202 (red-clump validation targets): theta_LD from Gallenne et al. (VLTI/PIONIER), T_eff / log g as adopted there, V H K magnitudes",
@@ -40,7 +40,7 @@
   ],
   "notes": [
     "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85).",
-    "Fallback linear law: a rough K-giant table. No NewEra model exists yet at 4800 K / log g 2.5; the red-clump campaigns use explicit stand-in models (campaigns/redclump_ii_*.json).",
+    "NewEra model at the star's own gravity: lte04800-2.50-0.0 from the 2026-11-01 cool-giant box (4500-5500 K x log g 2.0-3.5, [M/H] 0; P. Hauschildt, NERSC). The red-clump campaigns (campaigns/redclump_ii_*.json) still name the 2026-09 stand-ins explicitly via `stand_in`.",
     "The radius is derived from theta_LD and the distance."
   ]
 }
