@@ -186,18 +186,39 @@ def _pct(x) -> str:
 def _fit_theta(track, sig, target, pupils, lam, vis2=None):
     """Least-squares circular diameter of `target`'s profile with N0 profiled
     analytically (the groups' disk fit) to a track's |V|^2 (the simulated
-    `vis2`, default the track's own): (theta, chi2_min, N0)."""
+    `vis2`, default the track's own): (theta, chi2_min, N0).  The model is
+    pupil-averaged over each pair's dish diameters when `pupils` is set,
+    exactly as the track was, so that an identical profile fits with zero
+    residual.  Coarse-to-fine search on 0.7-1.3 theta_LD (1 % steps, then
+    0.05 % steps around the minimum)."""
     v = (track.vis2 if vis2 is None else vis2).ravel()
     w = np.repeat(1.0 / sig ** 2, track.vis2.shape[1])
-    b = track.baseline_len_m.ravel()
+    b = track.baseline_len_m
+    # pairs grouped by dish diameters: one pupil-averaged evaluation per group
+    groups = {}
+    for i, d in enumerate(track.diameters_m if pupils else [None] * b.shape[0]):
+        groups.setdefault(d, []).append(i)
     th0 = target.theta_ld_mas
-    best = None
-    for th in np.linspace(0.7 * th0, 1.3 * th0, 601):
-        m = single_star_vis2(replace(target, theta_ld_mas=float(th)), b, lam, None)[0]
+
+    def chi2_of(th):
+        t = replace(target, theta_ld_mas=float(th))
+        m = np.empty_like(b)
+        for d, rows in groups.items():
+            m[rows] = single_star_vis2(t, b[rows].ravel(), lam, d)[0].reshape(len(rows), -1)
+        m = m.ravel()
         n0 = np.sum(w * m * v) / max(np.sum(w * m * m), 1e-300)
-        chi2 = float(np.sum(w * (v - n0 * m) ** 2))
-        if best is None or chi2 < best[1]:
-            best = (float(th), chi2, float(n0))
+        return float(np.sum(w * (v - n0 * m) ** 2)), float(n0)
+
+    best = None
+    for th in np.linspace(0.7 * th0, 1.3 * th0, 61):
+        c, n0 = chi2_of(th)
+        if best is None or c < best[1]:
+            best = (float(th), c, n0)
+    step = 0.01 * th0
+    for th in np.linspace(best[0] - step, best[0] + step, 41):
+        c, n0 = chi2_of(th)
+        if c < best[1]:
+            best = (float(th), c, n0)
     return best
 
 

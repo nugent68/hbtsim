@@ -87,7 +87,7 @@ def test_iact_hyades_profiles(tmp_path):
                for m in ("lte05000-4.50-0.0", "lte05000-0.00-0.0")):
         pytest.skip("Hyades stand-in tables not present")
     cat = _tiny(tmp_path, "iact_hyades_magic_lst1", "tiny_iact_hyades",
-                {"nights": 1, "compare_models": ["lte05000-0.00-0.0"]}, targets=["eps_tau", "tet1_tau"])
+                {"nights": 1, "compare_models": ["lte05000-0.00-0.0", "lte05000-4.50-0.0"]}, targets=["eps_tau", "tet1_tau"])
     res, out = _run(cat, "tiny_iact_hyades", tmp_path)
     assert res["target_names"] == ["eps_tau", "tet1_tau"] and set(res["targets"]) == {"eps_tau", "tet1_tau"}
     e = res["targets"]["eps_tau"]
@@ -102,6 +102,10 @@ def test_iact_hyades_profiles(tmp_path):
     c = b["compare_models"]["lte05000-0.00-0.0"]
     assert c["drawn_diameter_mas"] == pytest.approx(2.733 * 1.165, rel=0.01)   # the supergiant's outer radius
     assert c["sigma_per_night"] < 0.5 and c["nights_to_3sigma"] > 100
+    # control: the campaign's own profile as an alternative must fit itself -- the fit is
+    # pupil-averaged exactly like the track (it was not before 2026-11-02: 2.5 sigma, -11 %)
+    same = b["compare_models"]["lte05000-4.50-0.0"]
+    assert abs(same["theta_bias_frac"]) < 0.002 and same["sigma_per_night"] < 0.01 and same["vis2_diff_max"] < 1e-12
     assert (out / "table_eps_tau.md").exists() and (out / "table_nights_tet1_tau.md").exists()
 
 
