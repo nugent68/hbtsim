@@ -402,6 +402,10 @@ the `iact` runner with the groups' analog photomultiplier sensitivity
 | `g3_deltavel_eonsii_paranal` | g3_campaign | delta Vel closure-phase campaign with three EON-SII units at Paranal |
 | `g3_deltavel_vlt` | g3 | delta Vel closure phases with the four VLT UTs |
 | `g3_spica_vlt` | g3 | Spica closure phases with the four VLT UTs (docs/three_telescope_feasibility.md) |
+| `iact_alfcrb_magic_lst1` | iact | alpha CrB A on MAGIC-I + MAGIC-II + LST-1 at 425 nm: diameter with the limb darkening fixed, ten nights |
+| `iact_alfcrb_magic_lst1_u` | iact | alpha CrB A on MAGIC + LST-1: diameter and limb-darkening coefficient free, ten nights |
+| `iact_algol_magic_lst1` | iact | Algol A-B on MAGIC-I + MAGIC-II + LST-1 at 425 nm: the orbit over ten nights at alternating quadratures |
+| `iact_betaaur_magic_lst1` | iact | beta Aur on MAGIC-I + MAGIC-II + LST-1 at 425 nm: the angular semi-major axis (orbital parallax) over ten nights at alternating quadratures |
 | `iact_gammacas_ctao_alpha` | iact | gamma Cas on the CTAO-North alpha array at 425 nm: the ellipse (major axis, axis ratio, PA) in one night, Stage I against Stage II |
 | `iact_gammacas_magic_lst1` | iact | gamma Cas on MAGIC-I + MAGIC-II + LST-1 at 425 nm: the VERITAS ellipse (major axis, axis ratio, PA) over three nights with MAGIC's analog correlator |
 | `iact_gampeg_ctao_alpha` | iact | gamma Peg (0.35 mas, B2 IV) on the CTAO-North alpha array (4 LSTs + 9 MSTs, 78 baselines to 560 m): diameter and limb darkening past the first null, Stage I against Stage II |

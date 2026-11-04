@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "alf_crb",
+  "label": "alpha CrB (Alphecca, A0 V + G5 V detached eclipsing binary, P = 17.36 d; the A0 V primary alone)",
+  "type": "single",
+  "star": {
+    "label": "alpha CrB A",
+    "mass_msun": 2.58,
+    "teff_k": 9700.0,
+    "ld_table": "claret11_betaaur",
+    "logg": 4.0
+  },
+  "theta_ld_mas": 1.21,
+  "v_mag": 2.23,
+  "dec_deg": 26.7147,
+  "ra_hours": 15.5781,
+  "distance_pc": 23.0,
+  "mag_anchors": [
+    {
+      "band": "B",
+      "mag_vega": 2.21
+    },
+    {
+      "band": "V",
+      "mag_vega": 2.23
+    },
+    {
+      "band": "K",
+      "mag_vega": 2.2
+    }
+  ],
+  "sources": [
+    "Tomkin & Popper 1986, AJ 91, 1428: R_A 2.89-3.04 Rsun, R_B 0.90 Rsun, M_A 2.58, M_B 0.92 Msun, P 17.3599 d, e 0.37; total eclipse of the G5 V secondary",
+    "van Leeuwen 2007: parallax 43.46 +/- 0.28 mas (23.0 pc); Gaia DR3 42.24 +/- 0.98 mas",
+    "SIMBAD: B 2.21, V 2.23 (Ducati 2002); K approximate"
+  ],
+  "notes": [
+    "theta 1.21 mas = 2 x 3.0 Rsun / 23.0 pc (from the eclipse radius and the Hipparcos parallax, not measured; the 1986 radius is uncertain by 2-3 %). The G5 V secondary contributes < 1 % of the blue light and is ignored; the pair is 3-6 mas apart, inside any pupil field.",
+    "Science: a 0.3 % blue diameter plus a modern (TESS) eclipse radius gives a geometric distance for a star whose Gaia parallax is 2.3 %; Hipparcos is 0.6 %."
+  ],
+  "assumptions": [
+    "theta_ld_mas (from R and d)",
+    "star.ld_table (beta Aur's A1 table)",
+    "K anchor",
+    "single-star model"
+  ]
+}

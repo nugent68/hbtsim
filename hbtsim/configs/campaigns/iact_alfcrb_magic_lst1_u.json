@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "runner": "iact",
+  "instrument": {
+    "array": "magic_lst1"
+  },
+  "backends": [
+    "magic_sii"
+  ],
+  "night": {
+    "block_minutes": 20.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "nights": 10,
+    "pupils": true,
+    "diameter_precision": 0.01,
+    "seed": 3,
+    "display_bin_blocks": 6,
+    "fit_u": true
+  },
+  "name": "iact_alfcrb_magic_lst1_u",
+  "label": "alpha CrB A on MAGIC + LST-1: diameter and limb-darkening coefficient free, ten nights",
+  "target": "alf_crb",
+  "notes": [
+    "u free for comparison with iact_alfcrb_magic_lst1."
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "runner": "iact",
+  "instrument": {
+    "array": "magic_lst1"
+  },
+  "backends": [
+    "magic_sii"
+  ],
+  "night": {
+    "block_minutes": 20.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "nights": 10,
+    "pupils": true,
+    "diameter_precision": 0.01,
+    "seed": 3,
+    "display_bin_blocks": 6,
+    "phase0": "max_separation",
+    "night_step_days": 1.98002
+  },
+  "name": "iact_betaaur_magic_lst1",
+  "label": "beta Aur on MAGIC-I + MAGIC-II + LST-1 at 425 nm: the angular semi-major axis (orbital parallax) over ten nights at alternating quadratures",
+  "target": "betaaur",
+  "notes": [
+    "Nights every half period (1.98 d) sit at the quadratures, clear of the partial eclipses (the analytic binary visibility is invalid in eclipse). The components' diameters are held at their eclipse values (Southworth et al. 2007, 0.5 %); the fit is ln a, Omega and the normalization.",
+    "Science: a geometric (orbital) parallax for a V = 1.9 star that Gaia cannot measure; Hipparcos 24.87 pc +/- 0.6 %, the 2026 CHARA orbit (Jonak et al.) 24.30 pc. With the spectroscopic a sin i the distance follows a to a few 0.1 %."
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "runner": "iact",
+  "instrument": {
+    "array": "magic_lst1"
+  },
+  "backends": [
+    "magic_sii"
+  ],
+  "night": {
+    "block_minutes": 20.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "nights": 10,
+    "pupils": true,
+    "diameter_precision": 0.01,
+    "seed": 3,
+    "display_bin_blocks": 6,
+    "phase0": "max_separation",
+    "night_step_days": 1.433664
+  },
+  "name": "iact_algol_magic_lst1",
+  "label": "Algol A-B on MAGIC-I + MAGIC-II + LST-1 at 425 nm: the orbit over ten nights at alternating quadratures",
+  "target": "algol",
+  "notes": [
+    "Nights every half period (1.434 d) at the quadratures, clear of the eclipses. Science: an orbital parallax at the percent level for the Algol triple (Hipparcos 36.27 +/- 1.40 mas, 3.9 %; CHARA/MIRC orbit Baron et al. 2012); the B component carries ~8 % of the blue light."
+  ]
+}
