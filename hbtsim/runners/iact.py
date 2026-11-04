@@ -102,37 +102,69 @@ def _ellipse_model(target, pupils: bool):
             [0.01 * e.theta_major_mas, 0.01, 0.5], model)
 
 
-def _binary_model(system, pupils: bool):
-    """Two limb-darkened disks: params (ln a, Omega[, omega]); ln a through the
-    distance (all angular sizes scale together, as in nightmovie_binary)."""
-    names = ["lna", "Omega"] + (["omega"] if system.eccentricity > 0 else [])
+def _binary_model(system, pupils: bool, fit_radii: bool = False):
+    """Two limb-darkened disks: params (ln a, Omega[, omega][, lnR1, lnR2]);
+    ln a through the distance, so that with the radii fixed every angular
+    size scales together (the eclipse radii known, the distance free, as in
+    nightmovie_binary); fit_radii frees the two stellar radii as well, so
+    that ln a is the orbit alone."""
+    ecc = system.eccentricity > 0
+    names = ["lna", "Omega"] + (["omega"] if ecc else []) + (["lnR1", "lnR2"] if fit_radii else [])
 
     def model(params):
         s = replace(system, distance_pc=system.distance_pc * float(np.exp(-params[0])),
                     node_pa_deg=float(params[1]))
-        if len(params) > 2:
-            s = replace(s, arg_periastron_deg=float(params[2]))
+        k = 2
+        if ecc:
+            s = replace(s, arg_periastron_deg=float(params[k]))
+            k += 1
+        if fit_radii:
+            s = replace(s, primary=replace(s.primary, radius_rsun=system.primary.radius_rsun * float(np.exp(params[k]))),
+                        secondary=replace(s.secondary, radius_rsun=system.secondary.radius_rsun * float(np.exp(params[k + 1]))))
         return binary_vis2_fn(s, pupils)
-    p0 = [0.0, float(system.node_pa_deg or 0.0)] + ([float(system.arg_periastron_deg)] if len(names) > 2 else [])
-    eps = [0.01, 0.5] + ([0.5] if len(names) > 2 else [])
+    p0 = [0.0, float(system.node_pa_deg or 0.0)] + ([float(system.arg_periastron_deg)] if ecc else []) + ([0.0, 0.0] if fit_radii else [])
+    eps = [0.01, 0.5] + ([0.5] if ecc else []) + ([0.02, 0.02] if fit_radii else [])
     return names, p0, eps, model
+
+
+def _slot_index(n_total: int, slot_hours, block_minutes: float, night: int):
+    """Block indices of one contiguous observing slot of slot_hours inside a
+    track of n_total blocks: night k starts at a fraction frac(k * 0.618) of
+    the way along the track, so that successive nights sample different hour
+    angles, as a scheduler handing out short slots would.  The slot's orbital
+    phase is the night's requested phase (the track is computed for the slot
+    only, so the rest of the night may be in eclipse)."""
+    if not slot_hours:
+        return None
+    n_keep = max(1, min(n_total, int(round(float(slot_hours) * 60.0 / block_minutes))))
+    start = int(round(((night * 0.6180339887) % 1.0) * (n_total - n_keep)))
+    return np.arange(start, start + n_keep)
 
 
 # ---------------------------------------------------------------------------
 # one night
 # ---------------------------------------------------------------------------
-def _track(array, target, lam, fn, block_minutes, min_alt, phase0, period):
+def _track(array, target, lam, fn, block_minutes, min_alt, phase0, period, window=None):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         return pair_track(array, target.dec_deg, lam, fn, block_minutes=block_minutes, min_alt_deg=min_alt,
-                          phase0=phase0, period_days=period)
+                          phase0=phase0, period_days=period, hour_angle_window_h=window)
 
 
-def _night(array, target, backend, model, p0, eps, block_minutes, min_alt, phase0, period, pupils):
+def _night(array, target, backend, model, p0, eps, block_minutes, min_alt, phase0, period, pupils, slot=None):
     """|V|^2 of every pair and block, sigma per block, and the Fisher matrix
-    on (params..., N0) from the numerical derivatives of N0 |V|^2."""
+    on (params..., N0) from the numerical derivatives of N0 |V|^2.  slot =
+    (slot_hours, night index) keeps one contiguous slot of the night."""
     lam = backend.lambda_nm
-    tr = _track(array, target, lam, model(p0), block_minutes, min_alt, phase0, period)
+    window = None
+    if slot:                                                   # the slot's hour angles, from the geometry alone
+        tr0 = _track(array, target, lam, lambda b, l, ph, d: np.ones(len(b)), block_minutes, min_alt, 0.0, None)
+        if tr0.hour_angle_h.size == 0:
+            return None
+        idx = _slot_index(tr0.hour_angle_h.size, slot[0], block_minutes, slot[1])
+        half = tr0.block_s / 7200.0
+        window = (float(tr0.hour_angle_h[idx[0]]) - half, float(tr0.hour_angle_h[idx[-1]]) + half)
+    tr = _track(array, target, lam, model(p0), block_minutes, min_alt, phase0, period, window)
     if tr.hour_angle_h.size == 0:
         return None
     single = _is_single(target)
@@ -144,8 +176,8 @@ def _night(array, target, backend, model, p0, eps, block_minutes, min_alt, phase
         up[i] += e
         dn[i] -= e
         try:
-            tu = _track(array, target, lam, model(up), block_minutes, min_alt, phase0, period)
-            td = _track(array, target, lam, model(dn), block_minutes, min_alt, phase0, period)
+            tu = _track(array, target, lam, model(up), block_minutes, min_alt, phase0, period, window)
+            td = _track(array, target, lam, model(dn), block_minutes, min_alt, phase0, period, window)
             grads.append((tu.vis2 - td.vis2) / (2 * e))
         except ValueError:                                     # a perturbed orbit grazes an eclipse
             grads.append(np.zeros_like(tr.vis2))
@@ -292,6 +324,8 @@ def _run_one(campaign, cat, opts, out_dir: Path, target, array, backends, suffix
     block_minutes = float(opt("night.block_minutes", 20.0))
     min_alt = float(opt("night.min_alt_deg", 30.0))
     pupils = bool(opt("options.pupils", True))
+    slot_hours = opt("options.slot_hours")                      # one contiguous slot per night, else the whole track
+    phases = list(opt("options.phases", ()) or ())              # orbital phase per night (cycled), else phase0 + n * step / P
     prec = float(opt("options.diameter_precision", 0.01))
     single = _is_single(target)
     tabled = single and target.star.ld_profile is not None
@@ -305,7 +339,7 @@ def _run_one(campaign, cat, opts, out_dir: Path, target, array, backends, suffix
             scale_name, scale0 = "theta", p0[0]
         period, phase0 = None, 0.0
     else:
-        names, p0, eps, model = _binary_model(target, pupils)
+        names, p0, eps, model = _binary_model(target, pupils, bool(opt("options.fit_radii", False)))
         scale_name, scale0 = "lna", 1.0
         period = target.period_days
         phase0 = opt("options.phase0")
@@ -346,8 +380,9 @@ def _run_one(campaign, cat, opts, out_dir: Path, target, array, backends, suffix
         F = np.zeros((len(names) + 1, len(names) + 1))
         nights, first = [], None
         for n in range(n_nights):
-            ph = (phase0 + n * step / period) % 1.0 if period else 0.0
-            q = _night(array, target, bk, model, p0, eps, block_minutes, min_alt, ph, period, pupils)
+            ph = ((float(phases[n % len(phases)]) if phases else (phase0 + n * step / period)) % 1.0) if period else 0.0
+            q = _night(array, target, bk, model, p0, eps, block_minutes, min_alt, ph, period, pupils,
+                       slot=((slot_hours, n) if slot_hours else None))
             if q is None:
                 print(f"  night {n + 1}: {target.name} never above {min_alt:g} deg from {array.site.name}")
                 continue

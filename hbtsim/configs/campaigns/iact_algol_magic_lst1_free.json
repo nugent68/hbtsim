@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "runner": "iact",
+  "instrument": {
+    "array": "magic_lst1"
+  },
+  "backends": [
+    "magic_sii"
+  ],
+  "night": {
+    "block_minutes": 20.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "nights": 12,
+    "pupils": true,
+    "diameter_precision": 0.01,
+    "seed": 3,
+    "display_bin_blocks": 6,
+    "phase0": "max_separation",
+    "slot_hours": 1.0,
+    "fit_radii": true,
+    "phases": [
+      0.0,
+      0.5,
+      0.1,
+      0.6,
+      0.9,
+      0.4,
+      0.05,
+      0.55,
+      0.15,
+      0.65,
+      0.85,
+      0.35
+    ]
+  },
+  "name": "iact_algol_magic_lst1_free",
+  "label": "Algol A-B on MAGIC-I + MAGIC-II + LST-1 at 425 nm: the orbit with the two radii free in 12 one-hour slots at orbital phases spread outside the eclipses (12 h, a 30 h proposal with the other binary)",
+  "target": "algol",
+  "notes": [
+    "As iact_algol_magic_lst1, with lnR1 and lnR2 free: the orbital scale ln a no longer leans on the eclipse radii.",
+    "options.phases: the slots cycle through orbital phases 0, 0.5, 0.1, 0.6, 0.9, 0.4, ... (phase 0 = quadrature; the eclipses at 0.25 and 0.75 are avoided by > 0.1 in phase) so that the orbital fringe is sampled away from the quadratures, which is what separates the orbit from the stellar radii."
+  ]
+}

@@ -16,18 +16,33 @@
     "use": false
   },
   "options": {
-    "nights": 10,
+    "nights": 12,
     "pupils": true,
     "diameter_precision": 0.01,
     "seed": 3,
     "display_bin_blocks": 6,
     "phase0": "max_separation",
-    "night_step_days": 1.433664
+    "slot_hours": 1.0,
+    "phases": [
+      0.0,
+      0.5,
+      0.1,
+      0.6,
+      0.9,
+      0.4,
+      0.05,
+      0.55,
+      0.15,
+      0.65,
+      0.85,
+      0.35
+    ]
   },
   "name": "iact_algol_magic_lst1",
-  "label": "Algol A-B on MAGIC-I + MAGIC-II + LST-1 at 425 nm: the orbit over ten nights at alternating quadratures",
+  "label": "Algol A-B on MAGIC-I + MAGIC-II + LST-1 at 425 nm: the orbit in 12 one-hour slots at orbital phases spread outside the eclipses (12 h, a 30 h proposal with the other binary)",
   "target": "algol",
   "notes": [
-    "Nights every half period (1.434 d) at the quadratures, clear of the eclipses. Science: an orbital parallax at the percent level for the Algol triple (Hipparcos 36.27 +/- 1.40 mas, 3.9 %; CHARA/MIRC orbit Baron et al. 2012); the B component carries ~8 % of the blue light."
+    "Schedule: 12 slots of 1 h (three 20-min blocks) on nights every half period (quadratures), each slot at a different hour angle (options.slot_hours); the radii of the components are tied to the eclipse solution (ln a scales every angular size through the distance). The _free variant fits the two radii as well.",
+    "options.phases: the slots cycle through orbital phases 0, 0.5, 0.1, 0.6, 0.9, 0.4, ... (phase 0 = quadrature; the eclipses at 0.25 and 0.75 are avoided by > 0.1 in phase) so that the orbital fringe is sampled away from the quadratures, which is what separates the orbit from the stellar radii."
   ]
 }

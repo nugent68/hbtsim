@@ -126,3 +126,21 @@ def test_iact_compare_models_null_beyond_array(tmp_path):
     c = b["compare_models"]["lte05000-0.00-0.0"]
     assert c["null_m"] is None and c["lobe2_vis2"] is None and c["sigma_per_night"] >= 0
     assert all(p["vis2_min"] > 0.02 for p in b["pairs"])          # main lobe only
+
+
+def test_iact_binary_slots_phases_radii(tmp_path):
+    """beta Aur in one-hour slots at listed orbital phases, with and without the
+    radii free: each night is three 20-min blocks (1 h) at the requested phase,
+    successive slots sit at different hour angles, the free fit adds lnR1/lnR2
+    and the orbit precision barely changes (equal, unresolved components)."""
+    cat = _tiny(tmp_path, "iact_betaaur_magic_lst1", "tiny_slots", {"nights": 3, "slot_hours": 1.0, "phases": [0.0, 0.5, 0.1]})
+    res, _ = _run(cat, "tiny_slots", tmp_path)
+    b = res["backends"]["MAGIC SII (425/26 nm), per-station alpha and q"]
+    assert res["parameters"] == ["lna", "Omega", "N0"] and len(b["nights"]) == 3
+    assert all(0.8 < n["hours"] < 1.2 for n in b["nights"])          # one 60-min block (block_s from the slot window)
+    assert [round(n["phase0"], 2) for n in b["nights"]] == [0.0, 0.5, 0.1]
+    cat = _tiny(tmp_path, "iact_betaaur_magic_lst1", "tiny_slots_free", {"nights": 3, "slot_hours": 1.0, "phases": [0.0, 0.5, 0.1], "fit_radii": True})
+    res2, _ = _run(cat, "tiny_slots_free", tmp_path)
+    b2 = res2["backends"]["MAGIC SII (425/26 nm), per-station alpha and q"]
+    assert res2["parameters"] == ["lna", "Omega", "lnR1", "lnR2", "N0"]
+    assert b2["sigma_rel"] < 1.5 * b["sigma_rel"] and 0 < b2["sigmas"]["lnR1"] < 0.5
