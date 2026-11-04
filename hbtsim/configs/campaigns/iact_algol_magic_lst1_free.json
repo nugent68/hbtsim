@@ -13,7 +13,8 @@
     "min_alt_deg": 30.0
   },
   "atmosphere": {
-    "use": false
+    "use": true,
+    "allow_extrapolation": true
   },
   "options": {
     "nights": 12,
@@ -44,6 +45,7 @@
   "target": "algol",
   "notes": [
     "As iact_algol_magic_lst1, with lnR1 and lnR2 free: the orbital scale ln a no longer leans on the eclipse radii.",
-    "options.phases: the slots cycle through orbital phases 0, 0.5, 0.1, 0.6, 0.9, 0.4, ... (phase 0 = quadrature; the eclipses at 0.25 and 0.75 are avoided by > 0.1 in phase) so that the orbital fringe is sampled away from the quadratures, which is what separates the orbit from the stellar radii."
+    "options.phases: the slots cycle through orbital phases 0, 0.5, 0.1, 0.6, 0.9, 0.4, ... (phase 0 = quadrature; the eclipses at 0.25 and 0.75 are avoided by > 0.1 in phase) so that the orbital fringe is sampled away from the quadratures, which is what separates the orbit from the stellar radii.",
+    "atmosphere.use: the NewEra PHOENIX spectra and intensity profiles (beta Aur interpolated inside the A-star box at 9200-9400 K; Algol A at 12 550 K extrapolated from the box's 12 000 K edge until the hotter models arrive; Algol B from the K-subgiant box). Blackbody + linear law gives 10-15 % larger sigmas."
   ]
 }

@@ -13,7 +13,8 @@
     "min_alt_deg": 30.0
   },
   "atmosphere": {
-    "use": false
+    "use": true,
+    "allow_extrapolation": true
   },
   "options": {
     "nights": 18,
@@ -44,6 +45,7 @@
   "notes": [
     "Science: a geometric (orbital) parallax for a V = 1.9 star that Gaia cannot measure; Hipparcos 24.87 pc +/- 0.6 %, the 2026 CHARA orbit (Jonak et al.) 24.30 pc. With the spectroscopic a sin i the distance follows a to a few 0.1 %.",
     "Schedule: 18 slots of 1 h (three 20-min blocks) on nights every half period (quadratures), each slot at a different hour angle (options.slot_hours); the radii of the components are tied to the eclipse solution (ln a scales every angular size through the distance). The _free variant fits the two radii as well.",
-    "options.phases: the slots cycle through orbital phases 0, 0.5, 0.1, 0.6, 0.9, 0.4, ... (phase 0 = quadrature; the eclipses at 0.25 and 0.75 are avoided by > 0.1 in phase) so that the orbital fringe is sampled away from the quadratures, which is what separates the orbit from the stellar radii."
+    "options.phases: the slots cycle through orbital phases 0, 0.5, 0.1, 0.6, 0.9, 0.4, ... (phase 0 = quadrature; the eclipses at 0.25 and 0.75 are avoided by > 0.1 in phase) so that the orbital fringe is sampled away from the quadratures, which is what separates the orbit from the stellar radii.",
+    "atmosphere.use: the NewEra PHOENIX spectra and intensity profiles (beta Aur interpolated inside the A-star box at 9200-9400 K; Algol A at 12 550 K extrapolated from the box's 12 000 K edge until the hotter models arrive; Algol B from the K-subgiant box). Blackbody + linear law gives 10-15 % larger sigmas."
   ]
 }

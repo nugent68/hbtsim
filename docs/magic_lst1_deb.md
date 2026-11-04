@@ -25,7 +25,7 @@ the ordering of nights matters more than the period: Algol on the late nights of
 and December periods and the early nights of November, β Aur on the early nights of December
 and anywhere in January (`fig3_moon.png`).
 
-## Results (statistics only, zero-baseline normalization free)
+## Results (statistics only, zero-baseline normalization free; NewEra PHOENIX atmospheres since 2026-11-04)
 
 The 40-55 m MAGIC-II–LST-1 pair sits inside the first fringe of both binaries (fringe periods
 41 m and 61 m at 425 nm) at S/N 45-140 per one-hour slot; the two long pairs reach the fringe
@@ -33,8 +33,8 @@ minimum (`fig1_tracks.png`).
 
 | target | hours | σ(a)/a, radii tied to the eclipse solution | radii free | radii free, 1 % / 2 % prior | existing distance |
 |---|---|---|---|---|---|
-| β Aur (A1 IV + A1 IV, a = 3.29 mas) | 18 × 1 h | 0.24 % | 0.26 % (radii to 3-5 %) | 0.24 / 0.24 % | Hipparcos 0.6 %; CHARA orbit (Jonak et al. 2026) 2.3 % away; Gaia none |
-| Algol A–B (B8 V + K0 IV, a = 2.15 mas), B/A = 0.8 % at 450 nm | 12 × 1 h | 0.41 % | 21 % | 1.1 / 2.0 % | VLBA outer orbit 1.7 %; Hipparcos 3.9 %; CHARA/MIRC inner orbit 2.3 %; Gaia none |
+| β Aur (A1 IV + A1 IV, a = 3.29 mas) | 18 × 1 h | 0.21 % (0.24 % blackbody) | 0.23 % (radii to 3-5 %) | 0.21 / 0.21 % | Hipparcos 0.6 %; CHARA orbit (Jonak et al. 2026) 2.3 % away; Gaia none |
+| Algol A–B (B8 V + K0 IV, a = 2.15 mas) | 12 × 1 h | 0.39 % (0.42 % blackbody) | 5.6 % (21 % at the measured 0.8 % light ratio) | 1.1 / 1.9 % | VLBA outer orbit 1.7 %; Hipparcos 3.9 %; CHARA/MIRC inner orbit 2.3 %; Gaia none |
 
 With the double-lined spectroscopic a sin i (Southworth et al. 2007 for β Aur; the Algol SB2
 solution), σ(d)/d equals σ(a)/a plus the spectroscopic error. β Aur's orbit is independent of
@@ -73,3 +73,15 @@ detected but does not fix the orbit. β Aur's 0.24-0.26 % is the genuine orbital
 | Algol A–B | 44.1 ± 0.2, 194.2 ± 1.2 | Kolbas et al. 2015, MNRAS 451, 4150 (spectral disentangling); a = 13.65 ± 0.07 R_sun, i = 81.4 ± 0.2° (Richards 1988) | 13.66 R_sun | 0.51 % | Zavala et al. 2010 / Peterson et al. 2011 (VLBA, outer orbit): 34.7 ± 0.6 mas (1.7 %); Hipparcos 36.27 ± 1.40 mas (3.9 %); CHARA inner orbit a = 2.15 ± 0.05 mas (Baron et al. 2012) |
 
 Radii: β Aur 2.762 ± 0.017 / 2.568 ± 0.017 R_sun (Southworth 2007; Jonák 2026 gives 2.752 ± 0.002 / 2.622 ± 0.002), Algol A 2.87 ± 0.04, B 3.43 ± 0.01 R_sun (Kolbas 2015; Baron 2012 from the angular diameters 2.73 ± 0.20 / 3.48 ± 0.28). Distance budgets: β Aur σ(d)/d = 0.24 % (SII) ⊕ 0.05 % (RV) = 0.25 %, matching the 0.2 % of the 2026 CHARA solution and testing the 2.3 % Hipparcos–CHARA offset at 8 σ; Algol σ(d)/d = 0.42 % ⊕ 0.51 % = 0.66 % with the eclipse radii, 1.1 % ⊕ 0.51 % = 1.2 % with a 1 % radius prior, against 1.7 % from the radio outer orbit.
+
+## NewEra models (checked at NERSC 2026-11-04)
+
+β Aur's components interpolate inside the [M/H] 0 A-star box (9200–9400 K, log g 3.5–4.0).
+Algol B (4900 K, log g 3.25) is inside the delivered K-subgiant box; the real tables give
+B/A = 0.017 at 425 nm and 0.026 at 450 nm, the same as a blackbody and three times Kolbas
+et al. 2015's measured 0.008, so the light-ratio discrepancy is not a model-atmosphere
+effect. Algol A (12 550 K, log g 4.05) lies 550 K beyond the box's 12 000 K edge and is
+extrapolated; the hotter extension (12 250–13 000 K, request 3 to Hauschildt) was not yet
+at NERSC on 2026-11-04. It bears on the uniform-to-limb-darkened conversion of θ_A at the
+few-tenths-of-a-percent level, below the 1.4 % eclipse-radius floor. Switching from the
+blackbody + linear law to the PHOENIX tables lowers the σ by 10-15 %.
