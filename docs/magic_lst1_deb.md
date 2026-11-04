@@ -34,7 +34,7 @@ minimum (`fig1_tracks.png`).
 | target | hours | σ(a)/a, radii tied to the eclipse solution | radii free | radii free, 1 % / 2 % prior | existing distance |
 |---|---|---|---|---|---|
 | β Aur (A1 IV + A1 IV, a = 3.29 mas) | 18 × 1 h | 0.24 % | 0.26 % (radii to 3-5 %) | 0.24 / 0.24 % | Hipparcos 0.6 %; CHARA orbit (Jonak et al. 2026) 2.3 % away; Gaia none |
-| Algol A–B (B8 V + K0 IV, a = 2.15 mas) | 12 × 1 h | 0.42 % | 5.7 % | 1.1 / 1.9 % | Hipparcos 3.9 %; CHARA/MIRC orbit; Gaia none |
+| Algol A–B (B8 V + K0 IV, a = 2.15 mas), B/A = 0.8 % at 450 nm | 12 × 1 h | 0.41 % | 21 % | 1.1 / 2.0 % | VLBA outer orbit 1.7 %; Hipparcos 3.9 %; CHARA/MIRC inner orbit 2.3 %; Gaia none |
 
 With the double-lined spectroscopic a sin i (Southworth et al. 2007 for β Aur; the Algol SB2
 solution), σ(d)/d equals σ(a)/a plus the spectroscopic error. β Aur's orbit is independent of
@@ -43,6 +43,17 @@ the stellar radii because the components are equal and nearly unresolved: the fr
 shallow and, over the 40-107 m baselines (less than one fringe period), the orbit's scale is
 degenerate with the primary's diameter unless the eclipse radii are used, which for Algol
 they can be (the archetype's radii are known to 1-2 %).
+
+Rerun with the secondary's blue light at the measured ratio (Kolbas et al. 2015: 0.008 at
+450 nm, against 0.028 for the catalog's 4900 K blackbody; a 4110 K blue-flux proxy
+reproduces it), the picture for Algol sharpens: with the radii tied the result is unchanged
+at 0.41 %, with them free it is 21 %, and with 1 % / 2 % priors 1.1 % / 2.0 %. The tied
+number is therefore not an orbital parallax at all but an angular-diameter distance: Algol A
+(0.93 mas) is resolved to |V|² 0.4 on the long pairs at S/N 140 per hour, and ln a with the
+radii tied is the global angular scale. Algol's distance from this program is θ_A combined
+with the eclipse radius R_A = 2.87 ± 0.04 R_sun (1.4 %), i.e. about 1.5 %, comparable with the
+1.7 % VLBA outer-orbit parallax and independent of it. The fringe itself, at 0.8 % depth, is
+detected but does not fix the orbit. β Aur's 0.24-0.26 % is the genuine orbital parallax.
 
 ## Caveats
 

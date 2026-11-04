@@ -50,7 +50,8 @@
   "notes": [
     "Component C (~70 mas away) is excluded; its ~10 % third light (~0.10 mag) is removed from the photometric anchors.",
     "semimajor_au 0.0620 AU: [B12] 2.15 mas measured; Kepler-consistent.",
-    "Algol A (12 550 K) lies beyond the NewEra grid edge (12 000 K): attach with allow_extrapolation to clamp onto the edge model."
+    "Algol A (12 550 K) lies beyond the NewEra grid edge (12 000 K): attach with allow_extrapolation to clamp onto the edge model.",
+    "Blue light ratio: the 4900 K blackbody secondary gives B/A = 0.028 at 450 nm and 0.022 at 425 nm; Kolbas et al. 2015 measure 0.008 +/- 0.001 at 450 nm (the K subgiant is heavily line-blanketed). For the 425 nm fringe depth a blue-flux proxy of 4110 K for the secondary reproduces the measured ratio (docs/magic_lst1_deb.md)."
   ],
   "provenance": {
     "period_days": "[B12]",
@@ -62,7 +63,7 @@
     "node_pa_deg": "[B12] Table 6"
   },
   "summary": {
-    "short": "Algol A–B",
+    "short": "Algol A\u2013B",
     "components": "B8V dwarf + K0IV subgiant",
     "eclipses": "deep primary, **1.48 mag in g**",
     "anchor_note": "C-corrected",
