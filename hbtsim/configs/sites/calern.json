@@ -3,13 +3,13 @@
   "kind": "site",
   "name": "calern",
   "label": "Calern (C2PU)",
-  "latitude_deg": 43.7538,
-  "longitude_deg": 6.923,
+  "latitude_deg": 43.75361,
+  "longitude_deg": 6.92306,
   "elevation_m": 1270.0,
   "sources": [
-    "Observatoire de la Cote d'Azur, plateau de Calern (approximate)"
+    "F. Izraelevitch, 2026-11-01, photo of the C2PU station placard: longitude 06 55' 23\\\" E, latitude 43 45' 13\\\" N, altitude 1270 m"
   ],
   "notes": [
-    "TO BE CONFIRMED: coordinates from general references (2026-10-06). Izraelevitch's 2026-11-01 email carries the longitude, latitude, altitude and the observable patch of the sky as two photo attachments that were not transcribed."
+    "Coordinates of the C2PU station placard (2026-11-01); the two telescopes are 15 m apart, so one site point serves both."
   ]
 }

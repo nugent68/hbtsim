@@ -34,7 +34,7 @@
   ],
   "night": {
     "block_minutes": 30.0,
-    "min_alt_deg": 30.0
+    "min_alt_deg": 21.0
   },
   "atmosphere": {
     "use": false
@@ -57,6 +57,7 @@
   },
   "notes": [
     "Campaign of 16-20 Nov 2026 (F. Izraelevitch, 2026-11-01): 20-30 h effective. The rows give the S/N per full night above 30 deg; scale by sqrt(hours / hours per night) for the time actually spent.",
-    "Targets: bright stars partially resolved at 15 m / 656 nm (3-8 mas), the two bright binaries (beta Aur: fringe period 41 m; Algol: 61 m), the red-clump giants (2.3-2.7 mas, |V|^2 ~ 0.8) and two Be stars with H-alpha discs."
+    "Targets: bright stars partially resolved at 15 m / 656 nm (3-8 mas), the two bright binaries (beta Aur: fringe period 41 m; Algol: 61 m), the red-clump giants (2.3-2.7 mas, |V|^2 ~ 0.8) and two Be stars with H-alpha discs.",
+    "night.min_alt_deg 21 is the mount's limit; the telescope file also caps the hour angle at +/- 5.3 h and the declination at 60 deg (gamma Cas, dec +60.7, is out)."
   ]
 }

@@ -192,13 +192,20 @@ def pair_track(array: Array, dec_deg: float, lambda_nm: float, vis2_fn, *, block
     period_days the orbital phase advances from phase0 through the night.
     Fringe drift within a block is irrelevant at nanosecond timing and is
     not applied."""
-    h0, h1 = (hour_angle_window(dec_deg, array.site.latitude_deg, min_alt_deg)
+    tels = [s.telescope for s in array.stations]
+    alt_floor = max([min_alt_deg] + [t.min_alt_deg for t in tels if t.min_alt_deg is not None])
+    h0, h1 = (hour_angle_window(dec_deg, array.site.latitude_deg, alt_floor)
               if hour_angle_window_h is None else hour_angle_window_h)
-    if any(s.telescope.south_only for s in array.stations):
+    if any(t.south_only for t in tels):
         s0, s1 = south_window(dec_deg, array.site.latitude_deg)
         h0, h1 = max(h0, s0), min(h1, s1)
-        if h1 <= h0:
-            h0 = h1 = 0.0
+    ha_max = [t.max_hour_angle_h for t in tels if t.max_hour_angle_h is not None]
+    if ha_max:
+        h0, h1 = max(h0, -min(ha_max)), min(h1, min(ha_max))
+    if any(t.max_dec_deg is not None and dec_deg > t.max_dec_deg for t in tels):
+        h0 = h1 = 0.0
+    if h1 <= h0:
+        h0 = h1 = 0.0
     mids = hour_angle_blocks(h0, h1, block_minutes)
     block_s = (h1 - h0) / max(mids.size, 1) * 3600.0
     pairs0 = array.pairs()

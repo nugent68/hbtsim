@@ -109,6 +109,12 @@ class Telescope:
     # Siderostat that points only into the southern half of the sky (azimuth
     # 90-270 deg, south through the zenith): the ISI's trucks at Mount Wilson.
     south_only: bool = False
+    # Pointing limits of the mount, applied to every track: |hour angle| at
+    # most max_hour_angle_h, declination at most max_dec_deg, altitude at least
+    # min_alt_deg (the campaign's night.min_alt_deg still applies when higher).
+    max_hour_angle_h: float | None = None
+    max_dec_deg: float | None = None
+    min_alt_deg: float | None = None
 
     @property
     def area_m2(self) -> float:

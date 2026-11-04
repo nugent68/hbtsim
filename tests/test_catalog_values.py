@@ -77,8 +77,8 @@ def test_arrays_and_sites():
     assert got == pytest.approx([81.5, 99.4, 99.4, 108.8, 126.4, 172.5], abs=0.15)   # positions fitted to the published baselines
     assert cat.load_site("paranal").latitude_deg == pytest.approx(-24.6272)
     assert cat.load_site("teide").elevation_m == 2390.0
-    cal = cat.raw("site", "calern")
-    assert "TO BE CONFIRMED" in " ".join(cal["notes"])
+    cal = cat.load_site("calern")                     # the C2PU placard (Izraelevitch 2026-11-01)
+    assert cal.latitude_deg == pytest.approx(43 + 45 / 60 + 13 / 3600, abs=1e-5) and cal.elevation_m == 1270.0
 
 
 def test_iact_backends():
@@ -326,3 +326,20 @@ def test_calern_pbs_branches():
     arr = cat.load_array("c2pu_pair")
     (_, _, b), = arr.pairs()
     assert abs(b[0]) == pytest.approx(15.0, abs=0.01) and abs(b[1]) < 0.01          # east-west
+
+
+def test_c2pu_pointing_limits():
+    """The C2PU mount (Izraelevitch 2026-11-01): |H| < 5.3 h, dec < 60, alt > 21.
+    Capella (dec +46, up 12 h above 21 deg at Calern) is clipped to 10.6 h; a
+    dec +61 star gets no blocks; the site is the placard's."""
+    from hbtsim.iact import pair_track
+    cat = Catalog(env=False)
+    arr = cat.load_array("c2pu_pair")
+    assert arr.site.latitude_deg == pytest.approx(43.75361, abs=1e-4) and arr.site.longitude_deg == pytest.approx(6.92306, abs=1e-4)
+    fn = lambda b, lam, phase, d: np.ones(len(b))
+    tr = pair_track(arr, 46.0, 656.0, fn, block_minutes=30.0, min_alt_deg=21.0)
+    assert tr.hour_angle_h.min() > -5.3 and tr.hour_angle_h.max() < 5.3 and abs(tr.hour_angle_h.size * tr.block_s / 3600 - 10.6) < 0.05
+    assert pair_track(arr, 61.0, 656.0, fn, block_minutes=30.0, min_alt_deg=21.0).hour_angle_h.size == 0
+    h21 = pair_track(arr, 5.2, 656.0, fn, block_minutes=30.0, min_alt_deg=21.0)       # Procyon: the altitude floor binds
+    h30 = pair_track(arr, 5.2, 656.0, fn, block_minutes=30.0, min_alt_deg=30.0)       # the higher floor wins
+    assert 8.5 < h21.hour_angle_h.size * h21.block_s / 3600 < 9.0 and 6.8 < h30.hour_angle_h.size * h30.block_s / 3600 < 7.2

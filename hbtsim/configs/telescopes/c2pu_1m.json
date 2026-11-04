@@ -7,13 +7,18 @@
   "collecting_area_m2": 0.73736,
   "throughput": 0.623,
   "sources": [
-    "F. Izraelevitch (OCA/INPHYNI), email to P. Nugent 2026-11-01: C2PU campaign of 16-20 Nov 2026 with the Delft SNSPDs and the OCA APDs behind a polarizing beam splitter, H-alpha 1 nm: effective area 0.73736 m2 per telescope, transmission 0.93 x 0.93 x 0.8 = 0.692, equatorial mount"
+    "F. Izraelevitch (OCA/INPHYNI), email to P. Nugent 2026-11-01: C2PU campaign of 16-20 Nov 2026 with the Delft SNSPDs and the OCA APDs behind a polarizing beam splitter, H-alpha 1 nm: effective area 0.73736 m2 per telescope, transmission 0.93 x 0.93 x 0.8 = 0.692, equatorial mount",
+    "F. Izraelevitch, 2026-11-01, photo of the C2PU pointing chart ('Zone accessible au pointage', EPSILON @ C2PU): hour angle within +/- 5.3 h, declination < 60 deg, altitude > 21 deg"
   ],
   "notes": [
+    "Pointing limits of the equatorial mount: |hour angle| < 5.3 h, declination < 60 deg, altitude > 21 deg (Epsilon's chart; Omicron assumed the same).",
     "throughput 0.623 = 0.692 (telescope, Izraelevitch) x 0.90 (atmosphere at 656 nm and airmass ~1.3, ASSUMED: hbtsim's throughput covers the atmosphere, the telescope and the coupling up to the backend entrance). The branch optics after the beam splitter are in the two calern_halpha_1nm_* spectrographs.",
     "collecting_area_m2 0.73736 is the effective (obstructed) area; diameter_m 1.0 is the pupil that smears binary fringes."
   ],
   "assumptions": [
     "atmospheric transmission 0.90"
-  ]
+  ],
+  "max_hour_angle_h": 5.3,
+  "max_dec_deg": 60.0,
+  "min_alt_deg": 21.0
 }

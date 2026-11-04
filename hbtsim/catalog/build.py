@@ -159,7 +159,8 @@ def build_site(cat, d: dict) -> Site:
 
 def build_telescope(cat, d: dict) -> Telescope:
     return Telescope(name=_label(d),
-                     **_given(d, ("diameter_m", "throughput", "collecting_area_m2", "south_only")))
+                     **_given(d, ("diameter_m", "throughput", "collecting_area_m2", "south_only",
+                                  "max_hour_angle_h", "max_dec_deg", "min_alt_deg")))
 
 
 def jitter_fwhm_ps(timing: dict) -> float:
