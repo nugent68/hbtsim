@@ -307,3 +307,22 @@ def test_first_week_targets():
     assert [(e["side_m"], e["nights"]) for e in bc.option("options.schedule")] == [(30.0, 3), (60.0, 4)]
     assert bc.option("options.fit_theta_range") == [0.85, 1.15] and bc.option("options.fit_scale_step") == 0.002
     assert [r["pc"] for r in bc.option("options.reference_distances")] == [24.87, 24.3]
+
+
+def test_calern_pbs_branches():
+    """The C2PU November 2026 setup (Izraelevitch 2026-11-01): two counting
+    backends on the outputs of a polarizing beam splitter, each single_pol,
+    the branch optics in the spectrograph without the splitter's 0.48."""
+    cat = Catalog(env=False)
+    sn, ap = cat.load_backend("calern_snspd_halpha"), cat.load_backend("calern_apd_halpha")
+    assert sn.polarization_mode == ap.polarization_mode == "single_pol"
+    assert sn.spectrograph.throughput == pytest.approx(0.96 * 0.96 * 0.80, abs=1e-4)
+    assert ap.spectrograph.throughput == pytest.approx(0.96 * 0.96 * 0.82 * 0.80, abs=1e-4)
+    assert sn.spectrograph.lambda_min_nm == pytest.approx(655.78) and sn.spectrograph.n_channels == 1
+    assert sn.detector.jitter_fwhm_ps == pytest.approx(2.355 * 100, rel=0.01)
+    assert ap.detector.jitter_fwhm_ps == pytest.approx(2.355 * 500, rel=0.01)
+    tel = cat.load_telescope("c2pu_1m")
+    assert tel.collecting_area_m2 == pytest.approx(0.73736) and tel.throughput == pytest.approx(0.93 * 0.93 * 0.8 * 0.9, abs=1e-3)
+    arr = cat.load_array("c2pu_pair")
+    (_, _, b), = arr.pairs()
+    assert abs(b[0]) == pytest.approx(15.0, abs=0.01) and abs(b[1]) < 0.01          # east-west

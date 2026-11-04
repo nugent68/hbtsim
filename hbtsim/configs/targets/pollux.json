@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "pollux",
+  "label": "Pollux (beta Gem, K0 III)",
+  "type": "single",
+  "star": {
+    "label": "Pollux",
+    "mass_msun": 1.9,
+    "teff_k": 4860.0,
+    "ld_table": "k_giant_rough",
+    "logg": 2.9
+  },
+  "theta_ld_mas": 7.98,
+  "v_mag": 1.14,
+  "dec_deg": 28.0262,
+  "ra_hours": 7.7553,
+  "distance_pc": 10.36,
+  "mag_anchors": [
+    {
+      "band": "B",
+      "mag_vega": 2.14
+    },
+    {
+      "band": "V",
+      "mag_vega": 1.14
+    },
+    {
+      "band": "K",
+      "mag_vega": -1.1
+    }
+  ],
+  "sources": [
+    "Nordgren et al. 1999 (NPOI) / Baines et al. 2018 (CHARA): theta_LD ~ 7.96-8.0 mas (ASSUMED 7.98 +/- 0.1)",
+    "SIMBAD / Ducati 2002 magnitudes (approximate K)"
+  ],
+  "notes": [
+    "K giant with a planet; red-clump candidate.",
+    "Added 2026-11-04 for the C2PU 15 m H-alpha campaign: at 15 m and 656 nm a star is 20 % resolved at 3 mas and reaches the first null at 11 mas."
+  ],
+  "assumptions": [
+    "theta_ld_mas where marked ASSUMED",
+    "mag_anchors K",
+    "star.mass_msun, star.logg, star.ld_table"
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g2_calern_halpha_nov2026",
+  "label": "C2PU 15 m east-west pair at H-alpha (1 nm), Delft SNSPDs and OCA APDs on the two outputs of a polarizing beam splitter: one night per target, the two branches combined in quadrature",
+  "runner": "g2",
+  "targets": [
+    "vega",
+    "deneb",
+    "capella",
+    "procyon_a",
+    "pollux",
+    "hamal",
+    "mirfak",
+    "rigel",
+    "aldebaran",
+    "betaaur",
+    "algol",
+    "eps_tau",
+    "gam_tau",
+    "del1_tau",
+    "tet1_tau",
+    "hd17652",
+    "regulus",
+    "gammacas",
+    "zettau"
+  ],
+  "instrument": {
+    "array": "c2pu_pair"
+  },
+  "backends": [
+    "calern_snspd_halpha",
+    "calern_apd_halpha"
+  ],
+  "night": {
+    "block_minutes": 30.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "one_backend_per_night": false,
+    "detection_sigma": 3.0,
+    "diameter_precision": 0.01,
+    "phase": "max_separation",
+    "baseline_schedule": [
+      {
+        "baseline_m": 15.0,
+        "pa_deg": 90.0,
+        "nights": 1
+      }
+    ]
+  },
+  "outputs": {
+    "latex": false
+  },
+  "notes": [
+    "Campaign of 16-20 Nov 2026 (F. Izraelevitch, 2026-11-01): 20-30 h effective. The rows give the S/N per full night above 30 deg; scale by sqrt(hours / hours per night) for the time actually spent.",
+    "Targets: bright stars partially resolved at 15 m / 656 nm (3-8 mas), the two bright binaries (beta Aur: fringe period 41 m; Algol: 61 m), the red-clump giants (2.3-2.7 mas, |V|^2 ~ 0.8) and two Be stars with H-alpha discs."
+  ]
+}

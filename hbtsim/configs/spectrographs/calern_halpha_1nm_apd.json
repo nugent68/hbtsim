@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "calern_halpha_1nm_apd",
+  "label": "C2PU H-alpha 1 nm filter, APD branch of the polarizing beam splitter",
+  "lambda_min_nm": 655.78,
+  "lambda_max_nm": 656.78,
+  "n_channels": 1,
+  "throughput": 0.6046,
+  "sources": [
+    "F. Izraelevitch (OCA/INPHYNI), email to P. Nugent 2026-11-01: C2PU campaign of 16-20 Nov 2026 with the Delft SNSPDs and the OCA APDs behind a polarizing beam splitter, H-alpha 1 nm: lambda_0 656.28 nm, delta lambda 1 nm, 1 channel; branch optical throughput 0.96 x 0.96 x 0.82 x 0.80 x 0.48"
+  ],
+  "notes": [
+    "throughput 0.605 = 0.96 x 0.96 x 0.82 x 0.80: the branch optics WITHOUT the 0.48 of the polarizing beam splitter, which the backend's polarization_mode single_pol carries (half the flux, full g2 contrast). Izraelevitch's 0.48 against the ideal 0.50 is a 4 % loss not modelled."
+  ],
+  "assumptions": [
+    "lambda_min_nm / lambda_max_nm (a 1 nm top-hat at 656.28 nm)"
+  ]
+}

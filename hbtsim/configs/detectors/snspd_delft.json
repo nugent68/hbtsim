@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "snspd_delft",
+  "label": "Delft SNSPD (C2PU, Nov 2026)",
+  "pde_table_nm": {
+    "flat": 0.8,
+    "range_nm": [
+      600.0,
+      700.0
+    ]
+  },
+  "timing": {
+    "jitter_fwhm_ps": 235.0
+  },
+  "dead_time_ns": 30.0,
+  "dark_cps_per_pixel": 100.0,
+  "n_pixels": 1,
+  "readout": "timetag",
+  "max_total_cps": 20000000.0,
+  "sources": [
+    "F. Izraelevitch (OCA/INPHYNI), email to P. Nugent 2026-11-01: C2PU campaign of 16-20 Nov 2026 with the Delft SNSPDs and the OCA APDs behind a polarizing beam splitter, H-alpha 1 nm: detector efficiency 0.80, jitter 100 ps RMS, single linear polarization"
+  ],
+  "notes": [
+    "jitter_fwhm_ps 235 = 2.355 x 100 ps RMS (Gaussian). Dead time, dark rate and the maximum count rate are typical SNSPD values, not supplied: ASSUMED."
+  ],
+  "assumptions": [
+    "dead_time_ns",
+    "dark_cps_per_pixel",
+    "max_total_cps",
+    "pde flat over 600-700 nm"
+  ]
+}

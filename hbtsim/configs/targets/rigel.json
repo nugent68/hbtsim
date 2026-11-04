@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "rigel",
+  "label": "Rigel (beta Ori, B8 Ia)",
+  "type": "single",
+  "star": {
+    "label": "Rigel",
+    "mass_msun": 21.0,
+    "teff_k": 12100.0,
+    "ld_table": "claret11_spica",
+    "logg": 1.75
+  },
+  "theta_ld_mas": 2.76,
+  "v_mag": 0.13,
+  "dec_deg": -8.2017,
+  "ra_hours": 5.2423,
+  "distance_pc": 264.0,
+  "mag_anchors": [
+    {
+      "band": "B",
+      "mag_vega": 0.1
+    },
+    {
+      "band": "V",
+      "mag_vega": 0.13
+    },
+    {
+      "band": "K",
+      "mag_vega": 0.18
+    }
+  ],
+  "sources": [
+    "Aufdenberg et al. 2008 / CHARA: theta_LD ~ 2.75 mas (ASSUMED 2.76 +/- 0.03)",
+    "SIMBAD / Ducati 2002 magnitudes (approximate K)"
+  ],
+  "notes": [
+    "B supergiant with variable H-alpha emission; dec -8: 38 deg at transit from Calern.",
+    "Added 2026-11-04 for the C2PU 15 m H-alpha campaign: at 15 m and 656 nm a star is 20 % resolved at 3 mas and reaches the first null at 11 mas."
+  ],
+  "assumptions": [
+    "theta_ld_mas where marked ASSUMED",
+    "mag_anchors K",
+    "star.mass_msun, star.logg, star.ld_table"
+  ]
+}

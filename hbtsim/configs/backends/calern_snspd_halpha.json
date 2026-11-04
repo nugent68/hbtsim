@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "calern_snspd_halpha",
+  "label": "C2PU H-alpha 1 nm, Delft SNSPD, one polarization",
+  "model": "counting",
+  "spectrograph": "calern_halpha_1nm_snspd",
+  "detector": "snspd_delft",
+  "polarization_mode": "single_pol",
+  "notes": [
+    "One branch of the polarizing beam splitter (Izraelevitch 2026-11-01); the APD branch (calern_apd_halpha) sees the other polarization at the same time: combine the two in quadrature (options.one_backend_per_night false)."
+  ]
+}

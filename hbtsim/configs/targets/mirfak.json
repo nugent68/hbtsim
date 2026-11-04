@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "mirfak",
+  "label": "Mirfak (alpha Per, F5 Ib)",
+  "type": "single",
+  "star": {
+    "label": "Mirfak",
+    "mass_msun": 8.5,
+    "teff_k": 6350.0,
+    "ld_table": "claret11_betaaur",
+    "logg": 1.9
+  },
+  "theta_ld_mas": 3.19,
+  "v_mag": 1.8,
+  "dec_deg": 49.8613,
+  "ra_hours": 3.4054,
+  "distance_pc": 155.0,
+  "mag_anchors": [
+    {
+      "band": "B",
+      "mag_vega": 2.28
+    },
+    {
+      "band": "V",
+      "mag_vega": 1.8
+    },
+    {
+      "band": "K",
+      "mag_vega": 0.5
+    }
+  ],
+  "sources": [
+    "Nordgren et al. 2001 (NPOI): theta_UD 3.03 mas -> LD ~ 3.19 (ASSUMED +/- 0.1)",
+    "SIMBAD / Ducati 2002 magnitudes (approximate K)"
+  ],
+  "notes": [
+    "F supergiant, dec +50.",
+    "Added 2026-11-04 for the C2PU 15 m H-alpha campaign: at 15 m and 656 nm a star is 20 % resolved at 3 mas and reaches the first null at 11 mas."
+  ],
+  "assumptions": [
+    "theta_ld_mas where marked ASSUMED",
+    "mag_anchors K",
+    "star.mass_msun, star.logg, star.ld_table"
+  ]
+}

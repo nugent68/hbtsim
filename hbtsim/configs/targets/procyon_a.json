@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "procyon_a",
+  "label": "Procyon A (alpha CMi, F5 IV-V)",
+  "type": "single",
+  "star": {
+    "label": "Procyon A",
+    "mass_msun": 1.5,
+    "teff_k": 6530.0,
+    "ld_table": "claret11_betaaur",
+    "logg": 4.0
+  },
+  "theta_ld_mas": 5.404,
+  "v_mag": 0.34,
+  "dec_deg": 5.225,
+  "ra_hours": 7.6551,
+  "distance_pc": 3.51,
+  "mag_anchors": [
+    {
+      "band": "B",
+      "mag_vega": 0.76
+    },
+    {
+      "band": "V",
+      "mag_vega": 0.34
+    },
+    {
+      "band": "K",
+      "mag_vega": -0.65
+    }
+  ],
+  "sources": [
+    "Aufdenberg et al. 2005 (VLTI/VINCI + Mark III): theta_LD 5.404 +/- 0.031 mas; Kervella et al. 2004: 5.448 +/- 0.053",
+    "SIMBAD / Ducati 2002 magnitudes (approximate K)"
+  ],
+  "notes": [
+    "F5 subgiant; the white dwarf companion (4-5 arcsec, 10 mag fainter) is negligible.",
+    "Added 2026-11-04 for the C2PU 15 m H-alpha campaign: at 15 m and 656 nm a star is 20 % resolved at 3 mas and reaches the first null at 11 mas."
+  ],
+  "assumptions": [
+    "theta_ld_mas where marked ASSUMED",
+    "mag_anchors K",
+    "star.mass_msun, star.logg, star.ld_table"
+  ]
+}

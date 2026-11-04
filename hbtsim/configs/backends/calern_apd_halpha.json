@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "calern_apd_halpha",
+  "label": "C2PU H-alpha 1 nm, OCA APD, the other polarization",
+  "model": "counting",
+  "spectrograph": "calern_halpha_1nm_apd",
+  "detector": "apd_calern",
+  "polarization_mode": "single_pol",
+  "notes": [
+    "The APD branch of the polarizing beam splitter, simultaneous with calern_snspd_halpha."
+  ]
+}

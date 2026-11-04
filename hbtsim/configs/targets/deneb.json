@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "deneb",
+  "label": "Deneb (alpha Cyg, A2 Ia)",
+  "type": "single",
+  "star": {
+    "label": "Deneb",
+    "mass_msun": 19.0,
+    "teff_k": 8525.0,
+    "ld_table": "claret11_betaaur",
+    "logg": 1.1
+  },
+  "theta_ld_mas": 2.363,
+  "v_mag": 1.25,
+  "dec_deg": 45.2803,
+  "ra_hours": 20.6905,
+  "distance_pc": 432.0,
+  "mag_anchors": [
+    {
+      "band": "B",
+      "mag_vega": 1.34
+    },
+    {
+      "band": "V",
+      "mag_vega": 1.25
+    },
+    {
+      "band": "K",
+      "mag_vega": 0.9
+    }
+  ],
+  "sources": [
+    "Aufdenberg et al. 2002 (NPOI) / CHARA: theta_LD 2.363 +/- 0.002 mas (Aufdenberg 2002 had 2.40); distance ~ 430 pc (ASSUMED)",
+    "SIMBAD / Ducati 2002 magnitudes (approximate K)"
+  ],
+  "notes": [
+    "A supergiant; H-alpha in P Cygni emission: the 1 nm H-alpha filter samples the wind.",
+    "Added 2026-11-04 for the C2PU 15 m H-alpha campaign: at 15 m and 656 nm a star is 20 % resolved at 3 mas and reaches the first null at 11 mas."
+  ],
+  "assumptions": [
+    "theta_ld_mas where marked ASSUMED",
+    "mag_anchors K",
+    "star.mass_msun, star.logg, star.ld_table"
+  ]
+}

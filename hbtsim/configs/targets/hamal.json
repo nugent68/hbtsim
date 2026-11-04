@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "hamal",
+  "label": "Hamal (alpha Ari, K2 III)",
+  "type": "single",
+  "star": {
+    "label": "Hamal",
+    "mass_msun": 1.5,
+    "teff_k": 4480.0,
+    "ld_table": "k_giant_rough",
+    "logg": 2.6
+  },
+  "theta_ld_mas": 6.83,
+  "v_mag": 2.01,
+  "dec_deg": 23.4624,
+  "ra_hours": 2.1196,
+  "distance_pc": 20.2,
+  "mag_anchors": [
+    {
+      "band": "B",
+      "mag_vega": 3.16
+    },
+    {
+      "band": "V",
+      "mag_vega": 2.01
+    },
+    {
+      "band": "K",
+      "mag_vega": -0.6
+    }
+  ],
+  "sources": [
+    "Richichi & Roccatagliata 2005 / lunar occultations and NPOI: theta_LD ~ 6.8 mas (ASSUMED 6.83 +/- 0.1)",
+    "SIMBAD / Ducati 2002 magnitudes (approximate K)"
+  ],
+  "notes": [
+    "K giant, V 2.0.",
+    "Added 2026-11-04 for the C2PU 15 m H-alpha campaign: at 15 m and 656 nm a star is 20 % resolved at 3 mas and reaches the first null at 11 mas."
+  ],
+  "assumptions": [
+    "theta_ld_mas where marked ASSUMED",
+    "mag_anchors K",
+    "star.mass_msun, star.logg, star.ld_table"
+  ]
+}
