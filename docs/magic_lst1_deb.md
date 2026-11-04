@@ -53,3 +53,12 @@ they can be (the archetype's radii are known to 1-2 %).
 - No weather, moon-background (β = 0) or scheduling losses; the hour angles of the slots are
   spread by construction, which the schedulers would have to be asked for.
 - Algol's orbital parallax rests on the eclipse radii; β Aur's does not.
+
+## The spectroscopic a sin i (pulled 2026-11-04)
+
+| system | K_1, K_2 [km/s] | source | a sin i → a [R_sun] | σ(a)/a from spectroscopy | best existing distance |
+|---|---|---|---|---|---|
+| β Aur | 108.053 ± 0.072, 110.911 ± 0.071 (formal; ×1.4 scaled) | Behr et al. 2011, AJ 142, 6 (dFTS, 20 double-lined RVs) | 17.60 R_sun with i = 76.80 ± 0.10° (Southworth et al. 2007) | 0.05 % (0.37 % with Smith 1948's K's, which Southworth 2007 used) | Jonák et al. 2026 (A&A, CHARA SPICA + MIRC-X + MYSTIC + RVs + light curves): 24.30 ± 0.05 pc, R = 2.752 / 2.622 R_sun; Hipparcos 25.18 ± 0.49 pc (1997) / 24.87 pc (2007) |
+| Algol A–B | 44.1 ± 0.2, 194.2 ± 1.2 | Kolbas et al. 2015, MNRAS 451, 4150 (spectral disentangling); a = 13.65 ± 0.07 R_sun, i = 81.4 ± 0.2° (Richards 1988) | 13.66 R_sun | 0.51 % | Zavala et al. 2010 / Peterson et al. 2011 (VLBA, outer orbit): 34.7 ± 0.6 mas (1.7 %); Hipparcos 36.27 ± 1.40 mas (3.9 %); CHARA inner orbit a = 2.15 ± 0.05 mas (Baron et al. 2012) |
+
+Radii: β Aur 2.762 ± 0.017 / 2.568 ± 0.017 R_sun (Southworth 2007; Jonák 2026 gives 2.752 ± 0.002 / 2.622 ± 0.002), Algol A 2.87 ± 0.04, B 3.43 ± 0.01 R_sun (Kolbas 2015; Baron 2012 from the angular diameters 2.73 ± 0.20 / 3.48 ± 0.28). Distance budgets: β Aur σ(d)/d = 0.24 % (SII) ⊕ 0.05 % (RV) = 0.25 %, matching the 0.2 % of the 2026 CHARA solution and testing the 2.3 % Hipparcos–CHARA offset at 8 σ; Algol σ(d)/d = 0.42 % ⊕ 0.51 % = 0.66 % with the eclipse radii, 1.1 % ⊕ 0.51 % = 1.2 % with a 1 % radius prior, against 1.7 % from the radio outer orbit.
