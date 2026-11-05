@@ -23,10 +23,11 @@
     }
   ],
   "sources": [
-    "Wikipedia infobox (read 2026-10-08) and the papers it cites: V 3.7, O9 III((f)) giant, T_eff 36000 K, R 10.0 Rsun, M 28.0 Msun, d 390 pc, log g 3.9"
+    "Wikipedia infobox (read 2026-10-08) and the papers it cites: V 3.7, O9 III((f)) giant, T_eff 36000 K, R 10.0 Rsun, M 28.0 Msun, d 390 pc, log g 3.9",
+    "Gordon et al. 2018, ApJ 869, 37 (CHARA/PAVO, 650-800 nm): theta_LD 0.226 +/- 0.015 mas"
   ],
   "notes": [
-    "No interferometric diameter exists: theta_LD = 2R/d = 0.238 mas from the quoted radius and distance; the Pathfinder would be its first measurement.",
+    "theta_LD = 2R/d = 0.238 mas from the quoted radius and distance. CHARA/PAVO measured 0.226 +/- 0.015 mas (Gordon et al. 2018, ApJ 869, 37) from the partially resolved main lobe at 331 m; the Pathfinder would reach its first null.",
     "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
     "V 3.7 is the A component; lambda Ori B (B0.5 V, V 5.6, 4.4 arcsec away) must be excluded by the camera's field stop.",
     "Distance 390 pc from the Gaia parallax 2.59 +/- 0.40 mas (uncertain: +/- 15 %)."

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "lpqi_mpd_550_0p5",
+  "label": "LPQI-Pathfinder 550.0-0.5 filter, MPD single pixel",
+  "model": "counting",
+  "spectrograph": "filter_lpqi_550_0p5nm",
+  "detector": "lpqi_spad1_mpd",
+  "polarization_mode": "unpolarized",
+  "notes": [
+    "The Pathfinder's adopted filter on its science detector (35 ps)."
+  ]
+}

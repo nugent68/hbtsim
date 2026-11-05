@@ -22,10 +22,11 @@
     }
   ],
   "sources": [
-    "Wikipedia infobox (read 2026-10-08) and the papers it cites: V 3.23, B1 IV, beta Cep pulsator (P 0.19048 d, 0.11 mag), T_eff 23600 K, R 7.22 Rsun, M 12.0 Msun, d 210 pc"
+    "Wikipedia infobox (read 2026-10-08) and the papers it cites: V 3.23, B1 IV, beta Cep pulsator (P 0.19048 d, 0.11 mag), T_eff 23600 K, R 7.22 Rsun, M 12.0 Msun, d 210 pc",
+    "Gordon et al. 2019, ApJ 873, 91 (CHARA/PAVO): theta_LD 0.280 +/- 0.016 mas, preliminary"
   ],
   "notes": [
-    "No interferometric diameter exists: theta_LD = 2R/d = 0.32 mas from the quoted radius and distance; the Pathfinder would be its first measurement.",
+    "theta_LD = 2R/d = 0.32 mas from the quoted radius and distance. CHARA/PAVO measured 0.280 +/- 0.016 mas (Gordon et al. 2019, ApJ 873, 91; flagged preliminary because of the Be companion at 0.25 arcsec); the value here is 14 % larger and has NOT been changed.",
     "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
     "Radial pulsation period 0.19048 d with a 0.11 mag amplitude: the radius change moves the first null by tens of metres over a night.",
     "Triple: the Be companion Ab (81 yr orbit, ~5 Msun) and the V 7.8 companion B at 13.6 arcsec are excluded here.",

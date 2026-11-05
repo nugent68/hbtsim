@@ -133,6 +133,13 @@ def test_lpqi_pathfinder():
     assert n.pde(656.28) == pytest.approx(0.194, abs=0.002) and n.jitter_fwhm_ps == 10.0 and n.n_pixels == 4   # 10 ps: F. Prada 2026-10-09
     assert (n.dead_time_ns, n.dark_cps_per_pixel, n.max_total_cps, n.max_cps_per_pixel) == (10.0, 1.68, None, 6.7e6)
     assert n.jitter_fwhm_ps == 10.0 and n.pde(500.0) == 0.5 and n.pde(950.0) == pytest.approx(0.025)   # F. Prada 2026-10-09
+    a = cat.load_detector("lpqi_spad64_pathfinder")               # R. Content, 2026-11-05: 71 % at 422 nm, 16 % at 550 nm
+    assert a.pde(422.0) == pytest.approx(0.71) and a.pde(550.0) == pytest.approx(0.16) and a.pde(656.28) < 0.05
+    assert (a.jitter_fwhm_ps, a.n_pixels, a.max_total_cps, a.max_cps_per_pixel) == (500.0, 4, 6.7e6, None)
+    f05 = cat.load_spectrograph("filter_lpqi_550_0p5nm")          # the adopted Pathfinder filter (F. Prada, 2026-11-04)
+    assert f05.n_channels == 1 and float(f05.channel_centers_nm[0]) == pytest.approx(550.0)
+    assert f05.channel_width_nm == pytest.approx(0.648) and f05.throughput == pytest.approx(0.7993)
+    assert cat.load_backend("lpqi_pf64_550_0p5").detector == a and cat.load_backend("lpqi_mpd_550_0p5").detector == cat.load_detector("lpqi_spad1_mpd")
     r = cat.load_spectrograph("lpqi_r10000")
     assert 8600 < r.n_channels < 8700 and r.channel_centers_nm[0] < 401 and r.channel_centers_nm[-1] > 949
     assert cat.load_backend("lpqi_r10000_nextgen").detector.max_cps_per_pixel == 6.7e6
@@ -153,7 +160,8 @@ def test_lpqi_pathfinder():
 
 def test_lpqi_hot_star_targets():
     """The northern O/B targets of g2_singles_lpqi_pathfinder: theta_LD = 2R/d
-    from the quoted radii and distances (no interferometric diameters)."""
+    from the quoted radii and distances (CHARA/PAVO diameters exist for
+    lambda Ori A and beta Cep and are cited in their notes)."""
     expect = {"lamori_a": (0.238, 9.934, 3.7), "betcep": (0.320, 70.561, 3.23), "etaori": (0.201, -2.397, 3.42),
               "epsper": (0.363, 40.010, 2.88), "delori_aa": (0.319, -0.299, 2.23), "gampeg": (0.349, 15.184, 2.84),
               "zettau": (0.365, 21.1425, 3.01)}

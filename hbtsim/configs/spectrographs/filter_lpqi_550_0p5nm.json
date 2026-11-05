@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "filter_lpqi_550_0p5nm",
+  "label": "LPQI-Pathfinder custom Alluxa 550.0-0.5 flat-top filter (S/N-equivalent rectangle)",
+  "lambda_min_nm": 549.676,
+  "lambda_max_nm": 550.324,
+  "n_channels": 1,
+  "throughput": 0.7993,
+  "sources": [
+    "F. Prada, email 2026-11-04: 550 nm with a width of 0.50 nm adopted as the single filter of the NOT and TNG cameras",
+    "Alluxa 532.1-0.5 OD7 Ultra Narrow Bandpass (part 7083) theory curve, shifted to 550.0 nm: the profile Alluxa quoted for the custom part (P. Nugent, 2026-11-04)"
+  ],
+  "notes": [
+    "A rectangle with the same pair S/N as the 7083 profile (peak 0.971, FWHM 0.542 nm): width (int T)^2 / int T^2 = 0.649 nm, transmission int T^2 / int T = 0.844, times 0.947 for the relay optics (the 0.9 / 0.95 of the 1 nm filters).",
+    "The delivered part is specified at 0.50 nm FWHM (0.40-0.60), peak >= 92 % measured; redo the rectangle from its measured curve."
+  ],
+  "assumptions": [
+    "lambda_min_nm",
+    "lambda_max_nm",
+    "throughput (theory curve of the 532 nm design, not the delivered part)"
+  ]
+}

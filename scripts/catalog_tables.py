@@ -184,6 +184,7 @@ def iact_backends() -> str:
 def lpqi_parameters() -> str:
     pf, orm = cat.load_array("lpqi_pathfinder"), cat.load_array("lpqi_orm")
     d, n, m = (cat.load_detector(k) for k in ("lpqi_spad64_i2cass", "lpqi_spad64_i2cass_nextgen", "lpqi_spad1_mpd"))
+    a = cat.load_detector("lpqi_spad64_pathfinder")
     (_, _, b), = pf.pairs()
     pa = np.degrees(np.arctan2(b[0], b[1])) % 360
     lengths = {f"{orm.stations[i].name}–{orm.stations[j].name}": float(np.hypot(*bb)) for i, j, bb in orm.pairs()}
@@ -204,6 +205,10 @@ def lpqi_parameters() -> str:
              ("detector (Pathfinder primary: MPD single pixel)", f"PDE {m.pde(550.0):.2f} flat 400–700 nm, {m.jitter_fwhm_ps:.0f} ps FWHM (275 ps below 470 nm), "
                                                    f"dead {m.dead_time_ns:g} ns, dark {m.dark_cps_per_pixel:g} cps, 1 pixel, max detection rate {m.max_total_cps:.0e} cps",
               "F. Prada 2026-10-07 and 2026-10-09 (12e6 cps, primary detector); flat PDE **assumed**"),
+             ("detector (Pathfinder test array: IMSE 64×64 in the NOT / TNG cameras)",
+              f"PDE {a.pde(422.0):.2f} at 422 nm, {a.pde(550.0):.2f} at 550 nm; {a.jitter_fwhm_ps:.0f} ps FWHM, {a.n_pixels} pixels per star, "
+              f"dead {a.dead_time_ns:g} ns, dark {a.dark_cps_per_pixel:g} cps/pixel, ≤ {a.max_total_cps:.1e} cps in all",
+              "R. Content 2026-11-05 (the two PDE values); coupling 1, the curve between and beyond them and the 500 ps **assumed**"),
              ("bare IMSE array (reference only)", f"PDE {d.pde(550.0):.3f} = fill factor 3.5 % × PDP 75 %, otherwise as the lensed array with {d.n_pixels} pixels",
               "Quintana et al. 2026, Sensors 26, 5757; not a Pathfinder option"),
              ("filters", "; ".join(f"{f.channel_centers_nm[0]:.1f} nm ({f.channel_width_nm:.1f} nm)" for f in filters)

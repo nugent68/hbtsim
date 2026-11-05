@@ -69,8 +69,9 @@ prints the provenance).
 | telescope throughput | 0.3, 0.3 | hbtsim default (**assumed**) |
 | detector (final LPQI: lensed IMSE-LPQI 64×64 + R = 10 000 spectrograph) | PDE 0.50 at 400–550 nm, 0.20 at 650 nm, 0.025 at 950 nm (microlenses); 10 ps FWHM, 4 pixels per channel, dead 10 ns, dark 1.68 cps/pixel, ≤ 6.7e+06 cps per pixel | F. Prada 2026-10-07 / 2026-10-09; PDE curve beyond 650 nm **assumed** |
 | detector (Pathfinder primary: MPD single pixel) | PDE 0.30 flat 400–700 nm, 35 ps FWHM (275 ps below 470 nm), dead 55 ns, dark 50 cps, 1 pixel, max detection rate 1e+07 cps | F. Prada 2026-10-07 and 2026-10-09 (12e6 cps, primary detector); flat PDE **assumed** |
+| detector (Pathfinder test array: IMSE 64×64 in the NOT / TNG cameras) | PDE 0.71 at 422 nm, 0.16 at 550 nm; 500 ps FWHM, 4 pixels per star, dead 10 ns, dark 1.68 cps/pixel, ≤ 6.7e+06 cps in all | R. Content 2026-11-05 (the two PDE values); coupling 1, the curve between and beyond them and the 500 ps **assumed** |
 | bare IMSE array (reference only) | PDE 0.026 = fill factor 3.5 % × PDP 75 %, otherwise as the lensed array with 25 pixels | Quintana et al. 2026, Sensors 26, 5757; not a Pathfinder option |
-| filters | 425.0 nm (1.0 nm); 500.0 nm (1.0 nm); 550.0 nm (1.0 nm); 650.0 nm (1.0 nm); 656.3 nm (1.0 nm); 486.1 nm (1.0 nm); throughput 0.9; one per night | wavelengths **to be confirmed**; width and one-per-night from the user |
+| filters | 425.0 nm (1.0 nm); 500.0 nm (1.0 nm); 550.0 nm (0.6 nm); 550.0 nm (1.0 nm); 650.0 nm (1.0 nm); 656.3 nm (1.0 nm); 486.1 nm (1.0 nm); throughput 0.9; one per night | wavelengths **to be confirmed**; width and one-per-night from the user |
 <!-- /catalog -->
 
 The filter set (Hα, Hβ, 500, 550 and 425 nm, 1 nm wide, one per night) was
@@ -86,7 +87,15 @@ diameter target and the η and ι Ori binaries are not). The other option is the
 to ~100 %: PDE 0.50 over 400–550 nm, 0.20 at 650 nm; 500 ps White Rabbit timing
 target; 4 pixels per star; the 6.7×10⁶ cps capture ceiling of the current
 readout); its 500 ps timing is what makes it 5–15× slower than the MPD on the
-same stars. The bare 3.5 %-fill-factor
+same stars. **Update 2026-11-05:** the 64×64 array in the Pathfinder cameras
+is a test device whose efficiency R. Content quotes as 71 % at 422 nm and 16 %
+at 550 nm. It has its own entry with those values,
+`detectors/lpqi_spad64_pathfinder` (500 ps, 6.7×10⁶ cps in all, 4 pixels), and
+the filter adopted on 2026-11-04, a custom Alluxa 550.0 nm flat-top 0.5 nm
+wide, is `filter_lpqi_550_0p5nm` with backends `lpqi_mpd_550_0p5` and
+`lpqi_pf64_550_0p5`. The "lensed array" columns below (`lpqi_nextgen_*`, flat
+50 %) describe the sensor of the final instruments, a different device; on the
+test array the same stars take 3–10× longer at 550 nm. The bare 3.5 %-fill-factor
 array characterized in the Sensors paper stays in the catalog
 (`lpqi_spad64_i2cass`, backends `lpqi_*`) as the published reference only.
 The arrays' ENU positions come from the surveyed coordinates above (the NOT
@@ -185,8 +194,10 @@ The Pathfinder's niche in the northern sky is the overlap of two constraints:
 it resolves out everything larger than ≈ 0.25 mas, and with one 1 nm channel
 on 2.6 + 3.6 m apertures it reaches V ≲ 3.5. That overlap is the bright, hot,
 compact end of the sky: O and early-B stars at 150–400 pc with θ = 0.2–0.4 mas,
-none of which has an interferometric diameter (CHARA and the VLTI do not
-resolve them in the visible). Over a night the projected NOT–TNG baseline sweeps
+which CHARA can only measure on the upper part of the main lobe (PAVO, 331 m:
+λ Ori A 0.226 ± 0.015 mas, Gordon et al. 2018; β Cep 0.280 ± 0.016 mas,
+preliminary, Gordon et al. 2019; those two papers have none of the other stars
+below). Over a night the projected NOT–TNG baseline sweeps
 300–530 m, so for these stars the track crosses the first null of the disk
 visibility: the null position gives the diameter nearly model-independently
 and the sidelobe level the limb darkening. The nights below are the time to a

@@ -21,7 +21,8 @@
   "sources": [
     "Quintana, Gonzalez-de-Rivera, Lopez-Buedo & Prada 2026, Sensors 26, 5757 (doi:10.3390/s26185757): the LPQI-Pathfinder 64 x 64 I2CASS/IMSE SPAD array and its AER readout",
     "Cosentino et al. 2026, SPIE AS 14149AN: Peltier-cooled camera head at -20 C, FPGA acquisition",
-    "Prada et al. 2024 (arXiv:2406.14704): the same array on a 10-inch telescope (Betelgeuse occultation, SDSS g)"
+    "Prada et al. 2024 (arXiv:2406.14704): the same array on a 10-inch telescope (Betelgeuse occultation, SDSS g)",
+    "R. Content (LPQI optical scientist), email to P. Nugent 2026-11-05: the 64x64 SPAD's efficiency is 71 % at 422 nm and 16 % at 550 nm"
   ],
   "notes": [
     "REFERENCE ONLY: the device characterized in the Sensors paper. The Pathfinder will fly the lensed array (detectors/lpqi_spad64_i2cass_nextgen) or the MPD single pixel (detectors/lpqi_spad1_mpd); F. Prada, 2026-10-07.",
@@ -30,7 +31,8 @@
     "Dead time 5-10 ns (paper: 'typical dead times of 5-10 ns'); dark count rate median 1.68 Hz per pixel at 27.8 C (lower when cooled to -20 C).",
     "max_total_cps 6.7e6 is the implemented AER-to-AXI capture ceiling (100 MHz / 15 cycles per event); the chip's own AER arbitration ceiling is 4e7 events/s.",
     "n_pixels 25: a ~1 arcsec seeing disk over the 0.18 arcsec (NOT) / 0.13 arcsec (TNG) pixels of a 24.5 um pitch at the natural focus (plate scales from the paper), i.e. the dead time and dark counts of ~5 x 5 pixels per telescope.",
-    "Sky at ORM (21.70 mag/arcsec^2 V): ~3 incident photons/s/pixel (paper Eq. 1), negligible against the stellar rates here."
+    "Sky at ORM (21.70 mag/arcsec^2 V): ~3 incident photons/s/pixel (paper Eq. 1), negligible against the stellar rates here.",
+    "R. Content (2026-11-05) quotes the sensor's efficiency as 71 % at 422 nm and 16 % at 550 nm, so the flat 0.026 here is about right in the blue (0.035 x 0.71 = 0.025) and 4.6x too high at 550 nm (0.035 x 0.16 = 0.0056). The flat value is kept because this entry is the published reference; the Pathfinder array with the wavelength dependence is detectors/lpqi_spad64_pathfinder."
   ],
   "assumptions": [
     "pde_table_nm (flat; the curve is unpublished)",

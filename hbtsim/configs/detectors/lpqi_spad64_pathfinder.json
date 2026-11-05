@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "kind": "detector",
+  "name": "lpqi_spad64_pathfinder",
+  "extends": "lpqi_spad64_i2cass",
+  "label": "LPQI-Pathfinder IMSE 64x64 test SPAD array in the NOT / TNG cameras (500 ps, 6.7e6 cps capture ceiling)",
+  "pde_table_nm": [
+    [
+      400.0,
+      0.71
+    ],
+    [
+      422.0,
+      0.71
+    ],
+    [
+      550.0,
+      0.16
+    ],
+    [
+      650.0,
+      0.05
+    ],
+    [
+      700.0,
+      0.028
+    ],
+    [
+      800.0,
+      0.0087
+    ],
+    [
+      900.0,
+      0.0027
+    ],
+    [
+      950.0,
+      0.0015
+    ]
+  ],
+  "timing": {
+    "jitter_fwhm_ps": 500.0
+  },
+  "n_pixels": 4,
+  "max_total_cps": 6700000.0,
+  "sources": [
+    "R. Content (LPQI optical scientist), email to P. Nugent 2026-11-05: the 64x64 SPAD's efficiency is 71 % at 422 nm and 16 % at 550 nm",
+    "F. Prada (LPQI PI), email to P. Nugent 2026-10-07: the array with its optics collects the star on a few pixels; 6.7e6 cps capture ceiling; 500 ps White Rabbit timing target",
+    "Content et al. 2026, Proc. SPIE 14148, 1414832: the Pathfinder cameras image the star on a cluster of four sensitive areas with the filter in a collimated beam; a 25 %-fill-factor detector with < 0.5 ns timing is in production",
+    "Quintana et al. 2026, Sensors 26, 5757: the published array (lpqi_spad64_i2cass) this one extends"
+  ],
+  "notes": [
+    "The 64x64 TEST array of the LPQI-Pathfinder cameras, as used for the 2026-11 filter decision (550.0 nm, 0.5 nm; backends lpqi_pf64_550_0p5 and lpqi_mpd_550_0p5). The MPD single pixel (lpqi_spad1_mpd) is the science detector; this array is for tests and is not the sensor of the final instruments (detectors/lpqi_spad64_i2cass_nextgen).",
+    "PDE: the two values R. Content quoted, 0.71 at 422 nm and 0.16 at 550 nm, taken as the end-to-end efficiency (optical coupling onto the sensitive areas = 1). They replace the flat 0.50 over 400-550 nm (F. Prada 2026-10-07) used until 2026-11-05, which made the array 3x too efficient at 550 nm.",
+    "If the two values are the sensor's photon-detection probability alone, multiply the table by the coupling: 0.67 reproduces the 0.50 peak quoted for microlenses, and the SPIE paper gives about 0.21 for a star imaged on a cluster of four sensitive areas of the 3.5 %-fill chip. Nights scale as 1/coupling^2 where the array is photon-limited.",
+    "Between 422 and 550 nm the table is linear; 400 nm is set to the 422 nm value; beyond 550 nm it continues the 422-to-550 nm fall as an exponential (e-folding 86 nm). All three are ASSUMED pending the measured curve.",
+    "500 ps FWHM is the White Rabbit time-stamping target (the SPIE paper quotes 1 ns for the present chip and < 0.5 ns for the one in production); 6.7e6 cps is the implemented capture ceiling for the whole array; n_pixels 4 is the cluster the star is imaged on."
+  ],
+  "assumptions": [
+    "pde_table_nm (two quoted points; coupling 1; interpolation and red tail)",
+    "timing (500 ps target)",
+    "n_pixels"
+  ]
+}
