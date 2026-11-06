@@ -27,8 +27,8 @@
   "notes": [
     "No interferometric diameter exists: theta_LD = 2R/d = 0.365 mas from the quoted radius and distance; the Pathfinder would be its first measurement.",
     "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
-    "Be star with a several-mas H-alpha decretion disk: resolved out at 300-530 m, so the H-alpha filter measures the photospheric fraction of the H-alpha light against the 550 nm continuum.",
-    "T_eff 15 500 K as quoted (low for B2 III; the disk veils the photosphere)."
+    "T_eff 15 500 K as quoted (low for B2 III; the disk veils the photosphere).",
+    "line_disk: the H-alpha decretion disk (several mas), seen only by channels on the line (runner g2, array mode); resolved out at 300-530 m, where an H-alpha filter measures the photospheric fraction of the H-alpha light."
   ],
   "assumptions": [
     "theta_ld_mas (2R/d, no measurement)",
@@ -38,5 +38,25 @@
   "summary": {
     "short": "ζ Tau",
     "components": "B2 IIIpe Be/shell star, SB 133 d"
+  },
+  "line_disk": {
+    "line_air_nm": 656.28,
+    "ew_nm": 1.3,
+    "line_fwhm_kms": 400.0,
+    "fwhm_major_mas": 3.14,
+    "axis_ratio": 3.226,
+    "pa_deg": 117.7,
+    "sources": [
+      "Tycner et al. 2004, AJ 127, 1194 (NPOI, narrow-band H-alpha): elliptical Gaussian major axis 3.14 +/- 0.21 mas, minor/major 0.310 +/- 0.072, PA -62.3 +/- 4.4 deg",
+      "Naze et al. 2024, arXiv:2406.15161 (BeSS spectra, 2022-2024): EW(H-alpha) between -9 and -16 A, a shell profile with a variable central absorption"
+    ],
+    "notes": [
+      "axis_ratio 3.226 = 1 / 0.310; pa_deg 117.7 = -62.3 + 180. Quirrenbach et al. 1994 (Mk III): 3.55 mas, 0.30, PA -59.",
+      "ew_nm 1.3 is the middle of the 2022-2024 range; line_fwhm_kms 400 is a guess for the double-peaked shell profile, modelled as one Gaussian. A spectrum taken with the observations must replace both."
+    ],
+    "assumptions": [
+      "ew_nm (variable, mid-range)",
+      "line_fwhm_kms (no measurement used)"
+    ]
   }
 }

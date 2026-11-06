@@ -317,6 +317,10 @@ def test_first_week_targets():
     assert [r["pc"] for r in bc.option("options.reference_distances")] == [24.87, 24.3]
 
 
+def tel_dec(cat):
+    return cat.load_telescope("c2pu_1m").max_dec_deg
+
+
 def test_calern_pbs_branches():
     """The C2PU November 2026 setup (Izraelevitch 2026-11-01): two counting
     backends on the outputs of a polarizing beam splitter, each single_pol,
@@ -329,6 +333,9 @@ def test_calern_pbs_branches():
     assert sn.spectrograph.lambda_min_nm == pytest.approx(655.78) and sn.spectrograph.n_channels == 1
     assert sn.detector.jitter_fwhm_ps == pytest.approx(2.355 * 100, rel=0.01)
     assert ap.detector.jitter_fwhm_ps == pytest.approx(2.355 * 500, rel=0.01)
+    assert sn.detector.max_total_cps == 1.0e7                    # Kaiser 2026-11-06 (expected, to be confirmed)
+    assert sn.spectrograph.frame == ap.spectrograph.frame == "air"          # 656.28 nm is H-alpha in air
+    assert cat.load_telescope("c2pu_1m_override").max_dec_deg == 61.0 and tel_dec(cat) == 60.0
     tel = cat.load_telescope("c2pu_1m")
     assert tel.collecting_area_m2 == pytest.approx(0.73736) and tel.throughput == pytest.approx(0.93 * 0.93 * 0.8 * 0.9, abs=1e-3)
     arr = cat.load_array("c2pu_pair")

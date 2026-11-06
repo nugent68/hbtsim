@@ -11,9 +11,11 @@
     "F. Izraelevitch (OCA/INPHYNI), email to P. Nugent 2026-11-01: C2PU campaign of 16-20 Nov 2026 with the Delft SNSPDs and the OCA APDs behind a polarizing beam splitter, H-alpha 1 nm: lambda_0 656.28 nm, delta lambda 1 nm, 1 channel; branch optical throughput 0.96 x 0.96 x 0.82 x 0.80 x 0.48"
   ],
   "notes": [
-    "throughput 0.605 = 0.96 x 0.96 x 0.82 x 0.80: the branch optics WITHOUT the 0.48 of the polarizing beam splitter, which the backend's polarization_mode single_pol carries (half the flux, full g2 contrast). Izraelevitch's 0.48 against the ideal 0.50 is a 4 % loss not modelled."
+    "throughput 0.605 = 0.96 x 0.96 x 0.82 x 0.80: the branch optics WITHOUT the 0.48 of the polarizing beam splitter, which the backend's polarization_mode single_pol carries (half the flux, full g2 contrast). Izraelevitch's 0.48 against the ideal 0.50 is a 4 % loss not modelled.",
+    "frame air: 656.28 nm is the air wavelength of H-alpha, so the channel sits on the line of a target's line_disk."
   ],
   "assumptions": [
     "lambda_min_nm / lambda_max_nm (a 1 nm top-hat at 656.28 nm)"
-  ]
+  ],
+  "frame": "air"
 }

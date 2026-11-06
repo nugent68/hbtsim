@@ -41,6 +41,28 @@
   ],
   "notes": [
     "Beyond the NewEra grid: blackbody with Spica's linear law.",
-    "The radius is derived from theta_LD and the distance (9.63 Rsun; the former Python preset carried an inconsistent 10 Rsun)."
-  ]
+    "The radius is derived from theta_LD and the distance (9.63 Rsun; the former Python preset carried an inconsistent 10 Rsun).",
+    "line_disk: the H-alpha decretion disk, seen only by channels on the line (runner g2, array mode)."
+  ],
+  "line_disk": {
+    "line_air_nm": 656.28,
+    "ew_nm": 3.2,
+    "line_fwhm_kms": 340.0,
+    "fwhm_major_mas": 3.59,
+    "axis_ratio": 1.724,
+    "pa_deg": 31.2,
+    "sources": [
+      "Tycner et al. 2006, AJ 131, 2710 (NPOI, narrow-band H-alpha): elliptical Gaussian FWHM 3.59 +/- 0.04 mas, minor/major 0.58 +/- 0.03, major axis at PA 31.2 +/- 1.2 deg",
+      "Matthews et al. 2023, AJ 165, 117 (I2C at Calern, MeO + T1M, January 2022), Fig. 3: H-alpha peak 5 x the continuum, emission FWHM ~0.75 nm (340 km/s) in a ~1.05 nm filter; expected coherence time 1.41 ps, measured 1.35 +/- 0.05 ps",
+      "Rauw et al. 2022, A&A 664, A184: EW(H-alpha) about -46 A in July-August 2021 (the Gaussian core here carries 32 A; the rest is in wings outside a 1 nm filter)"
+    ],
+    "notes": [
+      "axis_ratio 1.724 = 1 / 0.58. Other fits: Quirrenbach et al. 1997 (Mk III) 3.47 mas, 0.70, PA 19; Stee et al. 2012 (CHARA/VEGA) 4.4 mas, 0.74, PA 19.",
+      "ew_nm and line_fwhm_kms describe the January 2022 spectrum; the line is variable, so a spectrum taken with the observations must replace them."
+    ],
+    "assumptions": [
+      "ew_nm (2022 state)",
+      "line_fwhm_kms (2022 state, read off a figure)"
+    ]
+  }
 }

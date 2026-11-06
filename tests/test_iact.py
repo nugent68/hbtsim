@@ -118,3 +118,44 @@ def test_per_station_backends(catalog, magic_lst1, gamma_cas):
     assert s2.station_alpha_q(lst) == (0.45, 0.64) and s2.n_channels == 10
     r = pair_snr(1.0, mag, lst, mst, s2, 3600.0) / pair_snr(1.0, mag, lst, mst, s1, 3600.0)
     assert r == pytest.approx(0.45 / 0.40 * np.sqrt(2e9 / 4e8 * 10) * 1.15 / 1.05 * 1.0 / 0.91, rel=1e-9)
+
+
+def test_line_disk_vis2():
+    """A Be star's emission-line disk (hbtsim.single.line_disk_vis2): the
+    effective |V|^2 of photosphere + elliptical Gaussian inside one channel."""
+    from dataclasses import replace
+    from hbtsim.catalog import load_target
+    from hbtsim.single import LineDisk, line_disk_vis2, line_flux_boost
+    g = load_target("gammacas")
+    d = g.line_disk
+    assert (d.fwhm_major_mas, d.pa_deg) == (3.59, 31.2) and d.axis_ratio == pytest.approx(1 / 0.58, abs=2e-3)
+    lo, hi = 655.78, 656.78
+    l1, l2 = d.band_moments(lo, hi)
+    assert line_flux_boost(g, lo, hi) == pytest.approx(1 + l1) and 3.5 < 1 + l1 < 4.2      # ~4x the continuum's photons
+    # off the line: the bare photosphere, and no extra photons
+    assert line_disk_vis2(g, [[100.0, 0.0]], 549.5, 550.5)[0] == pytest.approx(single_star_vis2(g, [100.0], 550.0)[0, 0])
+    assert line_flux_boost(g, 549.5, 550.5) == pytest.approx(1.0, abs=1e-9)
+    assert line_flux_boost(replace(g, line_disk=None), lo, hi) == 1.0
+    # zero baseline: the spectral concentration of the line, <(1 + l)^2> / <1 + l>^2 >= 1; the January 2022
+    # spectrum in the ~1.05 nm I2C filter gives the coherence time of Matthews et al. 2023 (1.41 ps expected,
+    # 1.35 +/- 0.05 measured)
+    z = line_disk_vis2(g, [[0.0, 0.0]], lo, hi)[0]
+    assert z == pytest.approx((1 + 2 * l1 + l2) / (1 + l1) ** 2) and 1.0 < z < 1.1
+    m1, m2 = d.band_moments(656.28 - 0.525, 656.28 + 0.525)
+    tc_ps = (656.28e-9) ** 2 / (2.998e8 * 1.05e-9) * 1e12 * (1 + 2 * m1 + m2) / (1 + m1) ** 2
+    assert 1.35 < tc_ps < 1.50
+    # the disk is elliptical: more resolved along its major axis (PA 31.2) than across it, and the
+    # 13-18 m point of Matthews et al. (0.59 +/- 0.10 of the zero-baseline area) lies between the two
+    pa = np.radians(d.pa_deg)
+    major, minor = np.array([np.sin(pa), np.cos(pa)]), np.array([np.cos(pa), -np.sin(pa)])
+    a, b = line_disk_vis2(g, [15.5 * major, 15.5 * minor], lo, hi) / z
+    assert a < 0.59 < b and a == pytest.approx(0.44, abs=0.03) and b == pytest.approx(0.74, abs=0.03)
+    # resolved out: the photospheric floor (V_star / (1 + <l>))^2
+    far = line_disk_vis2(g, [200.0 * major], lo, hi)[0]
+    v_star = np.sqrt(single_star_vis2(g, [200.0], 656.28)[0, 0])
+    assert far == pytest.approx((v_star / (1 + l1)) ** 2, rel=1e-6)
+    # pupils average over the baseline; a vacuum-frame channel grid moves the line by 0.18 nm
+    assert line_disk_vis2(g, [15.0 * major], lo, hi, pupils=(1.0, 1.0))[0] == \
+        pytest.approx(line_disk_vis2(g, [15.0 * major], lo, hi)[0], rel=0.01)
+    assert d.line_centre_nm("vacuum") - d.line_centre_nm("air") == pytest.approx(0.181, abs=0.002)
+    assert LineDisk(656.28, 1.0, 300.0, 3.0).band_moments(600.0, 601.0)[0] == pytest.approx(0.0, abs=1e-12)

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g2_calern_halpha_be_disks",
+  "label": "C2PU 15 m pair at H-alpha: the emission-line disks of gamma Cas (declination limit overridden) and zeta Tau, one night each, both branches",
+  "runner": "g2",
+  "targets": [
+    "gammacas",
+    "zettau"
+  ],
+  "instrument": {
+    "array": "c2pu_pair",
+    "array_params": {
+      "telescope": "c2pu_1m_override"
+    }
+  },
+  "backends": [
+    "calern_snspd_halpha",
+    "calern_apd_halpha"
+  ],
+  "night": {
+    "block_minutes": 30.0,
+    "min_alt_deg": 21.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "one_backend_per_night": false,
+    "detection_sigma": 3.0,
+    "diameter_precision": 0.05,
+    "phase": "max_separation",
+    "baseline_schedule": [
+      {
+        "baseline_m": 15.0,
+        "pa_deg": 90.0,
+        "nights": 1
+      }
+    ]
+  },
+  "outputs": {
+    "latex": false
+  },
+  "notes": [
+    "Be stars in the H-alpha filter: photosphere + elliptical Gaussian disk carrying the line (targets' line_disk; hbtsim.single.line_disk_vis2). 'nights to 5 % on theta' is on the disk's FWHM with the line strength known from a spectrum.",
+    "gamma Cas needs the declination limit overridden (telescope c2pu_1m_override, Kaiser 2026-11-06): not an official configuration.",
+    "The line strengths are those of 2022 (gamma Cas) and 2022-2024 (zeta Tau): ASSUMED for November 2026."
+  ]
+}

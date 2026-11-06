@@ -185,6 +185,7 @@ FIELDS = {
                # single
                Field("star", DICT), Field("theta_ld_mas", NUM, lo=0), Field("v_mag", NUM),
                Field("ellipse", DICT, nullable=True),
+               Field("line_disk", DICT, nullable=True),
                Field("chromatic_diameter", LIST),
                # uniform disk
                Field("theta_mas", NUM, lo=0), Field("mag_ab", NUM), Field("ld_u", NUM, lo=0, hi=1),
@@ -363,6 +364,14 @@ def check_kind(where: str, kind: str, d: dict) -> None:
                               Field("axis_ratio", NUM, required=True, lo=1),
                               Field("pa_deg", NUM, required=True)),
                              extra_ok=("sources", "notes"))
+            if d.get("line_disk") is not None:
+                check_fields(f"{where}: line_disk", d["line_disk"],
+                             (Field("line_air_nm", NUM, required=True, lo=0),
+                              Field("ew_nm", NUM, required=True, lo=0),
+                              Field("line_fwhm_kms", NUM, required=True, lo=0),
+                              Field("fwhm_major_mas", NUM, required=True, lo=0),
+                              Field("axis_ratio", NUM, lo=1), Field("pa_deg", NUM)),
+                             extra_ok=("sources", "notes", "assumptions"))
         else:
             for k in ("theta_mas", "mag_ab", "dec_deg"):
                 if k not in d:

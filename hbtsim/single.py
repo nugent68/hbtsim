@@ -44,6 +44,52 @@ class Ellipse:
 
 
 @dataclass(frozen=True)
+class LineDisk:
+    """The emission-line disk of a Be star: an elliptical Gaussian carrying a
+    Gaussian emission line on top of the photospheric continuum.  Inside a
+    channel that contains the line the star is photosphere + disk with a
+    wavelength-dependent flux ratio l(lambda) = line / continuum; outside it
+    the target is the bare photosphere.  The disk's own continuum (free-free,
+    < 1 mas) is neglected.
+
+    line_air_nm     air wavelength of the line centre [nm]
+    ew_nm           emission equivalent width of the Gaussian core [nm] (> 0)
+    line_fwhm_kms   FWHM of the emission profile [km/s]
+    fwhm_major_mas  FWHM of the disk along its major axis [mas]
+    axis_ratio      major / minor >= 1
+    pa_deg          position angle of the major axis [deg E of N]
+    """
+    line_air_nm: float
+    ew_nm: float
+    line_fwhm_kms: float
+    fwhm_major_mas: float
+    axis_ratio: float = 1.0
+    pa_deg: float = 0.0
+
+    def line_centre_nm(self, frame: str = "air") -> float:
+        if frame == "air":
+            return float(self.line_air_nm)
+        from .sed import air_to_vacuum
+        return float(air_to_vacuum(self.line_air_nm))
+
+    def line_to_continuum(self, wavelength_nm, frame: str = "air"):
+        """l(lambda): the line's flux density over the continuum's."""
+        lam0 = self.line_centre_nm(frame)
+        sig = lam0 * self.line_fwhm_kms * 1e3 / C_LIGHT / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+        x = (np.asarray(wavelength_nm, dtype=float) - lam0) / sig
+        return self.ew_nm / (sig * np.sqrt(2.0 * np.pi)) * np.exp(-0.5 * x * x)
+
+    def band_moments(self, lambda_min_nm: float, lambda_max_nm: float, frame: str = "air", n: int = 401):
+        """(<l>, <l^2>) over a top-hat channel: the line flux in the channel
+        is <l> times the continuum's, and <l^2> sets the spectral
+        concentration of the g2 signal."""
+        lam = np.linspace(lambda_min_nm, lambda_max_nm, n)
+        l = self.line_to_continuum(lam, frame)
+        return float(np.trapezoid(l, lam) / (lambda_max_nm - lambda_min_nm)), \
+            float(np.trapezoid(l * l, lam) / (lambda_max_nm - lambda_min_nm))
+
+
+@dataclass(frozen=True)
 class SingleStar:
     name: str
     star: Star
@@ -64,6 +110,9 @@ class SingleStar:
     # held constant beyond the table (a TiO-band disk larger than the
     # continuum photosphere); empty = achromatic
     theta_factor_nm: tuple = ()
+    # optional emission-line disk (Be stars at H-alpha): see LineDisk and
+    # line_disk_vis2; only channels that contain the line see it
+    line_disk: LineDisk | None = None
 
     def theta_factor(self, wavelength_nm) -> float:
         """Diameter factor at a wavelength [nm]; 1 without a table."""
@@ -164,6 +213,46 @@ def composite_vis(bvecs_m, wavelength_nm, star: Star, theta_major_mas: float, *,
     if disk_fraction > 0.0:
         v = v + disk_fraction * gaussian_disk_vis(bvecs_m, wavelength_nm, disk_fwhm_mas, disk_axis_ratio, disk_pa_deg)
     return v
+
+
+def line_flux_boost(target: SingleStar, lambda_min_nm: float, lambda_max_nm: float, frame: str = "air") -> float:
+    """Channel flux over the photospheric continuum's, 1 + <l>: the count
+    rate of a channel on an emission line (1 without a line disk)."""
+    if target.line_disk is None:
+        return 1.0
+    return 1.0 + target.line_disk.band_moments(lambda_min_nm, lambda_max_nm, frame)[0]
+
+
+def line_disk_vis2(target: SingleStar, bvecs_m, lambda_min_nm: float, lambda_max_nm: float, *,
+                   frame: str = "air", pupils=None) -> np.ndarray:
+    """Effective |V|^2 (K,) of photosphere + emission-line disk in one
+    top-hat channel on baseline vectors (K, 2) [m, (E, N)].
+
+    One detector integrates the whole channel, so the g2 signals of its
+    wavelengths add linearly against a shared noise:
+        signal ~ int r(nu)^2 |V(nu)|^2 dnu,   r |V| = r_c |V_star + l V_disk|,
+    and the budget (snr.g2_snr: rate^2 x |V|^2 x tau_c of the channel width,
+    with the rate raised by line_flux_boost) reproduces it with
+        |V|^2_eff = <|V_star + l V_disk|^2> / <1 + l>^2.
+    It tends to |V_star|^2 without a line; on an unresolved source it is
+    <(1 + l)^2> / <1 + l>^2 >= 1, the longer coherence time of a spectrum
+    concentrated in a line (Matthews et al. 2023, AJ 165, 117, Eq. 4).
+    The photosphere is the circular limb-darkened disk; with `pupils`
+    ((d1, d2) or a quadrature) the result is averaged over the pupils."""
+    disk = target.line_disk
+    lam = 0.5 * (lambda_min_nm + lambda_max_nm)
+    quad = _pupil_quad(pupils)
+    b = np.atleast_2d(np.asarray(bvecs_m, dtype=float))
+    pts = b if quad is None else quad.points(b).reshape(-1, 2)
+    x = np.pi * target.drawn_diameter_mas * MAS * np.hypot(pts[:, 0], pts[:, 1]) / (lam * 1e-9)
+    v_star = np.real(star_disk_visibility(target.star, x[None, :], np.array([lam])))[0]
+    if disk is None:
+        v2 = v_star ** 2
+    else:
+        l1, l2 = disk.band_moments(lambda_min_nm, lambda_max_nm, frame)
+        v_disk = gaussian_disk_vis(pts, lam, disk.fwhm_major_mas, disk.axis_ratio, disk.pa_deg)[0]
+        v2 = (v_star ** 2 + 2.0 * l1 * v_star * v_disk + l2 * v_disk ** 2) / (1.0 + l1) ** 2
+    return v2 if quad is None else quad.reduce(v2.reshape(b.shape[0], -1))
 
 
 def attach_newera_single(target: SingleStar, grid, allow_extrapolation: bool = False):

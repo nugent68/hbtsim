@@ -197,6 +197,7 @@ def test_g2_array_track_single_stars(tmp_path):
         r = rows[name]
         assert r["single"] and r["nights_diameter"] is not None and r["nights_diameter"] > 0
         assert r["diameter_precision"] == 0.05 and r["v_mag"] > 2
+        assert r["size_parameter"] == "theta_ld"            # 550 nm: gamma Cas's H-alpha line_disk is not seen
         assert 0 <= r["vis2_min"] <= r["vis2_max"] < 0.6
     assert rows["lambda Ori A"]["nights_diameter"] < rows["gamma Cas"]["nights_diameter"]   # 0.24 vs 0.53 mas
     assert rows["lambda Ori A"]["vis2_max"] > 0.05                                        # inside the first lobe
@@ -246,3 +247,31 @@ def test_g2_baseline_schedule(tmp_path):
     cat = Catalog(paths=[tmp_path], env=False)
     res2 = run(cat, cat.load_campaign("tiny_plain"), RunOptions(out_dir=tmp_path / "out", figures=False))
     assert res2["mode"] == "array_track" and res2["rows"][0]["fisher_theta"] is not None
+
+
+def test_g2_be_disks_at_calern(tmp_path):
+    """C2PU at H-alpha on gamma Cas and zeta Tau: the emission-line disk sets
+    |V|^2 and the count rate, the forecast is on the disk's FWHM, and gamma Cas
+    (dec +60.7) is reachable only with the declination limit overridden."""
+    spec = json.loads(json.dumps(SHIPPED.raw("campaign", "g2_calern_halpha_be_disks")))
+    spec.update(name="tiny_be", night={"block_minutes": 120.0, "min_alt_deg": 21.0})
+    cat, camp = _catalog_with(tmp_path, spec)
+    res = run(cat, camp, RunOptions(out_dir=tmp_path / "out", figures=False, track=False, latex=False), suffix="")
+    rows = {(r["target"], r["detector"].split()[0]): r for r in res["rows"]}
+    assert set(rows) == {("gamma Cas", "Delft"), ("gamma Cas", "OCA"), ("zeta Tau", "Delft"), ("zeta Tau", "OCA")}
+    g, z = rows[("gamma Cas", "Delft")], rows[("zeta Tau", "Delft")]
+    assert all(r["size_parameter"] == "disk_fwhm" for r in rows.values())
+    assert g["rho_mas"] == 3.59 and z["rho_mas"] == 3.14
+    assert 0.5 < g["vis2_min"] < g["vis2_max"] < 0.9 and g["hours"] > 8          # partly resolved at 13-15 m
+    assert 0.6 < z["vis2_min"] < 0.85 and 0.95 < z["vis2_max"] < 1.03
+    assert 3e6 < g["rate_cps"] < 4.5e6 and not g["readout_limited"]               # ~4x the continuum, under the 1e7 ceiling
+    assert g["snr_night"] / rows[("gamma Cas", "OCA")]["snr_night"] == pytest.approx(3.5, abs=0.3)   # 1.63 (efficiency) x sqrt(5) (jitter)
+    comb = {(c["target"], c["detector"].split()[0]): c for c in res["combined"]}
+    assert comb[("gamma Cas", "Delft")]["size_parameter"] == "disk_fwhm"
+    assert 0.02 < comb[("gamma Cas", "Delft")]["sigma_theta_frac"] < 0.08         # the disk FWHM to ~4 % in a night
+    assert comb[("gamma Cas", "Delft")]["sigma_theta_frac"] < comb[("zeta Tau", "Delft")]["sigma_theta_frac"]
+    # with the official limits gamma Cas gets no blocks
+    spec2 = dict(spec, name="tiny_be_official", instrument={"array": "c2pu_pair"})
+    cat2, camp2 = _catalog_with(tmp_path, spec2)
+    res2 = run(cat2, camp2, RunOptions(out_dir=tmp_path / "out", figures=False, track=False, latex=False), suffix="")
+    assert {r["target"] for r in res2["rows"]} == {"zeta Tau"}

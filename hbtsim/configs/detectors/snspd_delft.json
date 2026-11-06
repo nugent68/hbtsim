@@ -17,17 +17,18 @@
   "dark_cps_per_pixel": 100.0,
   "n_pixels": 1,
   "readout": "timetag",
-  "max_total_cps": 20000000.0,
+  "max_total_cps": 10000000.0,
   "sources": [
-    "F. Izraelevitch (OCA/INPHYNI), email to P. Nugent 2026-11-01: C2PU campaign of 16-20 Nov 2026 with the Delft SNSPDs and the OCA APDs behind a polarizing beam splitter, H-alpha 1 nm: detector efficiency 0.80, jitter 100 ps RMS, single linear polarization"
+    "F. Izraelevitch (OCA/INPHYNI), email to P. Nugent 2026-11-01: C2PU campaign of 16-20 Nov 2026 with the Delft SNSPDs and the OCA APDs behind a polarizing beam splitter, H-alpha 1 nm: detector efficiency 0.80, jitter 100 ps RMS, single linear polarization",
+    "R. Kaiser (INPHYNI), email to P. Nugent 2026-11-06: 'optimistic that the SNSPD can handle 10 Mcps', to be confirmed with Delft"
   ],
   "notes": [
-    "jitter_fwhm_ps 235 = 2.355 x 100 ps RMS (Gaussian). Dead time, dark rate and the maximum count rate are typical SNSPD values, not supplied: ASSUMED."
+    "jitter_fwhm_ps 235 = 2.355 x 100 ps RMS (Gaussian). max_total_cps 1e7 is Kaiser's expectation (2026-11-06), not yet confirmed; it was 2e7 (a typical value) before. Dead time and dark rate are typical SNSPD values, not supplied: ASSUMED."
   ],
   "assumptions": [
     "dead_time_ns",
     "dark_cps_per_pixel",
-    "max_total_cps",
+    "max_total_cps (expected, to be confirmed)",
     "pde flat over 600-700 nm"
   ]
 }

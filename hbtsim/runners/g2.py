@@ -21,7 +21,10 @@ pair (snr.g2_snr with telescope1/telescope2) add in quadrature to one
 night's SNR per pair, then over pairs.  options.one_backend_per_night
 (true: a filter wheel, one filter per night) makes the "filter set" total
 the SUM of the nights of the backends sharing a detector, never a
-quadrature sum.
+quadrature sum.  A single star with a `line_disk` (a Be star's H-alpha
+disk) is photosphere + elliptical Gaussian in the channels that contain
+the line (single.line_disk_vis2: effective |V|^2 and the line's extra
+photons); its "diameter" forecast is then on the disk's FWHM.
 """
 
 from __future__ import annotations
@@ -159,6 +162,30 @@ def _single_vis2_fn(target, pupils):
     return fn
 
 
+def _line_disk_vis2_fn(target, spec, pupils):
+    """pair_track vis2_fn for a SingleStar with an emission-line disk: the
+    effective |V|^2 of photosphere + disk in the channel centred on
+    lambda_nm (hbtsim.single.line_disk_vis2), on the baseline VECTORS (the
+    disk is elliptical)."""
+    from hbtsim.single import line_disk_vis2
+    edges = np.asarray(spec.channel_edges_nm, dtype=float)
+    frame = getattr(spec, "frame", "vacuum")
+
+    def fn(bvecs, lambda_nm, phase, diameters):
+        k = int(np.clip(np.searchsorted(edges, float(lambda_nm)) - 1, 0, edges.size - 2))
+        return line_disk_vis2(target, bvecs, float(edges[k]), float(edges[k + 1]), frame=frame,
+                              pupils=diameters if pupils else None)
+    return fn
+
+
+def _channel_boost(target, spec, lambda_nm) -> float:
+    """Channel flux over the continuum's for a line-disk target (else 1)."""
+    from hbtsim.single import line_flux_boost
+    edges = np.asarray(spec.channel_edges_nm, dtype=float)
+    k = int(np.clip(np.searchsorted(edges, float(lambda_nm)) - 1, 0, edges.size - 2))
+    return line_flux_boost(target, float(edges[k]), float(edges[k + 1]), getattr(spec, "frame", "vacuum"))
+
+
 def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=30.0,
                    phase_spec="max_separation", one_backend_per_night=True, pupils=True,
                    n_sigma=3.0, diameter_precision=0.05):
@@ -186,10 +213,16 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
         # need the constellation too ("gamma Peg" vs "gamma Cas")
         tabled = _tabled_any(system)
         short = system.name.split(" (")[0].strip() if single else system.name.split()[0]
+        disk0 = getattr(system, "line_disk", None) if single else None
         if single:
             phase, period, rho = 0.0, None, float(system.theta_ld_mas)
             print(f"\n  {system.name} [{tabled}]: theta_LD = {rho:.3f} mas (drawn {system.drawn_diameter_mas:.3f}), "
                   f"V = {system.v_mag:.2f}, dec {system.dec_deg:+.1f}")
+            theta_ld = rho
+            if disk0 is not None:
+                print(f"    emission-line disk at {disk0.line_air_nm:.2f} nm (air): EW {10 * disk0.ew_nm:.0f} A, "
+                      f"line FWHM {disk0.line_fwhm_kms:.0f} km/s; Gaussian {disk0.fwhm_major_mas:.2f} mas, "
+                      f"axis ratio {disk0.axis_ratio:.2f}, PA {disk0.pa_deg:.1f} (backends with a channel on the line)")
         else:
             phase = (max_separation_phase(system) if phase_spec in ("max_separation", None)
                      else float(phase_spec))
@@ -197,8 +230,14 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
             period, rho = system.period_days, float(pos.rho)
             print(f"\n  {system.name} [{tabled}]: rho = {rho:.2f} mas at phase {phase:.3f}, "
                   f"dec {system.dec_deg:+.1f}")
-        per_det, per_det_fisher = {}, {}
+        per_det, per_det_fisher, per_det_size = {}, {}, {}
         for label, spec, det, pol in backends:
+            # the line disk only for a backend with a channel on the line; the size parameter of the
+            # Fisher forecast is then the disk's FWHM instead of the photosphere's diameter
+            disk = disk0 if disk0 is not None and max(
+                _channel_boost(system, spec, l) for l in spec.channel_centers_nm) > 1.001 else None
+            if single:
+                rho = float(disk.fwhm_major_mas) if disk is not None else theta_ld
             arr = Array(tuple(replace(s, detector=det) for s in array.stations), array.site)
             n_streams = polarization_streams(pol)[0]
             nm, widths = spec.channel_centers_nm, spec.channel_widths_nm
@@ -215,13 +254,21 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
             if single:
                 from hbtsim.runners.schedule import with_ld_offset
                 tgt = prepare_single(system, spec)
-                vis_fn = _single_vis2_fn(tgt, pupils)
-                dth = 0.01 * tgt.theta_ld_mas
-                vis_fn_up = _single_vis2_fn(replace(tgt, theta_ld_mas=tgt.theta_ld_mas + dth), pupils)
-                vis_fn_dn = _single_vis2_fn(replace(tgt, theta_ld_mas=tgt.theta_ld_mas - dth), pupils)
-                t_up, t_dn = with_ld_offset(tgt, du), with_ld_offset(tgt, -du)
-                vis_fn_u_up = _single_vis2_fn(t_up, pupils) if t_up is not None else None
-                vis_fn_u_dn = _single_vis2_fn(t_dn, pupils) if t_dn is not None else None
+                if disk is not None:
+                    # photosphere + emission-line disk; the derivative is on the disk's FWHM
+                    vis_fn = _line_disk_vis2_fn(tgt, spec, pupils)
+                    dth = 0.01 * disk.fwhm_major_mas
+                    vis_fn_up = _line_disk_vis2_fn(replace(tgt, line_disk=replace(disk, fwhm_major_mas=disk.fwhm_major_mas + dth)), spec, pupils)
+                    vis_fn_dn = _line_disk_vis2_fn(replace(tgt, line_disk=replace(disk, fwhm_major_mas=disk.fwhm_major_mas - dth)), spec, pupils)
+                    vis_fn_u_up = vis_fn_u_dn = None
+                else:
+                    vis_fn = _single_vis2_fn(tgt, pupils)
+                    dth = 0.01 * tgt.theta_ld_mas
+                    vis_fn_up = _single_vis2_fn(replace(tgt, theta_ld_mas=tgt.theta_ld_mas + dth), pupils)
+                    vis_fn_dn = _single_vis2_fn(replace(tgt, theta_ld_mas=tgt.theta_ld_mas - dth), pupils)
+                    t_up, t_dn = with_ld_offset(tgt, du), with_ld_offset(tgt, -du)
+                    vis_fn_u_up = _single_vis2_fn(t_up, pupils) if t_up is not None else None
+                    vis_fn_u_dn = _single_vis2_fn(t_dn, pupils) if t_dn is not None else None
             else:
                 tgt, vis_fn = system, binary_vis2_fn(system, pupils)
             for lam, w in zip(nm, widths):
@@ -243,6 +290,8 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
                     continue
                 n_blocks, hours = tr.hour_angle_h.size, tr.hour_angle_h.size * tr.block_s / 3600.0
                 mag = float(tgt.ab_mag(float(lam))) if single else float(system_ab_mag(system, float(lam)))
+                if disk is not None:
+                    mag -= 2.5 * np.log10(_channel_boost(tgt, spec, lam))      # the line's photons
                 obs = Observation(wavelength_nm=float(lam), filter_width_nm=float(w), t_int_s=tr.block_s,
                                   polarization_mode=pol, backend_throughput=spec.throughput)
                 for p, (i, j, _) in enumerate(pairs):
@@ -281,12 +330,14 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
             if single:
                 f_tot = float(fisher.sum())
                 sig_theta = 1.0 / np.sqrt(f_tot) if f_tot > 0 else np.inf        # one night
-                nights_theta = (sig_theta / (diameter_precision * tgt.theta_ld_mas)) ** 2
+                nights_theta = (sig_theta / (diameter_precision * rho)) ** 2
                 per_det_fisher.setdefault(det.name, []).append(f_tot)
+                per_det_size[det.name] = rho
             print(f"    {label:40s} {n_blocks} x {block_minutes:g} min ({hours:.1f} h): "
                   f"SNR2/night = {snr_night:.3g}; nights to {n_sigma:g} sigma on |V|^2: "
                   f"{nights:.3g}; |V|^2 {v2min.min():.3g}-{v2max.max():.3g}; "
-                  + (f"nights to {100 * diameter_precision:g} % on theta: {nights_theta:.3g}; " if single else "")
+                  + (f"nights to {100 * diameter_precision:g} % on {'the disk FWHM' if disk is not None else 'theta'}: "
+                     f"{nights_theta:.3g}; " if single else "")
                   + f"rate {rate.max():.2e} cps/tel{' READOUT-LIMITED x%.1e' % scale_min if scale_min < 1 else ''}, "
                   f"dead-time load {load_max:.2f}")
             for p, (i, j, _) in enumerate(pairs):
@@ -306,6 +357,7 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
                              "rate_cps": float(rate[p]), "readout_limited": scale_min < 1.0,
                              "readout_scale": float(scale_min), "dead_time_load": float(load_max),
                              "phase": float(phase), "rho_mas": rho, "single": single,
+                             "size_parameter": (None if not single else "disk_fwhm" if disk is not None else "theta_ld"),
                              "v_mag": float(system.v_mag) if single else None,
                              "snr2_night": float(snr2[p]),
                              "fisher_theta": float(fisher[p]) if single else None,
@@ -324,7 +376,7 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
                     f_set = sum(per_det_fisher[dname])
                     k = len(per_det_fisher[dname])
                     sig_set = 1.0 / np.sqrt(f_set / k) if f_set > 0 else np.inf   # per night of the rotation
-                    entry["diameter"] = None if not np.isfinite(sig_set) else float((sig_set / (diameter_precision * system.theta_ld_mas)) ** 2)
+                    entry["diameter"] = None if not np.isfinite(sig_set) else float((sig_set / (diameter_precision * per_det_size[dname])) ** 2)
                 set_nights[short][dname] = entry
                 rule = "one filter per night: nights ADD" if one_backend_per_night else "simultaneous: quadrature"
                 print(f"    filter set on {dname}: {tot:.3g} nights to {n_sigma:g} sigma ({rule})"
@@ -447,6 +499,7 @@ def run_schedule(campaign, cat, opts, out_dir: Path, backends) -> dict:
         key = (r["target"], r["detector"])
         c = combined.setdefault(key, dict(target=r["target"], detector=r["detector"], single=r["single"],
                                           theta_mas=r["rho_mas"] if r["single"] else None, u_linear=r.get("u_linear"),
+                                          size_parameter=r.get("size_parameter"),
                                           snr2=0.0, F=np.zeros((2, 2)), nights=0.0, n_configs=0, backends=set()))
         n = r["nights"]
         c["snr2"] += n * r["snr_night"] ** 2
@@ -467,7 +520,8 @@ def run_schedule(campaign, cat, opts, out_dir: Path, backends) -> dict:
         nights_det = (n_sigma / snr) ** 2 * c["nights"] if snr > 0 else None
         rec = dict(target=c["target"], detector=c["detector"], single=c["single"], total_nights=c["nights"],
                    n_configs=c["n_configs"], snr_total=snr, nights_detection=nights_det,
-                   sigma_theta_frac=None, sigma_theta_frac_joint=None, sigma_u=None, u_linear=c["u_linear"])
+                   sigma_theta_frac=None, sigma_theta_frac_joint=None, sigma_u=None, u_linear=c["u_linear"],
+                   size_parameter=c["size_parameter"])
         if c["single"]:
             F = c["F"]; th = c["theta_mas"]
             if F[0, 0] > 0:
@@ -480,7 +534,9 @@ def run_schedule(campaign, cat, opts, out_dir: Path, backends) -> dict:
         fmt = lambda x, f=".3g": "inf" if x is None else format(x, f)
         print(f"  {c['target']:14s} {c['detector'][:40]:40s} {c['nights']:5.0f} nights over {c['n_configs']} configurations: "
               f"S/N {snr:.3g} ({fmt(nights_det)} nights to {n_sigma:g} sigma)"
-              + (f"; sigma(theta)/theta {fmt(rec['sigma_theta_frac'], '.2%')} (theta alone), "
+              + (f"; sigma(FWHM)/FWHM of the emission-line disk {fmt(rec['sigma_theta_frac'], '.2%')}"
+                 if c["size_parameter"] == "disk_fwhm" else
+                 f"; sigma(theta)/theta {fmt(rec['sigma_theta_frac'], '.2%')} (theta alone), "
                  f"{fmt(rec['sigma_theta_frac_joint'], '.2%')} jointly with u, sigma(u) {fmt(rec['sigma_u'])} (u = {fmt(c['u_linear'], '.2f')})"
                  if c["single"] else ""))
         table.append([c["target"], c["detector"], f"{c['nights']:.0f}", f"{c['n_configs']}", f"{snr:.3g}", fmt(nights_det),

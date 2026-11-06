@@ -258,7 +258,7 @@ def build_target(cat, d: dict):
                                          "semimajor_au", "eccentricity", "arg_periastron_deg",
                                          "node_pa_deg", "dec_deg", "ra_hours", "doppler", "a_v")))
     if t == "single":
-        from ..single import Ellipse, SingleStar
+        from ..single import Ellipse, LineDisk, SingleStar
         theta, dist = d["theta_ld_mas"], d["distance_pc"]
         radius_rsun = 0.5 * theta * MAS * dist * PARSEC / R_SUN
         ellipse = None
@@ -270,6 +270,9 @@ def build_target(cat, d: dict):
                           theta_ld_mas=theta, v_mag=d["v_mag"], dec_deg=d["dec_deg"],
                           ra_hours=d["ra_hours"], distance_pc=dist, mag_anchors=anchors,
                           ellipse=ellipse,
+                          line_disk=(LineDisk(**_given(d["line_disk"], ("line_air_nm", "ew_nm", "line_fwhm_kms",
+                                                                         "fwhm_major_mas", "axis_ratio", "pa_deg")))
+                                     if d.get("line_disk") is not None else None),
                           theta_factor_nm=_pairs(d["chromatic_diameter"]) if d.get("chromatic_diameter") else ())
     return DiskTarget(label, **_given(d, ("theta_mas", "mag_ab", "dec_deg", "ld_u", "ra_hours")))
 
