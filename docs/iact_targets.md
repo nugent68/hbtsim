@@ -201,6 +201,38 @@ Not in the catalog: CTAO-South (14 MSTs + 37 SSTs, Paranal), the SSTs' optical d
 the NectarCAM 1 ON + 5 OFF pixel scheme, the 0.7 ns dish-shape spread of the MSTs, and the
 Stage II corrective optics' throughput.
 
+## Cross-check against the MAGIC group's own sensitivity plot (`scripts/magic_fig13_crosscheck.py`)
+
+Fig. 13 of Abe et al. 2024 (MNRAS 529, 4387; the plot T. Hassan circulated with the cycle-21
+proposal templates, `sensitivity_simulation-1.pdf`) gives Δθ_UD/θ_UD after 2.5 h as a function
+of B magnitude for MAGIC-I + II, MAGIC + LST-1 and MAGIC + four LSTs, in dark time (dashed
+lines) and under a full Moon (points, "conservative very-high NSB"), for a star with the position
+and diameter of γ CrV (θ_UD 0.72 mas, δ = −17.5°). The script rebuilds it from the catalog
+arrays (`magic_lst1`, `magic_lst4`; MAGIC alone is the first two stations), the pupil-averaged
+uniform-disk |V|², the group's analog S/N (their Eq. 6, `magic_sii`) and a Fisher matrix on
+(θ, N0), with the 2.5 h slot centred on the meridian.
+
+![Fig. 13 cross-check](figures/magic_fig13_crosscheck.png)
+
+| array | their dark line | hbtsim, N0 free | hbtsim, N0 fixed |
+|---|---|---|---|
+| MAGIC (B = 0.75) | 0.0085 | 0.0123 (1.45×) | 0.0027 (0.32×) |
+| MAGIC + LST-1 (B = 0.75) | 0.0025 | 0.0017 (0.69×) | 0.0011 (0.43×) |
+| MAGIC + 4 LSTs (B = 2.25) | 0.0031 | 0.0025 (0.80×) | 0.0012 (0.40×) |
+
+Their curves lie inside the (N0 fixed, N0 free) band for all three arrays. With N0 free, which is
+how the group fits (|V|² = N0 V²(θ)), hbtsim is 20–30 % more optimistic for the LST arrays and
+45 % more pessimistic for MAGIC alone. The MAGIC-alone number is set by how much the single
+85 m baseline changes during the slot (0.012 at the meridian, 0.040 in a slot 2.5–5 h from it),
+so the disagreement there is about the slot, not the sensitivity. The S/N normalisation itself
+follows from their constants: an unresolved B = 3 star gives S/N 10.7 in 4.5 min and B = 4 gives
+10.6 in 28 min, the two statements of the paper's section 1 against each other.
+
+Their Moon points leave their dark lines only at B ≳ 4.5; a background-to-starlight ratio
+β = 10^(−0.4 (B_sky − B)) with B_sky = 6.4 per 0.1° pixel (≈ 18.5 mag arcsec⁻²) reproduces that,
+and the Moon/dark ratios then track theirs at every magnitude. Assumed by us, not published:
+B_sky, m_AB(425) = B − 0.12, and the meridian-centred slot.
+
 ## Assumptions to confirm with the groups
 
 VERITAS mirror area and effective q; MAGIC's positions relative to LST-1 (software constants);
