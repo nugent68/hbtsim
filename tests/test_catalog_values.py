@@ -119,12 +119,15 @@ def test_lpqi_pathfinder():
     (_, _, b), = pf.pairs()
     assert np.hypot(*b) == pytest.approx(531.8, abs=0.1)                # surveyed NOT-TNG baseline (project quotes 550 m)
     assert np.degrees(np.arctan2(b[0], b[1])) % 360 == pytest.approx(226.7, abs=0.1)
-    assert (pf.stations[0].telescope.diameter_m, pf.stations[1].telescope.diameter_m) == (2.56, 3.58)
+    # Zemax clear apertures and central obscurations (R. Content, 2026-11-09): NOT 2495 / 340 mm, TNG 3500 / 800 mm
+    assert (pf.stations[0].telescope.diameter_m, pf.stations[1].telescope.diameter_m) == (2.495, 3.5)
+    assert pf.stations[0].telescope.area_m2 == pytest.approx(np.pi / 4 * (2.495**2 - 0.34**2), rel=1e-4)
+    assert pf.stations[1].telescope.area_m2 == pytest.approx(np.pi / 4 * (3.5**2 - 0.8**2), rel=1e-4)
     assert pf.site.latitude_deg == pytest.approx(28.75728)
     orm = cat.load_array("lpqi_orm")
     lengths = sorted(float(np.hypot(*b)) for _, _, b in orm.pairs())
     assert lengths[0] == pytest.approx(409, abs=2) and lengths[-1] == pytest.approx(1518, abs=5)   # TNG-GTC, GTC-INT
-    assert {s.telescope.diameter_m for s in orm.stations} == {2.56, 3.58, 10.4, 4.2, 2.54}
+    assert {s.telescope.diameter_m for s in orm.stations} == {2.495, 3.5, 10.4, 4.2, 2.54}
     d = cat.load_detector("lpqi_spad64_i2cass")
     assert d.pde(550.0) == pytest.approx(0.026) and d.jitter_fwhm_ps == 500.0 and d.n_pixels == 25
     assert d.max_total_cps == 6.7e6 and d.readout == "timetag"

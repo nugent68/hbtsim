@@ -3,8 +3,11 @@
 The La Palma Quantum Interferometer (LPQI; [lapalmaqi.es](https://lapalmaqi.es),
 IAA-CSIC / IAC, PI F. Prada) is a photon-counting intensity interferometer at
 the Roque de los Muchachos Observatory. Its first phase, the **LPQI-Pathfinder**,
-correlates photon detections between the Nordic Optical Telescope (2.56 m) and
-the Telescopio Nazionale Galileo (3.58 m) "550 metres apart", with 64×64 SPAD
+correlates photon detections between the Nordic Optical Telescope (2.56 m
+primary, 2.495 m clear aperture with a 0.34 m obscuration) and the Telescopio
+Nazionale Galileo (3.58 m primary, 3.50 m clear aperture with a 0.80 m
+obscuration; both from R. Content's Zemax models, 2026-11-09) "550 metres
+apart", with 64×64 SPAD
 cameras at the telescope foci, fibre-linked White Rabbit time stamps and
 narrow-band filters; the planned extension adds GTC (10.4 m), WHT (4.2 m) and
 INT (2.54 m) for baselines to 1.5 km ("50 µas"). First science is announced for
@@ -64,8 +67,8 @@ prints the provenance).
 |  | value | source / status |
 |---|---|---|
 | site | Roque de los Muchachos, Nordic Optical Telescope (LPQI reference point): 28.7573°, -17.8851°, 2382 m | Wikipedia (NOT infobox) |
-| Pathfinder pair | NOT 2.56 m + TNG 3.58 m, B = 532 m at PA 227° | surveyed positions (NOT GPS; TNG geodetic survey, ~5 m); the project quotes 550 m |
-| five-telescope network | NOT 2.56 m, TNG 3.58 m, GTC 10.4 m, WHT 4.2 m, INT 2.54 m; baselines 409–1518 m | NOT, WHT, INT GPS pages; TNG survey; GTC web page (arc-second) |
+| Pathfinder pair | NOT 2.495 m + TNG 3.5 m, B = 532 m at PA 227° | surveyed positions (NOT GPS; TNG geodetic survey, ~5 m); the project quotes 550 m |
+| five-telescope network | NOT 2.495 m, TNG 3.5 m, GTC 10.4 m, WHT 4.2 m, INT 2.54 m; baselines 409–1518 m | NOT, WHT, INT GPS pages; TNG survey; GTC web page (arc-second) |
 | telescope throughput | 0.3, 0.3 | hbtsim default (**assumed**) |
 | detector (final LPQI: lensed IMSE-LPQI 64×64 + R = 10 000 spectrograph) | PDE 0.50 at 400–550 nm, 0.20 at 650 nm, 0.025 at 950 nm (microlenses); 10 ps FWHM, 4 pixels per channel, dead 10 ns, dark 1.68 cps/pixel, ≤ 6.7e+06 cps per pixel | F. Prada 2026-10-07 / 2026-10-09; PDE curve beyond 650 nm **assumed** |
 | detector (Pathfinder primary: MPD single pixel) | PDE 0.30 flat 400–700 nm, 35 ps FWHM (275 ps below 470 nm), dead 55 ns, dark 50 cps, 1 pixel, max detection rate 1e+07 cps | F. Prada 2026-10-07 and 2026-10-09 (12e6 cps, primary detector); flat PDE **assumed** |

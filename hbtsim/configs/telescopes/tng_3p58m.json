@@ -2,13 +2,16 @@
   "schema_version": 1,
   "kind": "telescope",
   "name": "tng_3p58m",
-  "label": "Telescopio Nazionale Galileo 3.58 m",
-  "diameter_m": 3.58,
+  "label": "Telescopio Nazionale Galileo 3.50 m clear aperture",
+  "diameter_m": 3.50,
+  "collecting_area_m2": 9.1185,
   "throughput": 0.3,
   "sources": [
-    "IAC / TNG: 3.58 m Ritchey-Chretien, alt-azimuth, Nasmyth focal length 38.5 m (f/10.75); position: Caporali & Barbieri geodetic GPS survey (28 45 14.4 N, 342 06 39.4 E, 1996-11-22, ~5 m)"
+    "R. Content (LPQI-Pathfinder camera design, Zemax model of the telescope, e-mail 2026-11-09): clear aperture 3500 mm, central obscuration 800 mm.",
+    "IAC / TNG: 3.58 m Ritchey-Chretien primary, alt-azimuth, Nasmyth focal length 38.5 m (f/10.75); position: Caporali & Barbieri geodetic GPS survey (28 45 14.4 N, 342 06 39.4 E, 1996-11-22, ~5 m)"
   ],
   "notes": [
+    "The name keeps the nominal 3.58 m primary; diameter_m is the 3.50 m clear aperture of the Zemax model (the pupil that smears fringes and bounds in-aperture mask baselines), and collecting_area_m2 = pi/4 (3.50^2 - 0.80^2) = 9.12 m^2 removes the 0.80 m central obscuration (an unobstructed 3.58 m disk would be 10.07 m^2).",
     "Throughput 0.3 (atmosphere + telescope optics to the camera, excl. filter and PDE) is the hbtsim default, not an LPQI number; Prada et al. 2026 (ELTI) adopt an overall instrumental efficiency of 0.5 for a SPAD camera at the focus.",
     "Plate scale 0.13 arcsec per 24.5 um pixel at the Nasmyth focus."
   ],

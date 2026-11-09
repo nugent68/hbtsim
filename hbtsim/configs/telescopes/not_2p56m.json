@@ -2,13 +2,16 @@
   "schema_version": 1,
   "kind": "telescope",
   "name": "not_2p56m",
-  "label": "Nordic Optical Telescope 2.56 m",
-  "diameter_m": 2.56,
+  "label": "Nordic Optical Telescope 2.495 m clear aperture",
+  "diameter_m": 2.495,
+  "collecting_area_m2": 4.7983,
   "throughput": 0.3,
   "sources": [
+    "R. Content (LPQI-Pathfinder camera design, Zemax model of the telescope, e-mail 2026-11-09): clear aperture 2495 mm, central obscuration 340 mm.",
     "NOT technical details (not.iac.es/telescope/tti/technical-details.html): primary 2560 mm Zerodur f/2, (Super) Ritchey-Chretien, system focal length 28160 mm (f/11), focal-plane scale 7.33 arcsec/mm, altitude-azimuth mount, 30 arcmin field; GPS position 28 45 26.2 N, 17 53 06.3 W, 2382 m"
   ],
   "notes": [
+    "The name keeps the nominal 2.56 m primary; diameter_m is the 2.495 m clear aperture of the Zemax model (the pupil that smears fringes and bounds in-aperture mask baselines), and collecting_area_m2 = pi/4 (2.495^2 - 0.34^2) = 4.80 m^2 removes the 0.34 m central obscuration (an unobstructed 2.56 m disk would be 5.15 m^2).",
     "Throughput 0.3 (atmosphere + telescope optics to the camera, excl. filter and PDE) is the hbtsim default, not an LPQI number; Prada et al. 2026 (ELTI) adopt an overall instrumental efficiency of 0.5 for a SPAD camera at the focus.",
     "Plate scale 0.18 arcsec per 24.5 um pixel at the f/11 focus (the Sensors paper's figure follows from the 28.16 m focal length)."
   ],

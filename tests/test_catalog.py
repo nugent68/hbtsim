@@ -276,7 +276,8 @@ def test_pair_generator_with_two_telescopes(tmp_path):
     # telescope2 may also be given as an object
     keck = cat.load_telescope("keck_10m")
     arr2 = cat.load_array("lpqi_pathfinder", telescope2=keck)
-    assert arr2.stations[1].telescope == keck and arr2.stations[0].telescope.diameter_m == 2.56
+    assert arr2.stations[1].telescope == keck
+    assert arr2.stations[0].telescope.diameter_m == cat.load_telescope("not_2p56m").diameter_m == 2.495
     from hbtsim.montecarlo import MCConfig
     cfg = MCConfig.from_target(cat.load_target("sirius_b"), cat.load_array("lpqi_pathfinder"),
                                cat.load_spectrograph("filter_lpqi_500_1nm"))
