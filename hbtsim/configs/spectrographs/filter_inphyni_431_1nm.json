@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "filter_inphyni_431_1nm",
+  "label": "INPHYNI 1 nm filter, 431 nm continuum",
+  "lambda_min_nm": 430.5,
+  "lambda_max_nm": 431.5,
+  "n_channels": 1,
+  "throughput": 0.9,
+  "sources": [
+    "R. Kaiser (INPHYNI), email to P. Nugent 2026-11-09 ('Targets La Palma'): 1 nm filter at 417 nm (or 431 nm)"
+  ],
+  "notes": [
+    "A 1 nm top hat at 431 nm; the filter and relay throughput 0.9 is the LPQI filters' value, not supplied: ASSUMED. The polarizing beam splitter is carried by the backend's polarization_mode pbs."
+  ],
+  "assumptions": [
+    "throughput",
+    "lambda_min_nm / lambda_max_nm (top hat)"
+  ]
+}

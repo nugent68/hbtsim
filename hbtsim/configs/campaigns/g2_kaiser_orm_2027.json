@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g2_kaiser_orm_2027",
+  "label": "R. Kaiser's O/B dwarfs (lambda Ori A, upsilon Ori, 10 Lac, lambda Lep) on every pair of the five ORM telescopes with the INPHYNI 417/431 nm two-polarization camera: one night per pair",
+  "runner": "g2",
+  "targets": [
+    "lamori_a",
+    "ups_ori",
+    "lac10",
+    "lam_lep"
+  ],
+  "instrument": {
+    "array": "lpqi_orm"
+  },
+  "backends": [
+    "inphyni_417_pbs",
+    "inphyni_431_pbs"
+  ],
+  "night": {
+    "block_minutes": 30.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": false
+  },
+  "options": {
+    "one_backend_per_night": true,
+    "detection_sigma": 3.0,
+    "diameter_precision": 0.05
+  },
+  "outputs": {
+    "latex": false
+  },
+  "notes": [
+    "R. Kaiser (2026-11-09): 2-3 cameras to install on ORM telescopes in spring/summer 2027; which 2 or 3 telescopes? The run gives every one of the 10 pairs of NOT, TNG, GTC, WHT, INT per night; scripts/kaiser_orm_combos.py ranks the pairs and triples from the per-pair rows.",
+    "The four stars are 0.12-0.24 mas: first nulls at 417 nm from 440 m (lambda Ori A) to 840 m (10 Lac), i.e. the 400-1500 m ORM baselines resolve them where CHARA (331 m) only grazes the main lobe.",
+    "All five ORM telescopes carry the catalog's ASSUMED optical throughput 0.3."
+  ]
+}

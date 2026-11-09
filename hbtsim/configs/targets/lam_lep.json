@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "lam_lep",
+  "label": "lambda Lep (B0.5 V)",
+  "type": "single",
+  "star": {
+    "label": "lambda Lep",
+    "mass_msun": 15.0,
+    "teff_k": 30400.0,
+    "ld_table": "claret11_spica",
+    "logg": 4.3
+  },
+  "theta_ld_mas": 0.161,
+  "v_mag": 4.29,
+  "dec_deg": -13.177,
+  "ra_hours": 5.3263,
+  "distance_pc": 260.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 4.29
+    }
+  ],
+  "sources": [
+    "Wikipedia infobox (read 2026-11-09) and the papers it cites: V 4.286, B-V -0.273, B0.5 V, T_eff 30400 K, R 4.5 Rsun, M 15.0 Msun, log g 4.30, v sin i 30 km/s, parallax 3.83 +/- 0.24 mas (260 +/- 20 pc)",
+    "R. Kaiser (INPHYNI), email to P. Nugent 2026-11-09 ('Targets La Palma'): requested target"
+  ],
+  "notes": [
+    "theta_LD = 2R/d = 0.161 mas from the quoted radius and distance; no interferometric diameter exists. First null 1.22 lambda/theta = 652 m at 417 nm.",
+    "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
+    "Single; dec -13 culminates at 48 deg from La Palma."
+  ],
+  "assumptions": [
+    "theta_ld_mas (2R/d, no measurement; the 6 % parallax error alone)",
+    "star.ld_table"
+  ],
+  "summary": {
+    "short": "λ Lep",
+    "components": "B0.5 V dwarf"
+  }
+}

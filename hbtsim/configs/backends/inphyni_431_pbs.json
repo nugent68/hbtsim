@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "inphyni_431_pbs",
+  "label": "INPHYNI 431/1 nm, two polarization channels per telescope",
+  "model": "counting",
+  "spectrograph": "filter_inphyni_431_1nm",
+  "detector": "inphyni_lapalma",
+  "polarization_mode": "pbs",
+  "notes": [
+    "R. Kaiser's 2027 La Palma instrument: a polarizing beam splitter feeds two detectors per telescope; the two stream correlations add in quadrature (sqrt 2 over unpolarized detection)."
+  ]
+}

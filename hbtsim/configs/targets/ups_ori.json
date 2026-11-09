@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "kind": "target",
+  "name": "ups_ori",
+  "label": "upsilon Ori (Thabit, O9.7 V)",
+  "type": "single",
+  "star": {
+    "label": "upsilon Ori",
+    "mass_msun": 17.5,
+    "teff_k": 33400.0,
+    "ld_table": "claret11_spica",
+    "logg": 4.2
+  },
+  "theta_ld_mas": 0.133,
+  "v_mag": 4.62,
+  "dec_deg": -7.302,
+  "ra_hours": 5.5322,
+  "distance_pc": 386.0,
+  "mag_anchors": [
+    {
+      "band": "V",
+      "mag_vega": 4.62
+    }
+  ],
+  "sources": [
+    "Wikipedia infobox (read 2026-11-09) and the papers it cites: V 4.618, B-V -0.264, O9.7 V, T_eff 33400 K, R 5.5 Rsun, M 17.5 Msun, log g 4.20, v sin i 20 km/s, Gaia parallax 2.457 +/- 0.140 mas (386 +/- 23 pc)",
+    "R. Kaiser (INPHYNI), email to P. Nugent 2026-11-09 ('Targets La Palma'): requested target"
+  ],
+  "notes": [
+    "theta_LD = 2R/d = 0.133 mas from the quoted radius and distance; no interferometric diameter exists. First null 1.22 lambda/theta = 790 m at 417 nm.",
+    "Claret & Bloemen 2011 linear law of Spica (hot B star) as the limb-darkening fallback; NewEra does not cover T_eff > 12 000 K.",
+    "Suspected beta Cep / slowly pulsating B star (no amplitude given); single."
+  ],
+  "assumptions": [
+    "theta_ld_mas (2R/d, no measurement; the 6 % parallax error alone)",
+    "star.ld_table"
+  ],
+  "summary": {
+    "short": "υ Ori",
+    "components": "O9.7 V dwarf"
+  }
+}
