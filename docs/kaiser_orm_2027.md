@@ -126,3 +126,49 @@ interferometric measurement; the 5 % forecast is on whatever the true value is).
 - Hours of on-target time to a 10 % diameter (what Robin was sent): NOT+TNG+GTC 1.7 / 3.7 / 4.3 /
   2.6 h for λ Ori A / υ Ori / 10 Lac / λ Lep; TNG+GTC 1.9 / 5.6 / 6.3 / 3.0; NOT+WHT+INT 15 / 20 /
   32 / 12; WHT+INT 18 / 45 / 77 / 23.
+
+## Conventions adopted on 2026-11-10 (W. Guerin's reply)
+
+- **S/N estimator.** `options.snr_efficiency` 0.83 in the campaign: the three-parameter fit of the
+  bunching peak (Guerin et al. 2025, Eq. 29, prefactor 0.44) instead of the matched-filter
+  one-parameter fit (Eq. 9, 0.53). `Observation.snr_efficiency` (default 1) multiplies the S/N.
+- **Pair jitter.** Robin's 35 ps rms is the bunching peak itself (the whole pair), so
+  `inphyni_lapalma` now carries 58.3 ps FWHM per detector (24.7 ps rms, pair 35 ps) instead of
+  82.4 ps (pair 49.5 ps): S/N × 1.19.
+- Net effect on the table above: × 1.03 in nights (0.83 × 1.19 = 0.99 in S/N). Run
+  `g2_kaiser_orm_2027_guerin`: NOT+TNG+GTC 0.88 / 2.3 / 1.8 / 1.8 nights to 5 % (sum 6.8),
+  TNG+GTC 0.95 / 3.5 / 2.6 / 2.1 (9.1); hours to 10 %: NOT+TNG+GTC 1.8 / 3.8 / 4.4 / 2.7 h,
+  TNG+GTC 1.9 / 5.7 / 6.5 / 3.1 h.
+
+## The diameters against Swihart et al. 2017 (AJ 153, 16; sedFit SED-template diameters)
+
+| star | hbtsim θ_LD (source) | Swihart θ (mas) | interferometric |
+|---|---|---|---|
+| λ Ori A | 0.238 (2R/d) | 0.107 ± 0.022 (O7V template, V 3.54: the A+B blend) | CHARA/PAVO 0.226 ± 0.015 (Gordon et al. 2018) |
+| υ Ori | 0.133 (2R/d) | 0.129 ± 0.023 | none |
+| 10 Lac | 0.125 (2R/d) | 0.080 ± 0.014 (A_V 0.39) | CHARA/PAVO 0.11 ± 0.02 (Gordon et al. 2018) |
+| λ Lep | 0.161 (2R/d) | 0.153 ± 0.027 | none |
+
+υ Ori and λ Lep agree; 10 Lac is 0.080 (Swihart) / 0.11 (CHARA) / 0.125 (2R/d); Swihart's λ Ori
+is half the CHARA value (SED diameters of O stars hinge on a 3 mag bolometric correction and
+A_V). First nulls at 417 nm: λ Ori A 441–464 m (so the TNG–GTC pair, 270–420 m, reaches it;
+Swihart's value would put it at 980 m), λ Lep 652–690 m, υ Ori 790–815 m, 10 Lac 840 (0.125) /
+955 (0.11) / 1310 m (0.080). Only λ Ori A crosses its null on TNG–GTC; the other three are on
+the first lobe, |V|² 0.2–0.8 with the 2R/d diameters, 0.6–0.8 with Swihart's 10 Lac. The claim
+that stands is resolution: λ/B = 0.20 mas for TNG–GTC at 417 nm / 420 m against 0.44 mas for
+CHARA/PAVO (331 m, ~700 nm) and 2.5–3.5 mas for the VLTI (130 m, 1.6–2.2 µm); CHARA's smallest
+measured diameter is 10 Lac at 18 %.
+
+**10 Lac sensitivity** (runs `g2_kaiser_orm_2027_lac10_0.080` / `_0.110`, scratch target
+overrides, Guerin conventions), nights to 5 % on θ at 431 nm:
+
+| θ (mas) | NOT+TNG+GTC | TNG+GTC | best triple | detection (3σ) |
+|---|---|---|---|---|
+| 0.125 | 1.8 | 2.6 | NOT+TNG+GTC 1.8 | 0.14 nights |
+| 0.110 | 1.9 | 3.2 | NOT+TNG+GTC 1.9 | 0.09 |
+| 0.080 | 3.0 | 7.1 | NOT+GTC+WHT 1.9, TNG+GTC+WHT 2.0 | 0.05 |
+
+A smaller 10 Lac is detected faster (more light survives at 320–420 m) but measured more slowly,
+and at 0.08 mas the GTC–WHT baseline (550–1100 m) is the one on the steep part of the curve, so
+the WHT becomes the better third telescope for that star. NOT+TNG+GTC remains the best set over
+the four stars for any of the three values (sum 6.8 nights at 0.125, 7.9 at 0.080).

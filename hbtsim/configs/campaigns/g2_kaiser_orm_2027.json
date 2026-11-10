@@ -27,7 +27,8 @@
   "options": {
     "one_backend_per_night": true,
     "detection_sigma": 3.0,
-    "diameter_precision": 0.05
+    "diameter_precision": 0.05,
+    "snr_efficiency": 0.83
   },
   "outputs": {
     "latex": false
@@ -35,6 +36,7 @@
   "notes": [
     "R. Kaiser (2026-11-09): 2-3 cameras to install on ORM telescopes in spring/summer 2027; which 2 or 3 telescopes? The run gives every one of the 10 pairs of NOT, TNG, GTC, WHT, INT per night; scripts/kaiser_orm_combos.py ranks the pairs and triples from the per-pair rows.",
     "The four stars are 0.12-0.24 mas: first nulls at 417 nm from 440 m (lambda Ori A) to 840 m (10 Lac), i.e. the 400-1500 m ORM baselines resolve them where CHARA (331 m) only grazes the main lobe.",
-    "All five ORM telescopes carry the catalog's ASSUMED optical throughput 0.3."
+    "All five ORM telescopes carry the catalog's ASSUMED optical throughput 0.3.",
+    "options.snr_efficiency 0.83: the three-parameter (amplitude, width, centre) fit of the bunching peak that Guerin et al. 2025 (arXiv:2503.22446, Eq. 29, prefactor 0.44) recommend over the matched-filter one-parameter fit (their Eq. 9, prefactor 0.53 = 1/sqrt(2 sqrt(pi))); adopted at W. Guerin's request, e-mail 2026-11-10. The same e-mail set the INPHYNI pair jitter to 35 ps rms."
   ]
 }

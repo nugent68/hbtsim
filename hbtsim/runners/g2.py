@@ -188,7 +188,7 @@ def _channel_boost(target, spec, lambda_nm) -> float:
 
 def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=30.0,
                    phase_spec="max_separation", one_backend_per_night=True, pupils=True,
-                   n_sigma=3.0, diameter_precision=0.05):
+                   n_sigma=3.0, diameter_precision=0.05, snr_efficiency=1.0):
     """One night of every (target, backend) on the array's station pairs.
     Targets may be binaries (BinarySystem: fringes of the two disks along
     the track) or single stars (SingleStar: the limb-darkened disk; the row
@@ -293,7 +293,8 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
                 if disk is not None:
                     mag -= 2.5 * np.log10(_channel_boost(tgt, spec, lam))      # the line's photons
                 obs = Observation(wavelength_nm=float(lam), filter_width_nm=float(w), t_int_s=tr.block_s,
-                                  polarization_mode=pol, backend_throughput=spec.throughput)
+                                  polarization_mode=pol, backend_throughput=spec.throughput,
+                                  snr_efficiency=snr_efficiency)
                 for p, (i, j, _) in enumerate(pairs):
                     t1, t2 = arr.stations[i].telescope, arr.stations[j].telescope
                     r1 = float(incident_rate(mag, t1, det, obs)) * n_streams
@@ -416,7 +417,8 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
             phase_spec=campaign.option("options.phase", "max_separation"),
             one_backend_per_night=bool(campaign.option("options.one_backend_per_night", True)),
             n_sigma=float(campaign.option("options.detection_sigma", 3.0)),
-            diameter_precision=float(campaign.option("options.diameter_precision", 0.05)))
+            diameter_precision=float(campaign.option("options.diameter_precision", 0.05)),
+            snr_efficiency=float(campaign.option("options.snr_efficiency", 1.0)))
         any_single = any(r["single"] for r in rows)
         def _f(x, fmt=".3g"):
             return "inf" if x is None else format(x, fmt)
@@ -482,7 +484,8 @@ def run_schedule(campaign, cat, opts, out_dir: Path, backends) -> dict:
     kw = dict(block_minutes=float(campaign.option("night.block_minutes", 30.0)),
               min_alt_deg=float(campaign.option("night.min_alt_deg", 30.0)),
               phase_spec=campaign.option("options.phase", "max_separation"),
-              one_backend_per_night=one_per_night, n_sigma=n_sigma, diameter_precision=prec)
+              one_backend_per_night=one_per_night, n_sigma=n_sigma, diameter_precision=prec,
+              snr_efficiency=float(campaign.option("options.snr_efficiency", 1.0)))
     rows_all, configs = [], []
     for k, e in enumerate(entries):
         arr = array_for(cat, campaign, e)

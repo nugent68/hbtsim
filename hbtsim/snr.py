@@ -193,6 +193,10 @@ class Observation:
     polarization_mode: str = "unpolarized"
     backend_throughput: float = FILTER_THROUGHPUT
     coherence_broadening: bool = True
+    # ratio of the estimator's S/N to the matched Gaussian filter's: 1 for the
+    # one-parameter fit of the module docstring, 0.83 for the three-parameter
+    # (amplitude, width, centre) fit that Guerin et al. 2025 recommend in practice
+    snr_efficiency: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -351,7 +355,7 @@ def g2_snr(vis2, mag_ab, obs: Observation, *,
     n_sig = p2 * np.asarray(vis2, dtype=float) * tau_c * r1 * r2 * obs.t_int_s
     eff_window = 2.0 * np.sqrt(np.pi) * sigma_pair  # matched-filter width
     n_bkg = b1 * b2 * obs.t_int_s * eff_window
-    snr = np.sqrt(n_streams) * n_sig / np.sqrt(n_bkg)
+    snr = obs.snr_efficiency * np.sqrt(n_streams) * n_sig / np.sqrt(n_bkg)
     load = np.maximum(detector1.dead_time_load(inc1), detector2.dead_time_load(inc2))
     f = (lambda a: float(a) if np.ndim(a) == 0 else a)
     return SNRResult(snr=f(snr), rate1_cps=f(r1), rate2_cps=f(r2),
