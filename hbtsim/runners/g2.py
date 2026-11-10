@@ -298,15 +298,19 @@ def g2_array_track(array, backends, systems, *, block_minutes=30.0, min_alt_deg=
                     t1, t2 = arr.stations[i].telescope, arr.stations[j].telescope
                     r1 = float(incident_rate(mag, t1, det, obs)) * n_streams
                     r2 = float(incident_rate(mag, t2, det, obs)) * n_streams
-                    scale = min(readout_scale(det, r1), readout_scale(det, r2))
-                    mag_eff = mag - 2.5 * np.log10(scale) if scale < 1.0 else mag
+                    # each telescope is attenuated (a neutral density in its own
+                    # beam) only as far as its own detector's readout requires
+                    s1, s2 = readout_scale(det, r1), readout_scale(det, r2)
+                    t1s = replace(t1, throughput=t1.throughput * s1) if s1 < 1.0 else t1
+                    t2s = replace(t2, throughput=t2.throughput * s2) if s2 < 1.0 else t2
+                    scale = min(s1, s2)
                     with warnings.catch_warnings():
                         warnings.simplefilter("ignore")
-                        r = g2_snr(tr.vis2[p], mag_eff, obs, telescope1=t1, telescope2=t2,
+                        r = g2_snr(tr.vis2[p], mag, obs, telescope1=t1s, telescope2=t2s,
                                    detector1=det)
                         snr_b = np.asarray(r.snr, float)
                         if single:
-                            sig = np.asarray(g2_snr(1.0, mag_eff, obs, telescope1=t1, telescope2=t2,
+                            sig = np.asarray(g2_snr(1.0, mag, obs, telescope1=t1s, telescope2=t2s,
                                                     detector1=det).snr, float)   # sigma(|V|^2) = 1 / SNR(|V|^2 = 1)
                             dv = (up.vis2[p] - dn.vis2[p]) / (2.0 * dth)
                             fisher[p] += float(np.sum((dv * sig) ** 2))

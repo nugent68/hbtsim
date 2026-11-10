@@ -17,18 +17,19 @@
   "dark_cps_per_pixel": 100.0,
   "n_pixels": 1,
   "readout": "timetag",
-  "max_total_cps": 10000000.0,
+  "max_total_cps": null,
   "sources": [
-    "R. Kaiser (INPHYNI), email to P. Nugent 2026-11-09 ('Targets La Palma'): 1 nm filter at 417 nm (or 431 nm), 2 channels (two polarizations) per telescope, 20 % detection efficiency (large-area detectors, no fibre coupling), 35 ps rms jitter including TDC, detector and synchronization; ready for early 2027"
+    "R. Kaiser (INPHYNI), email to P. Nugent 2026-11-09 ('Targets La Palma'): 1 nm filter at 417 nm (or 431 nm), 2 channels (two polarizations) per telescope, 20 % detection efficiency (large-area detectors, no fibre coupling), 35 ps rms jitter including TDC, detector and synchronization; ready for early 2027",
+    "R. Kaiser, e-mail 2026-11-10 ('Targets La Palma'): the detectors' limitation is in integrated counts, not in maximum count rate."
   ],
   "notes": [
-    "jitter_fwhm_ps 82.4 = 2.355 x 35 ps rms (Gaussian), the whole chain. One entry per polarization channel: the backends use polarization_mode pbs (two detectors per telescope, half the flux and full contrast each, added in quadrature).",
-    "Dead time, dark rate and the 10 Mcps ceiling are not supplied: ASSUMED (the Calern SNSPD values)."
+    "jitter_fwhm_ps 82.4 = 2.355 x 35 ps rms (Gaussian), taken as the single-detector value (the pair response is then 49.5 ps rms); if the 35 ps is already the pair's resolution the S/N is 1.19x higher. One entry per polarization channel: the backends use polarization_mode pbs (two detectors per telescope, half the flux and full contrast each, added in quadrature).",
+    "No count-rate ceiling (max_total_cps null): R. Kaiser, e-mail 2026-11-10, says their limit is in integrated counts, not in rate. Runs before 2026-11-10 ASSUMED a 10 Mcps ceiling, which throttled the GTC by 1.4-2.4x.",
+    "Dead time and dark rate are not supplied: ASSUMED (the Calern SNSPD values)."
   ],
   "assumptions": [
     "dead_time_ns",
     "dark_cps_per_pixel",
-    "max_total_cps",
     "pde flat over 400-450 nm"
   ]
 }
