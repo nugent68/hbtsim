@@ -4,11 +4,14 @@
   "name": "int_2p54m",
   "label": "Isaac Newton Telescope 2.54 m",
   "diameter_m": 2.54,
+  "collecting_area_m2": 4.41,
   "throughput": 0.3,
   "sources": [
+    "ING INT optics page (ing.iac.es/Astronomy/telescopes/int/intoptics.html): primary 2540 mm, central obstruction 914 mm, effective collecting area 4.41 m^2 at both prime and Cassegrain focus.",
     "ING (ing.iac.es): 2.54 m primary; position 28 45 43.4 N, 17 52 39.5 W, 2336 m ground floor"
   ],
   "notes": [
+    "collecting_area_m2 4.41 m^2 is the ING's figure, = pi/4 (2.54^2 - 0.914^2); the unobstructed disk would be 5.07 m^2.",
     "Throughput 0.3 (atmosphere + telescope optics to the camera, excl. filter and PDE) is the hbtsim default, not an LPQI number; Prada et al. 2026 (ELTI) adopt an overall instrumental efficiency of 0.5 for a SPAD camera at the focus."
   ],
   "assumptions": [
