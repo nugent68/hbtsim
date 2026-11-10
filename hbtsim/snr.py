@@ -556,10 +556,16 @@ def _g2_budget(vis2, mag, spectrograph: Spectrograph, baseline_m: float, *,
         inc = [np.asarray(incident_rate(mag, t, d, obs))[mask] for t, d in ((telescope1, det1), (telescope2, det2))]
         tot = [float(np.sum(x)) * n_streams for x in inc]
         busiest = [float(np.max(x)) / d.n_pixels if x.size else 0.0 for x, d in zip(inc, (det1, det2))]
-        scale = min(readout_scale(det1, tot[0], busiest[0]), readout_scale(det2, tot[1], busiest[1]))
-    mag_eff = mag - 2.5 * np.log10(scale) if scale < 1.0 else mag
+        s1, s2 = readout_scale(det1, tot[0], busiest[0]), readout_scale(det2, tot[1], busiest[1])
+        scale = min(s1, s2)
+        # each telescope is attenuated (a neutral density in its own beam)
+        # only as far as its own detector's readout requires
+        if s1 < 1.0:
+            telescope1 = replace(telescope1, throughput=telescope1.throughput * s1)
+        if s2 < 1.0:
+            telescope2 = replace(telescope2, throughput=telescope2.throughput * s2)
 
-    res = g2_snr(vis2, mag_eff, obs, telescope1=telescope1, telescope2=telescope2,
+    res = g2_snr(vis2, mag, obs, telescope1=telescope1, telescope2=telescope2,
                  detector1=det1, detector2=det2)
     _check_dead_time(res.dead_time_load, caller)
     snr = np.where(mask, np.asarray(res.snr), 0.0)

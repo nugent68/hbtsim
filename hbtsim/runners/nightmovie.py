@@ -76,11 +76,13 @@ def _budget(target, lam, w, block_s, t1, t2, det, pol, throughput):
     n_streams = polarization_streams(pol)[0]
     r1 = float(incident_rate(mag, t1, det, obs)) * n_streams
     r2 = float(incident_rate(mag, t2, det, obs)) * n_streams
-    scale = min(readout_scale(det, r1), readout_scale(det, r2))
-    mag_eff = mag - 2.5 * np.log10(scale) if scale < 1.0 else mag
+    s1, s2 = readout_scale(det, r1), readout_scale(det, r2)
+    scale = min(s1, s2)
+    t1s = replace(t1, throughput=t1.throughput * s1) if s1 < 1.0 else t1     # each telescope attenuated
+    t2s = replace(t2, throughput=t2.throughput * s2) if s2 < 1.0 else t2     # by its own detector's need
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        r = g2_snr(1.0, mag_eff, obs, telescope1=t1, telescope2=t2, detector1=det)
+        r = g2_snr(1.0, mag, obs, telescope1=t1s, telescope2=t2s, detector1=det)
     sigma_v2 = 1.0 / float(r.snr)
     b1 = float(r.rate1_cps) + det.dark_cps
     b2 = float(r.rate2_cps) + det.dark_cps

@@ -309,10 +309,16 @@ def spectral_g3_snr(system: BinarySystem, triangle: Triangle,
         dets = [replace(s.detector, n_pixels=1) for s in triangle.stations]
         tots = [float(np.sum(incident_rate(mags, s.telescope, d, obs))) * n_streams
                 for s, d in zip(triangle.stations, dets)]
-        scale = min(readout_scale(d, t) for d, t in zip(dets, tots))
-    mag_eff = mags - 2.5 * np.log10(scale) if scale < 1.0 else mags
+        scales = [readout_scale(d, t) for d, t in zip(dets, tots)]
+        scale = min(scales)
+    tri = triangle
+    if scale < 1.0:
+        # each telescope attenuated only as far as its own detector's readout requires
+        tri = replace(triangle, stations=tuple(
+            replace(s, telescope=replace(s.telescope, throughput=s.telescope.throughput * sc))
+            if sc < 1.0 else s for s, sc in zip(triangle.stations, scales)))
 
-    r = g3_snr(triple_amp, mag_eff, obs, triangle, cos_phi_c=1.0,
+    r = g3_snr(triple_amp, mags, obs, tri, cos_phi_c=1.0,
                pair_vis2=ts.vis2_pairs)
     _check_dead_time(r.dead_time_load, "spectral_g3_snr")
     snr = np.asarray(r.snr)

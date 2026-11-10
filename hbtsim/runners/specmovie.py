@@ -81,13 +81,15 @@ def run(campaign, cat, opts, out_dir: Path) -> dict:
         t1, t2 = arr.stations[i].telescope, arr.stations[j].telescope
         r1 = np.asarray(incident_rate(mag, t1, det, obs)) * n_streams
         r2 = np.asarray(incident_rate(mag, t2, det, obs)) * n_streams
-        scale = min(readout_scale(det, float(r1.sum()), float(r1.max()) / det.n_pixels),
-                    readout_scale(det, float(r2.sum()), float(r2.max()) / det.n_pixels))
-        mag_eff = mag - 2.5 * np.log10(scale) if scale < 1.0 else mag
-        sky = glare * 0.5 * (r1 + r2) * scale / n_streams                  # the neighbour's light, per channel
+        s1 = readout_scale(det, float(r1.sum()), float(r1.max()) / det.n_pixels)
+        s2 = readout_scale(det, float(r2.sum()), float(r2.max()) / det.n_pixels)
+        scale = min(s1, s2)
+        t1s = replace(t1, throughput=t1.throughput * s1) if s1 < 1.0 else t1     # each telescope attenuated
+        t2s = replace(t2, throughput=t2.throughput * s2) if s2 < 1.0 else t2     # by its own detector's need
+        sky = glare * 0.5 * (r1 * s1 + r2 * s2) / n_streams                # the neighbour's light, per channel
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            r = g2_snr(1.0, mag_eff, replace(obs, sky_cps=sky), telescope1=t1, telescope2=t2, detector1=det)
+            r = g2_snr(1.0, mag, replace(obs, sky_cps=sky), telescope1=t1s, telescope2=t2s, detector1=det)
         sig[p] = 1.0 / np.asarray(r.snr, dtype=float)
         rate_tel[p] = (float(np.sum(r.rate1_cps)) * n_streams, float(np.sum(r.rate2_cps)) * n_streams)
         scales[p] = scale
