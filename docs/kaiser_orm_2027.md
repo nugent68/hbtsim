@@ -1,5 +1,12 @@
 # R. Kaiser's O/B dwarfs on the ORM telescopes, spring/summer 2027 (`g2_kaiser_orm_2027`)
 
+> **Note, 2026-11-12.** R. Content's ray tracing gives larger central obscurations than the
+> Zemax files used below: TNG 1.165 m (M2 baffle, was 0.80 m) and NOT 0.715 m (was 0.34 m).
+> The catalog now has TNG 8.56 m² and NOT 4.49 m² (each 6 % lower). The numbers in this
+> document were computed with 9.12 and 4.80 m² and have not been rerun: observing times
+> scale as 1/(A1 A2), so TNG–GTC and NOT–GTC pairs take about 7 % longer and NOT–TNG 14 %
+> longer; the ranking of the telescope combinations is unchanged.
+
 R. Kaiser (INPHYNI, email 2026-11-09, "Targets La Palma") will bring two or three time-tag
 cameras to La Palma in 2027 and asked which ORM telescope combinations (2 or 3 telescopes) give
 the best S/N on λ Ori A, υ Ori, 10 Lac and λ Lep. His instrument: a 1 nm filter at 417 nm (or

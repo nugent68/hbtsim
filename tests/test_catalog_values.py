@@ -119,10 +119,10 @@ def test_lpqi_pathfinder():
     (_, _, b), = pf.pairs()
     assert np.hypot(*b) == pytest.approx(531.8, abs=0.1)                # surveyed NOT-TNG baseline (project quotes 550 m)
     assert np.degrees(np.arctan2(b[0], b[1])) % 360 == pytest.approx(226.7, abs=0.1)
-    # Zemax clear apertures and central obscurations (R. Content, 2026-11-09): NOT 2495 / 340 mm, TNG 3500 / 800 mm
+    # Zemax clear apertures and central obscurations (R. Content, 2026-11-09): NOT 2495 / 715 mm, TNG 3500 / 1165 mm (obscurations corrected 2026-11-10/11)
     assert (pf.stations[0].telescope.diameter_m, pf.stations[1].telescope.diameter_m) == (2.495, 3.5)
-    assert pf.stations[0].telescope.area_m2 == pytest.approx(np.pi / 4 * (2.495**2 - 0.34**2), rel=1e-4)
-    assert pf.stations[1].telescope.area_m2 == pytest.approx(np.pi / 4 * (3.5**2 - 0.8**2), rel=1e-4)
+    assert pf.stations[0].telescope.area_m2 == pytest.approx(np.pi / 4 * (2.495**2 - 0.715**2), rel=1e-4)
+    assert pf.stations[1].telescope.area_m2 == pytest.approx(np.pi / 4 * (3.5**2 - 1.165**2), rel=1e-4)
     assert pf.site.latitude_deg == pytest.approx(28.75728)
     orm = cat.load_array("lpqi_orm")
     lengths = sorted(float(np.hypot(*b)) for _, _, b in orm.pairs())

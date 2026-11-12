@@ -4,8 +4,8 @@ The La Palma Quantum Interferometer (LPQI; [lapalmaqi.es](https://lapalmaqi.es),
 IAA-CSIC / IAC, PI F. Prada) is a photon-counting intensity interferometer at
 the Roque de los Muchachos Observatory. Its first phase, the **LPQI-Pathfinder**,
 correlates photon detections between the Nordic Optical Telescope (2.56 m
-primary, 2.495 m clear aperture with a 0.34 m obscuration) and the Telescopio
-Nazionale Galileo (3.58 m primary, 3.50 m clear aperture with a 0.80 m
+primary, 2.495 m clear aperture with a 0.715 m obscuration) and the Telescopio
+Nazionale Galileo (3.58 m primary, 3.50 m clear aperture with a 1.165 m
 obscuration; both from R. Content's Zemax models, 2026-11-09) "550 metres
 apart", with 64×64 SPAD
 cameras at the telescope foci, fibre-linked White Rabbit time stamps and
