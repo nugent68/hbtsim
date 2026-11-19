@@ -17,18 +17,20 @@
   "dark_cps_per_pixel": 50.0,
   "n_pixels": 1,
   "readout": "timetag",
-  "max_total_cps": 12000000.0,
+  "max_total_cps": 2500000.0,
   "sources": [
     "F. Prada (LPQI PI), email to P. Nugent 2026-10-07: sensor data for both LPQI-Pathfinder detectors and the filter set",
-    "F. Prada, 2026-10-09 (via P. Nugent): the MPD is the Pathfinder's detector, maximum detection rate 12e6 cps, 35 ps timing above 470 nm (the 500 ps White Rabbit figure applied to the IMSE array, not to this device)."
+    "F. Prada, 2026-10-09 (via P. Nugent): the MPD is the Pathfinder's detector, maximum detection rate 12e6 cps, 35 ps timing above 470 nm (the 500 ps White Rabbit figure applied to the IMSE array, not to this device).",
+    "Micro Photon Devices via F. Prada, e-mail 2026-11-19: the maximum count rate is the inverse of the dead time, but do not run the module (or any SPAD) for minutes or more above about a fifth of that; keep the sustained rate to 2-3 Mc/s (fast bursts may go higher)."
   ],
   "notes": [
     "Single-pixel Micro Photon Devices SPAD, 50 um, 35 ps FWHM timing above 470 nm (250-300 ps below, see lpqi_spad1_mpd_blue), 55 ns dead time, 50 cps dark; the Pathfinder's primary detector since 2026-10-09 (the lensed IMSE array is the other option).",
-    "max_total_cps 12e6: the device's maximum detection rate (F. Prada 2026-10-09); the runners attenuate brighter stars to it as a neutral-density filter would. On the TNG behind a 1 nm filter that is reached at AB ~ 1.6 (Spica, Sirius, beta Aur and Algol in the blue filters are limited; the O/B diameter targets and the eta/iota Ori binaries are not).",
+    "max_total_cps 2.5e6 is the manufacturer's sustained OPERATING limit (midpoint of the advised 2-3 Mc/s, 2026-11-19), not the device maximum (1 / 55 ns = 18 Mc/s; 12e6 was used until 2026-11-19). The runners attenuate each telescope to it as a neutral-density filter would. Behind the 550.0-0.5 filter delta Ori Aa1 (5.0 Mcps per telescope) is attenuated by half and epsilon Per and gamma Peg by about 10 %; eta Ori, lambda Ori, beta Cep and zeta Tau stay below it. The 1 nm filters double every rate, so with them most of the O/B targets are limited.",
     "PDE: flat 0.30 over 400-700 nm (assumed; the curve is not yet supplied)."
   ],
   "assumptions": [
     "pde_table_nm (flat 30 %)",
+    "max_total_cps (2.5e6 adopted within the advised 2-3 Mc/s)",
     "n_pixels"
   ]
 }

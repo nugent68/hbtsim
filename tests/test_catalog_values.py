@@ -148,7 +148,7 @@ def test_lpqi_pathfinder():
     assert cat.load_backend("lpqi_r10000_nextgen").detector.max_cps_per_pixel == 6.7e6
     m = cat.load_detector("lpqi_spad1_mpd")
     assert (m.pde(550.0), m.jitter_fwhm_ps, m.dead_time_ns, m.dark_cps_per_pixel, m.n_pixels) == (0.3, 35.0, 55.0, 50.0, 1)
-    assert m.max_total_cps == 12e6 and m.readout == "timetag"      # F. Prada 2026-10-09
+    assert m.max_total_cps == 2.5e6 and m.readout == "timetag"     # MPD sustained limit 2-3 Mc/s (F. Prada 2026-11-19; 12e6 before)
     mb = cat.load_detector("lpqi_spad1_mpd_blue")
     assert mb.jitter_fwhm_ps == 275.0 and mb.pde(425.0) == 0.3 and mb.dead_time_ns == 55.0
     for key, lam in (("halpha", 656.28), ("hbeta", 486.13), ("500", 500.0), ("550", 550.0), ("425", 425.0)):
