@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "kind": "spectrograph",
+  "name": "filter_scsi_532_3nm",
+  "label": "SCSI 532 nm filter, FWHM 3.0 nm",
+  "lambda_min_nm": 530.5,
+  "lambda_max_nm": 533.5,
+  "n_channels": 1,
+  "throughput": 0.9,
+  "sources": [
+    "Horch et al. 2026, arXiv:2601.13447 (SCSI paper II): narrow bandpass filter, usually 532 nm with FWHM 1.2 nm; 532/3.0 nm earlier"
+  ],
+  "notes": [
+    "The earlier filter (Paper I and 2017 Jun 21): FWHM 3.0 nm.",
+    "Top-hat of the stated FWHM; the true profile and peak transmission are not given in the paper. Throughput 0.9 as for the other single filters; the telescope throughput is calibrated against the count rate with this value.",
+    "Coherence time 0.79 ps (1.2 nm) or 0.31 ps (3 nm), far below the 48 ps timing: the band width sets the count rate, not the g2 width."
+  ],
+  "assumptions": [
+    "throughput",
+    "top-hat profile"
+  ]
+}

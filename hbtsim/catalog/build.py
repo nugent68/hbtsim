@@ -327,7 +327,9 @@ def build_array(cat, d: dict, **overrides):
 
 
 def build_resource(cat, d: dict) -> Resource:
-    remote = tuple(sorted((k, v) for k, v in d.get("remote", {}).items() if not k.startswith("_")))
+    def frozen(k, v):               # the inline `files` manifest: a list of dicts, kept hashable
+        return tuple(tuple(sorted(f.items())) for f in v) if k == "files" else v
+    remote = tuple(sorted((k, frozen(k, v)) for k, v in d.get("remote", {}).items() if not k.startswith("_")))
     return Resource(d["name"], remote=remote, **_given(d, ("path", "env_override", "pattern", "contents")))
 
 

@@ -171,3 +171,19 @@ def test_data_cli(mirror, tmp_path, monkeypatch, capsys):
     assert data.main(["manifest", str(mirror)]) == 0
     assert '"schema_version": 1' in capsys.readouterr().out
     assert data.main(["fetch", "--model", "nope", "--base-url", mirror.as_uri() + "/"]) == 1
+
+
+def test_one_off_model_names_and_inline_manifest():
+    # one-off models carry extra tokens after [M/H]; the resource file is its own manifest
+    name = "newera_lte04286-1.66-0.5.alpha=+0.4.xi=1.7_380-1000nm_0.02nm.npz"
+    i = data.parse_table_name(name)
+    assert (i["model"], i["teff"], i["logg"], i["z"]) == ("lte04286-1.66-0.5.alpha=+0.4.xi=1.7", 4286.0, 1.66, -0.5)
+    assert data.table_name(i["model"]) == name
+    assert data.parse_table_name("newera_lte04286-1.66-0.5.junk_380-1000nm_0.02nm.npz") is None
+    cat = Catalog(env=False)
+    res = cat.load_resource("newera_arcturus")
+    m = data.manifest_for(res, res.remote_dict["base_url"])           # no network: remote.files
+    ptr = cat.registry.raw("target", "arcturus")["atmosphere"]
+    (e,) = data.select_entries(m, models=[ptr["model"]])
+    assert e["name"] == name and len(e["sha256"]) == 64 and e["size"] > 1e6
+    assert len({(f["teff"], f["logg"], f["z"]) for f in m["files"]}) == 2

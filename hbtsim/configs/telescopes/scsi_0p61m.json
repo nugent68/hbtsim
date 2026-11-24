@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "kind": "telescope",
+  "name": "scsi_0p61m",
+  "label": "SCSI 61 cm portable Dobsonian (Newtonian focus)",
+  "diameter_m": 0.61,
+  "collecting_area_m2": 0.277,
+  "throughput": 0.07,
+  "sources": [
+    "Horch et al. 2026, arXiv:2601.13447 (SCSI paper II): three identical 61 cm portable Dobsonians (Equatorial Platforms), detector package with collimating lens, filter and reimaging lens at the Newtonian focus, manual guiding, 100 um SPAD; average count rates 0.10-1.33 MHz per telescope on Vega and Arcturus with the 532/1.2 nm filter (Tables 1 and 2)"
+  ],
+  "notes": [
+    "collecting_area_m2 0.277 = 0.292 m2 x (1 - 0.05): a 5 % secondary obstruction, ASSUMED.",
+    "throughput 0.07 is CALIBRATED, not a component budget: it gives 0.95 Mcps per telescope on Vega and Arcturus with the 532/1.2 nm filter, the paper's 'average count rate of ~1 MHz' on the 2025 Arcturus nights (best nights 1.3 Mcps). It lumps the atmosphere at sea level, two aluminium mirrors, the collimator and reimaging lenses and, mostly, the fraction of the seeing disk and manual-guiding wander that lands on the 100 um SPAD. Poor nights are 2-10x lower (0.10-0.55 Mcps).",
+    "Alt-az Dobsonian: the paper reports losing the star near the zenith."
+  ],
+  "assumptions": [
+    "throughput (calibrated to the ~1 Mcps good-night count rate)",
+    "collecting_area_m2 (5 % obstruction)",
+    "min_alt_deg"
+  ],
+  "min_alt_deg": 25.0
+}

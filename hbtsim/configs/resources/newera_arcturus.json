@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "kind": "resource",
+  "name": "newera_arcturus",
+  "label": "One-off NewEra (PHOENIX) model for Arcturus and its alpha-enhanced comparison node",
+  "path": "data/newera_arcturus",
+  "env_override": "HBTSIM_NEWERA_ARCTURUS_DIR",
+  "pattern": "newera_lte*.npz",
+  "contents": "bin_rf_standalone .npz, 380-1000 nm (0.02 nm) and 380-2500 nm (0.1 nm) ranges",
+  "remote": {
+    "base_url": "https://portal.nersc.gov/project/newera/phoenix/one-off/arcturus/",
+    "default_range": "380-1000nm_0.02nm",
+    "files": [
+      {
+        "name": "newera_lte04286-1.66-0.5.alpha=+0.4.xi=1.7_380-1000nm_0.02nm.npz",
+        "size": 12988218,
+        "sha256": "a2f23d5b12a6586bf59693d7478fabe1375b066de1ea9781f6666f2282388120"
+      },
+      {
+        "name": "newera_lte04286-1.66-0.5.alpha=+0.4.xi=1.7_380-2500nm_0.1nm.npz",
+        "size": 8846816,
+        "sha256": "f94cb10e38925be3025a2ac60547f2a97b1d2c212626f76d6b0fbbec1b2c9a72"
+      },
+      {
+        "name": "newera_lte04300-1.50-0.5.alpha=+0.4_380-1000nm_0.02nm.npz",
+        "size": 12942680,
+        "sha256": "13470fdf979bcca1ce4e4f8238a00028479db5593a5b8a705c8b75f20fe4208a"
+      },
+      {
+        "name": "newera_lte04300-1.50-0.5.alpha=+0.4_380-2500nm_0.1nm.npz",
+        "size": 8830866,
+        "sha256": "dcbbed602348666e7a2e5b9995367ffeb8688dd04655b9d991976e24455405e3"
+      }
+    ]
+  },
+  "sources": [
+    "NewEra one-off page https://portal.nersc.gov/project/newera/phoenix/one-off/arcturus/ (README.md there; computed at NERSC 2026-11-24 with P. Hauschildt's executable and templates): lte04286-1.66-0.5.alpha=+0.4 with microturbulence 1.7 km/s and 1.08 Msun (Ramirez & Allende Prieto 2011 parameters), and the grid-settings node lte04300-1.50-0.5.alpha=+0.4"
+  ],
+  "notes": [
+    "Spherical, LTE, 1D; [M/H] -0.5 with a uniform [alpha/Fe] +0.4. R_eff = 25.46 Rsun, R_outer / R_eff = 1.0418; the tables' own reference radius (tau = 1 at 1.2 um, r_outer_over_tau1 = 1.0338) is 1.0077 R_eff.",
+    "The one-off directory hosts no manifest.json: `remote.files` is the manifest (sizes and SHA-256 of the files downloaded 2026-11-24). If the tables are re-binned at NERSC the hashes here must be updated.",
+    "Kept apart from data/newera_redclump because NewEraGrid.scan keys tables by (T_eff, log g, [M/H]) only: the alpha-enhanced node would collide with the solar-scaled lte04300-1.50-0.5.",
+    "Directory search order: $HBTSIM_NEWERA_ARCTURUS_DIR, then this `path` relative to the current directory, then <data_dir>/newera_arcturus. `hbtsim data fetch --target arcturus` downloads the Arcturus table."
+  ]
+}

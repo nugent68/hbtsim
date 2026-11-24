@@ -33,15 +33,24 @@
   "sources": [
     "Lacour et al. 2008, A&A 485, 561 (IOTA/IONIC, H band): Rosseland diameter 21.05 +/- 0.21 mas, limb darkening matching MARCS; Ramirez & Allende Prieto 2011: 21.06 +/- 0.17 mas",
     "Ramirez & Allende Prieto 2011: T_eff 4286 +/- 30 K, log g 1.66, mass 1.08 Msun",
-    "van Leeuwen 2007: parallax 88.83 +/- 0.54 mas -> 11.26 pc; Ducati 2002 V -0.05; 2MASS H -2.81, K -2.91 (saturated)"
+    "van Leeuwen 2007: parallax 88.83 +/- 0.54 mas -> 11.26 pc; Ducati 2002 V -0.05; 2MASS H -2.81, K -2.91 (saturated)",
+    "NewEra one-off model for Arcturus (NERSC, 2026-11-24; https://portal.nersc.gov/project/newera/phoenix/one-off/arcturus/): T_eff 4286 K, log g 1.66, [M/H] -0.5, [alpha/Fe] +0.4, 1.08 Msun, microturbulence 1.7 km/s; cite as Hauschildt, Baron et al. 2025, A&A 698, A47 with the changed parameters"
   ],
   "notes": [
     "First null 10.8 m at 900 nm, 7.8 m at 650 nm.",
     "Anchors are Vega magnitudes converted with the band table's Vega -> AB offsets (V +0.02, H +1.39, K +1.85); 900 and 900 nm fall inside the anchored range.",
-    "The radius is derived from theta_LD and the distance. No NewEra model exists below 4700 K: blackbody + linear law."
+    "The radius is derived from theta_LD and the distance.",
+    "The atmosphere block names the dedicated one-off NewEra model (spherical, LTE). Campaigns with atmosphere.use false keep the blackbody + linear law.",
+    "Radius convention: hbtsim places theta_ld_mas at the table's tau = 1 (1.2 um) radius, which is 1.0077 R_eff for this model, so 21.05 mas here is theta_eff = 20.89 mas, 0.8 % below the 21.06 mas bolometric-flux diameter of Ramirez & Allende Prieto 2011 and inside its 0.17 mas error. The Lacour et al. Rosseland diameter is not exactly either radius.",
+    "The page's linear-law equivalents for this model: mu = 0.81 at 532 nm, 0.62 at 692 nm, 0.48 at 880 nm (edge at R_eff)."
   ],
   "assumptions": [
     "mag_anchors H and K (2MASS saturated)",
-    "ld_table (K-giant law at 4300 K)"
-  ]
+    "ld_table (K-giant law at 4300 K; used only without the model atmosphere)",
+    "theta_ld_mas taken at the model's tau = 1 (1.2 um) radius"
+  ],
+  "atmosphere": {
+    "resource": "newera_arcturus",
+    "model": "lte04286-1.66-0.5.alpha=+0.4.xi=1.7"
+  }
 }

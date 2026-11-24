@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "scsi_triangle",
+  "label": "SCSI three-telescope right triangle (2021 Sep 11 layout)",
+  "site": "scsu_new_haven",
+  "stations": [
+    {
+      "name": "SCSI-1",
+      "east_m": 0.0,
+      "north_m": 0.0,
+      "up_m": 0.0,
+      "telescope": "scsi_0p61m",
+      "detector": "mpd_pdm_100um"
+    },
+    {
+      "name": "SCSI-2",
+      "east_m": 0.0,
+      "north_m": 2.454,
+      "up_m": 0.0,
+      "telescope": "scsi_0p61m",
+      "detector": "mpd_pdm_100um"
+    },
+    {
+      "name": "SCSI-3",
+      "east_m": -2.452,
+      "north_m": 0.0,
+      "up_m": 0.0,
+      "telescope": "scsi_0p61m",
+      "detector": "mpd_pdm_100um"
+    }
+  ],
+  "sources": [
+    "Horch et al. 2026, arXiv:2601.13447 (SCSI paper II), Sect. 2.1 and Table 1: Telescope 2 north of Telescope 1, Telescope 3 west of Telescope 1 (right angle at Telescope 1); 2021 Sep 11: N-S 2.454 m, E-W 2.452 m, NE-SW 3.469 m"
+  ],
+  "notes": [
+    "The layout changes every night (N-S 2.45-3.40 m, E-W 2.39-2.96 m); this is the night with the most data (3.34 h).",
+    "Heights are set to zero; the paper levels the stations to a few cm on a crowned road."
+  ],
+  "assumptions": [
+    "up_m"
+  ]
+}

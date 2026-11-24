@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "site",
+  "name": "scsu_new_haven",
+  "label": "Southern Connecticut State University, New Haven (SCSI)",
+  "latitude_deg": 41.333,
+  "longitude_deg": -72.947,
+  "elevation_m": 20.0,
+  "sources": [
+    "Horch et al. 2026, arXiv:2601.13447 (SCSI paper II): the SCSI observes from a service road on the SCSU campus, 501 Crescent Street, New Haven, CT"
+  ],
+  "notes": [
+    "Campus coordinates to ~1 km, ASSUMED from the street address (not from the paper); sea-level maritime site, so the telescope throughput carries a lower atmospheric transmission than the mountain sites."
+  ],
+  "assumptions": [
+    "latitude_deg",
+    "longitude_deg",
+    "elevation_m"
+  ]
+}

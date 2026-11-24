@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "kind": "array",
+  "name": "scsi_pair",
+  "label": "SCSI pair (two 61 cm Dobsonians), north-south, 2-3 m",
+  "site": "scsu_new_haven",
+  "generator": {
+    "type": "pair",
+    "baseline_m": 2.2,
+    "pa_deg": 0.0,
+    "min_spacing_m": 1.5,
+    "station_names": [
+      "SCSI-1",
+      "SCSI-2"
+    ],
+    "telescope": "scsi_0p61m",
+    "detector": "mpd_pdm_100um"
+  },
+  "sources": [
+    "Horch et al. 2026, arXiv:2601.13447 (SCSI paper II), Table 2: north-south separations 2.061-3.005 m on the Arcturus nights (Telescope 2 north of Telescope 1)"
+  ],
+  "notes": [
+    "baseline_m 2.2 is the typical 2025 separation; set per night through instrument.array_params or options.baseline_schedule.",
+    "min_spacing_m 1.5 is ASSUMED (tube and base clearance); the smallest published separation is 2.06 m."
+  ],
+  "assumptions": [
+    "min_spacing_m"
+  ]
+}

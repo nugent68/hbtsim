@@ -45,8 +45,10 @@ ENV_AUTO_FETCH = "HBTSIM_AUTO_FETCH"
 DEFAULT_RANGE = "380-1000nm_0.02nm"
 MANIFEST_VERSION = 1
 
-# newera_lte09200-4.00-0.0_380-1000nm_0.02nm.npz
-TABLE_RE = re.compile(r"^newera_(lte(\d{5})-(\d\.\d\d)([-+]\d\.\d))_(\d+)-(\d+)nm_([0-9.]+)nm\.npz$")
+# newera_lte09200-4.00-0.0_380-1000nm_0.02nm.npz; one-off models carry extra
+# tokens after [M/H]: newera_lte04286-1.66-0.5.alpha=+0.4.xi=1.7_380-1000nm_0.02nm.npz
+TABLE_RE = re.compile(r"^newera_(lte(\d{5})-(\d\.\d\d)([-+]\d\.\d)(?:\.[A-Za-z]+=[-+]?\d+(?:\.\d+)?)*)"
+                      r"_(\d+)-(\d+)nm_([0-9.]+)nm\.npz$")
 
 
 class DataError(Exception):
@@ -143,6 +145,23 @@ def load_manifest(base_url: str, manifest_name: str = "manifest.json", timeout: 
     if d.get("schema_version") != MANIFEST_VERSION or "files" not in d:
         raise DataError(f"{url} is not an hbtsim table manifest (schema_version {MANIFEST_VERSION})")
     return d
+
+
+def manifest_for(resource, base_url: str) -> dict:
+    """The table manifest of a resource: its inline `remote.files` list
+    (name, size, sha256 per table; for small one-off directories that host
+    no manifest.json) or the manifest.json at base_url."""
+    remote = resource.remote_dict
+    if remote.get("files"):
+        files = []
+        for f in remote["files"]:
+            f = dict(f)
+            info = parse_table_name(f["name"])
+            if info is None:
+                raise DataError(f"resource {resource.name!r}: {f['name']!r} is not a binned-table name")
+            files.append({"resource": resource.name, **f, **info})
+        return {"schema_version": MANIFEST_VERSION, "files": files}
+    return load_manifest(base_url, remote.get("manifest", "manifest.json"))
 
 
 # ---------------------------------------------------------------------------
@@ -248,7 +267,7 @@ def fetch(resource, *, models=None, ranges=(DEFAULT_RANGE,), all_models: bool = 
     """Fetch the given models (or all) of a catalog Resource into dest
     (default: the resource's cache directory); returns the local paths."""
     url = base_url_for(resource, base_url)
-    manifest = load_manifest(url, resource.remote_dict.get("manifest", "manifest.json"))
+    manifest = manifest_for(resource, url)
     entries = select_entries(manifest, models=models, ranges=ranges, all_models=all_models)
     if progress:
         progress(f"{resource.name}: {len(entries)} table(s), {sum(e['size'] for e in entries) / 1e6:.0f} MB from {url}")
@@ -270,7 +289,7 @@ def fetch_for_target(cat, name: str, *, base_url: str | None = None, dest=None,
     if ptr.get("model"):
         return fetch(res, models=[ptr["model"]], ranges=(rng,), base_url=base_url, dest=dest, progress=progress)
     url = base_url_for(res, base_url)
-    manifest = load_manifest(url, res.remote_dict.get("manifest", "manifest.json"))
+    manifest = manifest_for(res, url)
     entries = [e for e in manifest["files"] if e["range"] == rng]
     target = cat.load_target(name)
     stars = ([target.primary, target.secondary] if hasattr(target, "primary")

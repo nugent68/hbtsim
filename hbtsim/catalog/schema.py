@@ -299,7 +299,7 @@ def check_kind(where: str, kind: str, d: dict) -> None:
         if "remote" in d:
             check_fields(f"{where}: remote", d["remote"],
                          (Field("base_url", STR, required=True), Field("manifest", STR),
-                          Field("default_range", STR)))
+                          Field("default_range", STR), Field("files", LIST)))
     elif kind == "backend":
         if d["model"] == "counting":
             if "spectrograph" not in d:

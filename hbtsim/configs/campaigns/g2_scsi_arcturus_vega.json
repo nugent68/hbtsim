@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "campaign",
+  "name": "g2_scsi_arcturus_vega",
+  "label": "SCSI (three 61 cm Dobsonians, New Haven): Arcturus and Vega at 532 nm on the 2-3 m north-south pair",
+  "runner": "g2",
+  "targets": [
+    "arcturus",
+    "vega"
+  ],
+  "instrument": {
+    "array": "scsi_pair"
+  },
+  "backends": [
+    "scsi_pdm_532_1p2nm"
+  ],
+  "night": {
+    "block_minutes": 30.0,
+    "min_alt_deg": 30.0
+  },
+  "atmosphere": {
+    "use": true
+  },
+  "options": {
+    "one_backend_per_night": true,
+    "detection_sigma": 3.0,
+    "diameter_precision": 0.08,
+    "baseline_schedule": [
+      {
+        "baseline_m": 2.061,
+        "pa_deg": 0.0
+      },
+      2.129,
+      2.151,
+      2.224,
+      2.359,
+      3.005
+    ]
+  },
+  "outputs": {
+    "latex": false
+  },
+  "notes": [
+    "The six 2025 Arcturus separations of the paper's Table 2, one full night each: an upper bound on what SCSI collected (7.77 h in total over seven nights, at 0.27-1.33 Mcps).",
+    "Paper values to compare with: Arcturus |V|^2 = 0.49 +/- 0.26 near 20 cycles/arcsec, theta_LD = 21.5 +/- 1.8 mas with the speckle data; Vega 4.7 sigma in 11.87 h.",
+    "Arcturus uses the one-off NewEra model (resource newera_arcturus); Vega interpolates in the A-star tables (resource newera). --no-newera falls back to blackbodies."
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "kind": "backend",
+  "name": "scsi_pdm_532_3nm",
+  "label": "SCSI 532/3.0 nm, MPD PDM 100 um, HydraHarp time tags",
+  "model": "counting",
+  "spectrograph": "filter_scsi_532_3nm",
+  "detector": "mpd_pdm_100um",
+  "polarization_mode": "unpolarized",
+  "sources": [
+    "Horch et al. 2026, arXiv:2601.13447 (SCSI paper II): MPD PDM series SPADs (100 um), PicoQuant PicoHarp 300 (two stations) or HydraHarp 400 (three), cross-correlation timing ~50 ps, Gaussian FWHM fixed at 48 ps, 64 ps bins"
+  ],
+  "notes": [
+    "One free-beam PDM per telescope; unpolarized light (p2 = 1/2).",
+    "Measured efficiency: 0.2190 +/- 0.0240 % excess correlations per 64 ps bin on unresolved stars (paper, Sect. 2.3). The ideal value is 0.5 x 0.79 ps / 64 ps = 0.61 %, so the instrument delivers ~0.36 of the ideal coherent signal (our arithmetic, top-hat filter); hbtsim does not apply this loss unless a campaign sets it."
+  ]
+}
